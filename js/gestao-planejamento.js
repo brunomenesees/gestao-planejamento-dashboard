@@ -1987,7 +1987,7 @@ async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
  */
 async function updateMantisHandler(ticketNumber, newHandlerUsername) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
-    const issueUrl = `/api/mantis-proxy/issues/${ticketNumber}`;
+    const issueUrl = `/issues/${ticketNumber}`;
 
     const body = {
         handler: {
