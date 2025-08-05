@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   
     // Montar headers
     const headers = {
-      'Authorization': `Bearer ${process.env.MANTIS_API_TOKEN}`,
+      'Authorization': process.env.MANTIS_API_TOKEN,
       'Content-Type': 'application/json',
     };
   
