@@ -1335,7 +1335,7 @@ function updateTable() {
 
             if (index === 0 && valor) {
                 const link = document.createElement('a');
-                link.href = window.AppConfig.getMantisViewUrl(valor);
+                link.href = window.AppConfig.getMantisViewUrl(valor); // (A visualização do ticket pode continuar usando o link direto, pois é apenas navegação, não API)
                 link.textContent = valor;
                 link.target = '_blank';
                 link.style.color = '#0066cc';
@@ -1932,7 +1932,7 @@ function mostrarNotificacao(mensagem, tipo) {
  */
 async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
-    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
+    const issueUrl = `/api/mantis-proxy/issues/${ticketNumber}`;
 
     const body = {
         custom_fields: [
@@ -1987,7 +1987,7 @@ async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
  */
 async function updateMantisHandler(ticketNumber, newHandlerUsername) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
-    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
+    const issueUrl = `/api/mantis-proxy/issues/${ticketNumber}`;
 
     const body = {
         handler: {
@@ -2112,8 +2112,8 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
-    const noteUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}/notes`);
-    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
+    const noteUrl = `/api/mantis-proxy/issues/${ticketNumber}/notes`;
+    const issueUrl = `/api/mantis-proxy/issues/${ticketNumber}`;
 
     // Promise para adicionar a nota (comportamento antigo)
     const addNotePromise = fetch(noteUrl, {
