@@ -1,10 +1,3 @@
-// Adicionar no início do arquivo
-document.addEventListener('DOMContentLoaded', async function() {
-    // Verificar autenticação
-    if (!window.authService || !window.authService.isAuthenticated()) {
-        window.location.href = '/login.html';
-        return;
-    };
 // Dados globais - inicializados vazios
 let demandasData = [];
 let currentPage = 1;
@@ -2485,7 +2478,7 @@ function showActionButtons(container, newStatus, ticketNumber) {
 
     modalContainer.appendChild(modalContent);
     document.body.appendChild(modalContainer);
-
+    
     // Focar no campo de observação
     setTimeout(() => {
         observacaoTextarea.focus();
@@ -2581,4 +2574,3 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     }
     return true;
 }
-});
