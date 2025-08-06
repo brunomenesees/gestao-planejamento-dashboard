@@ -8,10 +8,18 @@ export default async function handler(req, res) {
     console.log('Headers:', req.headers);
     console.log('Body:', req.body);
     
-    // Configurar CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Configurar CORS de forma segura
+    const allowedOrigins = [
+        'https://gestao-planejamento-dashboard.vercel.app',
+        'http://localhost:3000'
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
         console.log('OPTIONS request - returning 200');

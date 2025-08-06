@@ -16,8 +16,16 @@ function verifyToken(req) {
 }
 
 export default async function handler(req, res) {
-    // Configurar CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Configurar CORS de forma segura
+    const allowedOrigins = [
+        'https://gestao-planejamento-dashboard.vercel.app',
+        'http://localhost:3000'
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
