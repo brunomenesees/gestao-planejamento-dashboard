@@ -1963,6 +1963,50 @@ async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
             console.log('Campo customizado atualizado com sucesso:', responseData);
             mostrarNotificacao(`Campo customizado do ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
             
+            // Atualizar o campo correspondente no banco local
+            try {
+                const db = await openDB();
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                const getRequest = store.get(ticketNumber);
+                getRequest.onsuccess = () => {
+                    const demanda = getRequest.result;
+                    if (demanda) {
+                        // Mapear o fieldId para o campo correspondente
+                        const fieldMap = {
+                            70: 'status',
+                            71: 'numero_gmud',
+                            49: 'squad',
+                            65: 'atribuicao',
+                            69: 'resp_atual'
+                        };
+                        
+                        const fieldKey = fieldMap[fieldId];
+                        if (fieldKey) {
+                            demanda[fieldKey] = newValue;
+                            
+                            // Salvar de volta no banco
+                            const putRequest = store.put(demanda);
+                            putRequest.onsuccess = () => {
+                                console.log(`Campo ${fieldKey} atualizado para ticket ${ticketNumber}: ${newValue}`);
+                                
+                                // Atualizar também os dados em memória
+                                const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
+                                if (demandaIndex !== -1) {
+                                    demandasData[demandaIndex][fieldKey] = newValue;
+                                }
+                                
+                                // Recarregar a tabela para mostrar as mudanças
+                                filterData();
+                            };
+                        }
+                    }
+                };
+            } catch (error) {
+                console.error('Erro ao atualizar campo no banco de dados local:', error);
+            }
+            
             // Atualizar o campo "Última atualização" no banco local
             try {
                 await updateDemandaLastUpdated(ticketNumber);
@@ -2014,6 +2058,39 @@ async function updateMantisHandler(ticketNumber, newHandlerUsername) {
             const responseData = await response.json();
             console.log('Responsável atualizado com sucesso:', responseData);
             mostrarNotificacao(`Responsável do ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
+            
+            // Atualizar o campo atribuicao no banco local
+            try {
+                const db = await openDB();
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                const getRequest = store.get(ticketNumber);
+                getRequest.onsuccess = () => {
+                    const demanda = getRequest.result;
+                    if (demanda) {
+                        // Atualizar o campo atribuicao
+                        demanda.atribuicao = newHandlerUsername;
+                        
+                        // Salvar de volta no banco
+                        const putRequest = store.put(demanda);
+                        putRequest.onsuccess = () => {
+                            console.log(`Campo atribuicao atualizado para ticket ${ticketNumber}: ${newHandlerUsername}`);
+                            
+                            // Atualizar também os dados em memória
+                            const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
+                            if (demandaIndex !== -1) {
+                                demandasData[demandaIndex].atribuicao = newHandlerUsername;
+                            }
+                            
+                            // Recarregar a tabela para mostrar as mudanças
+                            filterData();
+                        };
+                    }
+                };
+            } catch (error) {
+                console.error('Erro ao atualizar atribuicao no banco de dados local:', error);
+            }
             
             // Atualizar o campo "Última atualização" no banco local
             try {
@@ -2167,6 +2244,41 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
                         demandasData[demandaIndex][dataKey] = newValue;
                     }
                 }
+                
+                // Atualizar também no banco de dados local
+                try {
+                    const db = await openDB();
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    
+                    const getRequest = store.get(ticketNumber);
+                    getRequest.onsuccess = () => {
+                        const demanda = getRequest.result;
+                        if (demanda) {
+                            const keyMap = {
+                                49: 'squad',
+                                65: 'atribuicao',
+                                69: 'resp_atual'
+                            };
+                            const dataKey = keyMap[customFieldId];
+                            if(dataKey) {
+                                demanda[dataKey] = newValue;
+                                
+                                // Salvar de volta no banco
+                                const putRequest = store.put(demanda);
+                                putRequest.onsuccess = () => {
+                                    console.log(`Campo ${dataKey} atualizado para ticket ${ticketNumber}: ${newValue}`);
+                                    
+                                    // Recarregar a tabela para mostrar as mudanças
+                                    filterData();
+                                };
+                            }
+                        }
+                    };
+                } catch (error) {
+                    console.error('Erro ao atualizar campo no banco de dados local:', error);
+                }
+                
                 mostrarNotificacao(`Campo "${modalTitle.replace('Atualizar ', '')}" do ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
                 closeModal();
             } else {
@@ -2490,7 +2602,42 @@ function showActionButtons(container, newStatus, ticketNumber) {
         let success = await postToMantis(ticketNumber, note, newStatus, gmudValue);
 
         if (success) {
+            // Atualizar o texto do botão na interface
             container.querySelector('.status-dropdown-btn').textContent = newStatus;
+            
+            // Atualizar o campo status no banco de dados local
+            try {
+                const db = await openDB();
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                const getRequest = store.get(ticketNumber);
+                getRequest.onsuccess = () => {
+                    const demanda = getRequest.result;
+                    if (demanda) {
+                        // Atualizar o campo status
+                        demanda.status = newStatus;
+                        
+                        // Salvar de volta no banco
+                        const putRequest = store.put(demanda);
+                        putRequest.onsuccess = () => {
+                            console.log(`Campo status atualizado para ticket ${ticketNumber}: ${newStatus}`);
+                            
+                            // Atualizar também os dados em memória
+                            const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
+                            if (demandaIndex !== -1) {
+                                demandasData[demandaIndex].status = newStatus;
+                            }
+                            
+                            // Recarregar a tabela para mostrar o novo status
+                            filterData();
+                        };
+                    }
+                };
+            } catch (error) {
+                console.error('Erro ao atualizar status no banco de dados local:', error);
+            }
+            
             modalContainer.remove();
             mostrarNotificacao(`Ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
         } else {
