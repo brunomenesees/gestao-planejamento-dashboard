@@ -1930,10 +1930,9 @@ function mostrarNotificacao(mensagem, tipo) {
  * @param {string} newValue - O novo valor para o campo.
  * @returns {Promise<boolean>} - Retorna true se a atualização for bem-sucedida, false caso contrário.
  */
-async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
-    const token = window.AppConfig.MANTIS_API_TOKEN;
-    const mantisBaseUrl = window.AppConfig.MANTIS_BASE_URL;
-const issueUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}`;
+sync function updateMantisCustomField(ticketNumber, fieldId, newValue) {
+    const proxyUrl = '/api/mantis';  // Rota configurada no vercel.json
+    const issueUrl = `${proxyUrl}/issues/${ticketNumber}`;
 
     const body = {
         custom_fields: [
@@ -1987,9 +1986,8 @@ const issueUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}`;
  * @returns {Promise<boolean>} - Retorna true se a atualização for bem-sucedida, false caso contrário.
  */
 async function updateMantisHandler(ticketNumber, newHandlerUsername) {
-    const token = window.AppConfig.MANTIS_API_TOKEN;
-    const mantisBaseUrl = window.AppConfig.MANTIS_BASE_URL;
-const issueUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}`;
+    const proxyUrl = '/api/mantis';  // Rota configurada no vercel.json
+    const issueUrl = `${proxyUrl}/issues/${ticketNumber}`;
 
     const body = {
         handler: {
@@ -2119,17 +2117,16 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
 }
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
-    const token = window.AppConfig.MANTIS_API_TOKEN;
-    const mantisBaseUrl = window.AppConfig.MANTIS_BASE_URL;
-    const noteUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}/notes`;
-    const issueUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}`;
+    const proxyUrl = '/api/mantis';  // Rota configurada no vercel.json
+    const noteUrl = `${proxyUrl}/issues/${ticketNumber}/notes`;
+    const issueUrl = `${proxyUrl}/issues/${ticketNumber}`;
 
-    // Promise para adicionar a nota (comportamento antigo)
+    // Promise para adicionar a nota
     const addNotePromise = fetch(noteUrl, {
         method: 'POST',
         headers: {
-            'Authorization': token,
             'Content-Type': 'application/json'
+            // O cabeçalho de autorização será adicionado automaticamente pelo Vercel
         },
         body: JSON.stringify({
             text: text,
