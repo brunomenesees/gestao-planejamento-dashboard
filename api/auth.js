@@ -42,7 +42,7 @@ export default async function handler(req, res) {
         // Gerar JWT token
         const token = jwt.sign(
             { username: user.username, role: user.role },
-            process.env.JWT_SECRET || 'sua-chave-secreta-aqui',
+            process.env.JWT_SECRET || '286793b2b247581d130514b7',
             { expiresIn: '8h' }
         );
 
