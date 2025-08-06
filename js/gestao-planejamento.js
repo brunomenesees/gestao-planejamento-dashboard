@@ -2350,9 +2350,8 @@ async function updateTicketField(ticketNumber, fieldKey, value) {
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
     const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
+    const notesUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}/notes`);
 
-    const body = {
-        custom_fields: []
     console.log('postToMantis chamado com:', { ticketNumber, text, newStatus, gmudValue });
 
     try {
