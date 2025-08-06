@@ -1407,13 +1407,17 @@ function createSimpleUpdateModal(ticketNumber, currentValue, title, options, fie
     // Cria o container do modal
     const modal = document.createElement('div');
     modal.id = 'simple-update-modal';
-    modal.className = 'modal-container';
+    modal.className = 'simple-update-model'; // Corrigido para corresponder ao HTML renderizado
+
+    // Cria o conteúdo do modal (wrapper)
+    const modalContent = document.createElement('div');
+    modalContent.className = 'simple-update-modal-content';
 
     // Cabeçalho do modal
     const header = document.createElement('div');
     header.className = 'modal-header';
     header.innerHTML = `<h3>${title}</h3><button class="modal-close-btn">&times;</button>`;
-    modal.appendChild(header);
+    modalContent.appendChild(header);
 
     // Corpo do modal
     const body = document.createElement('div');
@@ -1432,7 +1436,7 @@ function createSimpleUpdateModal(ticketNumber, currentValue, title, options, fie
         select.appendChild(option);
     });
     body.appendChild(select);
-    modal.appendChild(body);
+    modalContent.appendChild(body);
 
     // Rodapé do modal
     const footer = document.createElement('div');
@@ -1445,7 +1449,9 @@ function createSimpleUpdateModal(ticketNumber, currentValue, title, options, fie
     cancelBtn.className = 'modal-cancel-btn';
     footer.appendChild(saveBtn);
     footer.appendChild(cancelBtn);
-    modal.appendChild(footer);
+    modalContent.appendChild(footer);
+
+    modal.appendChild(modalContent);
 
     document.body.appendChild(modal);
 
