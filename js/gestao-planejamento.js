@@ -2227,45 +2227,74 @@ function showActionButtons(container, newStatus, ticketNumber) {
 
     modalContent.innerHTML = `
         <h3>Confirmar Alteração de Status</h3>
-        <div class="ticket-info">
-            <strong>Ticket:</strong> ${ticketNumber}<br>
-            <strong>Valor Atual:</strong> ${newStatus || 'N/A'}
+        <div class="ticket-info-box">
+            <p><strong>Ticket:</strong> ${ticketNumber}</p>
+            <p><strong>Status Selecionado:</strong> ${newStatus || 'N/A'}</p>
         </div>
-        <label for="simple-update-select">Novo Valor:</label>
-        <select id="simple-update-select"></select>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="status-input">Status:</label>
+                <input type="text" id="status-input" value="${newStatus || ''}" readonly>
+            </div>
+            <div class="form-group">
+                <label for="gmud-input">GMUD:</label>
+                <input type="text" id="gmud-input" placeholder="Ex: 12345">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="observacao-input">Observação (opcional):</label>
+            <textarea id="observacao-input" placeholder="Digite uma observação ou contexto adicional..." maxlength="500"></textarea>
+            <div id="char-counter" class="char-counter">0/500</div>
+        </div>
+        <div class="form-group">
+            <label for="preview-output">Preview do texto que será enviado:</label>
+            <textarea id="preview-output" readonly>${newStatus || ''}</textarea>
+        </div>
         <div class="simple-update-modal-buttons">
             <button class="cancel-btn">Cancelar</button>
             <button class="save-btn">Salvar</button>
         </div>
     `;
 
-    const select = modalContent.querySelector('#simple-update-select');
-    STATUS_OPTIONS.sort().forEach(optionValue => {
-        const option = document.createElement('option');
-        option.value = optionValue;
-        option.textContent = optionValue;
-        if (optionValue === newStatus) {
-            option.selected = true;
+    const gmudInput = modalContent.querySelector('#gmud-input');
+    const observacaoInput = modalContent.querySelector('#observacao-input');
+    const previewOutput = modalContent.querySelector('#preview-output');
+    const charCounter = modalContent.querySelector('#char-counter');
+
+    const updatePreview = () => {
+        const gmud = gmudInput.value.trim();
+        const observacao = observacaoInput.value.trim();
+        let previewText = newStatus || '';
+        if (gmud) {
+            previewText += ` - GMUD: ${gmud}`;
         }
-        select.appendChild(option);
+        if (observacao) {
+            previewText += `\n${observacao}`;
+        }
+        previewOutput.value = previewText;
+    };
+
+    observacaoInput.addEventListener('input', () => {
+        const count = observacaoInput.value.length;
+        charCounter.textContent = `${count}/500`;
+        updatePreview();
     });
+
+    gmudInput.addEventListener('input', updatePreview);
 
     const saveBtn = modalContent.querySelector('.save-btn');
     const cancelBtn = modalContent.querySelector('.cancel-btn');
 
     saveBtn.addEventListener('click', async () => {
-        const newValue = select.value;
-        if (newValue !== newStatus) {
-            let success = false;
-            success = await updateMantisCustomField(ticketNumber, 70, newValue);
+        const note = previewOutput.value; 
+        let success = await postToMantis(ticketNumber, note);
 
-            if (success) {
-                container.querySelector('.status-dropdown-btn').textContent = newValue;
-                modalContainer.remove();
-                mostrarNotificacao(`Campo "Status" do ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
-            }
-        } else {
+        if (success) {
+            container.querySelector('.status-dropdown-btn').textContent = newStatus;
             modalContainer.remove();
+            mostrarNotificacao(`Ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
+        } else {
+             mostrarNotificacao(`Falha ao atualizar o ticket ${ticketNumber}.`, 'erro');
         }
     });
 
