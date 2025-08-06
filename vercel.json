@@ -16,8 +16,21 @@
         {
           "key": "Content-Type",
           "value": "application/json"
+        },
+        {
+          "key": "Accept",
+          "value": "application/json"
+        },
+        {
+          "key": "X-Requested-With",
+          "value": "XMLHttpRequest"
         }
       ]
     }
-  ]
+  ],
+  "cors": {
+    "allowedOrigins": ["*"],
+    "allowedMethods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "allowedHeaders": ["Authorization", "Content-Type", "Accept", "X-Requested-With"]
+  }
 }
