@@ -1335,7 +1335,7 @@ function updateTable() {
 
             if (index === 0 && valor) {
                 const link = document.createElement('a');
-                link.href = window.AppConfig.getMantisViewUrl(valor); // (A visualização do ticket pode continuar usando o link direto, pois é apenas navegação, não API)
+                link.href = window.AppConfig.getMantisViewUrl(valor);
                 link.textContent = valor;
                 link.target = '_blank';
                 link.style.color = '#0066cc';
@@ -1931,8 +1931,8 @@ function mostrarNotificacao(mensagem, tipo) {
  * @returns {Promise<boolean>} - Retorna true se a atualização for bem-sucedida, false caso contrário.
  */
 async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
-    const proxyUrl = '/api/mantis';  // Rota configurada no vercel.json
-    const issueUrl = `${proxyUrl}/issues/${ticketNumber}`;
+    const token = window.AppConfig.MANTIS_API_TOKEN;
+    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
 
     const body = {
         custom_fields: [
@@ -1947,6 +1947,7 @@ async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
         const response = await fetch(issueUrl, {
             method: 'PATCH',
             headers: {
+                'Authorization': token,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
@@ -1985,8 +1986,8 @@ async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
  * @returns {Promise<boolean>} - Retorna true se a atualização for bem-sucedida, false caso contrário.
  */
 async function updateMantisHandler(ticketNumber, newHandlerUsername) {
-    const proxyUrl = '/api/mantis';  // Rota configurada no vercel.json
-    const issueUrl = `${proxyUrl}/issues/${ticketNumber}`;
+    const token = window.AppConfig.MANTIS_API_TOKEN;
+    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
 
     const body = {
         handler: {
@@ -1998,6 +1999,7 @@ async function updateMantisHandler(ticketNumber, newHandlerUsername) {
         const response = await fetch(issueUrl, {
             method: 'PATCH',
             headers: {
+                'Authorization': token,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
@@ -2017,15 +2019,9 @@ async function updateMantisHandler(ticketNumber, newHandlerUsername) {
             
             return true;
         } else {
-            let errorText = await response.text();
-            let errorData;
-            try {
-                errorData = JSON.parse(errorText);
-            } catch {
-                errorData = errorText;
-            }
+            const errorData = await response.json();
             console.error('Erro ao atualizar responsável:', errorData);
-            mostrarNotificacao(`Erro ao atualizar o responsável do ticket ${ticketNumber}: ${errorData?.message || errorData || 'Erro desconhecido.'}`, 'erro');
+            mostrarNotificacao(`Erro ao atualizar o responsável do ticket ${ticketNumber}: ${errorData.message}`, 'erro');
             return false;
         }
     } catch (error) {
@@ -2115,16 +2111,16 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
 }
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
-    const proxyUrl = '/api/mantis';  // Rota configurada no vercel.json
-    const noteUrl = `${proxyUrl}/issues/${ticketNumber}/notes`;
-    const issueUrl = `${proxyUrl}/issues/${ticketNumber}`;
+    const token = window.AppConfig.MANTIS_API_TOKEN;
+    const noteUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}/notes`);
+    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
 
-    // Promise para adicionar a nota
+    // Promise para adicionar a nota (comportamento antigo)
     const addNotePromise = fetch(noteUrl, {
         method: 'POST',
         headers: {
+            'Authorization': token,
             'Content-Type': 'application/json'
-            // O cabeçalho de autorização será adicionado automaticamente pelo Vercel
         },
         body: JSON.stringify({
             text: text,
@@ -2168,6 +2164,7 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     const updateIssuePromise = fetch(issueUrl, {
         method: 'PATCH',
         headers: {
+            'Authorization': token,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(issueUpdateBody)
