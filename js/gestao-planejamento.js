@@ -1930,7 +1930,7 @@ function mostrarNotificacao(mensagem, tipo) {
  * @param {string} newValue - O novo valor para o campo.
  * @returns {Promise<boolean>} - Retorna true se a atualização for bem-sucedida, false caso contrário.
  */
-sync function updateMantisCustomField(ticketNumber, fieldId, newValue) {
+async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
     const proxyUrl = '/api/mantis';  // Rota configurada no vercel.json
     const issueUrl = `${proxyUrl}/issues/${ticketNumber}`;
 
