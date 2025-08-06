@@ -44,8 +44,8 @@ const STATUS_OPTIONS = [
 ];
 // Lista de opções para os novos modais de atualização
 const SQUAD_OPTIONS = [
-    "AMS", "Analytics ", "ABAP ", "Infra ", "LowCode ", "PMO",
-    "Requisitos ", "Python ", "SAP ", "Web"
+    "AMS", "Analytics", "ABAP", "Infra", "LowCode", "PMO",
+    "Requisitos", "Python", "SAP", "Web"
 ];
 
 // TODO: Substituir com a lista real de analistas
