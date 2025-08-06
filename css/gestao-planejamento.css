@@ -392,7 +392,7 @@
     align-items: center;
 }
 
-.simple-update-model {
+.simple-update-modal {
     background-color: var(--card-bg, #fff);
     padding: 20px;
     border-radius: 8px;
@@ -400,63 +400,44 @@
     width: 90%;
     max-width: 400px;
     z-index: 10001;
-    position: fixed; /* Use fixed to ensure it's relative to the viewport */
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
+    gap: 15px;
 }
 
 .simple-update-modal-content {
     display: flex;
     flex-direction: column;
+    gap: 15px;
 }
 
-.modal-container {
-    background-color: var(--card-bg, #fff);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    width: 90%;
-    max-width: 400px;
-    z-index: 10001;
-    position: fixed; /* Use fixed to ensure it's relative to the viewport */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-}
-
-.simple-update-model .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color, #ddd);
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-}
-
-.modal-header h3 {
+.simple-update-modal-content h3 {
     margin: 0;
     font-size: 1.2rem;
     color: var(--text-color, #333);
+    border-bottom: 2px solid var(--primary-color, #3498db);
+    padding-bottom: 10px;
 }
 
-.modal-close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
+.simple-update-modal-content .ticket-info {
+    background-color: var(--background-color, #f8f9fa);
+    padding: 10px;
+    border-radius: 4px;
+    border-left: 4px solid var(--primary-color, #3498db);
+}
+
+.simple-update-modal-content label {
+    font-weight: 600;
     color: var(--text-color, #555);
+    margin-bottom: 5px;
+    display: block;
 }
 
-.simple-update-model .modal-body {
-    margin-bottom: 20px;
-}
-
-.modal-select {
+.simple-update-modal-content select {
     width: 100%;
     padding: 10px;
     border-radius: 4px;
@@ -466,16 +447,16 @@
     color: var(--text-color, #333);
 }
 
-.simple-update-model .modal-footer {
+.simple-update-modal-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    border-top: 1px solid var(--border-color, #ddd);
+    margin-top: 20px;
     padding-top: 15px;
+    border-top: 1px solid var(--border-color, #ddd);
 }
 
-.modal-save-btn,
-.modal-cancel-btn {
+.simple-update-modal-buttons button {
     padding: 8px 16px;
     border: none;
     border-radius: 4px;
@@ -484,21 +465,26 @@
     transition: background-color 0.2s;
 }
 
-.modal-save-btn {
+.simple-update-modal-buttons .save-btn {
     background-color: var(--primary-color, #3498db);
     color: white;
 }
 
-.modal-save-btn:hover {
+.simple-update-modal-buttons .save-btn:hover {
     background-color: var(--primary-hover, #2980b9);
 }
 
-.modal-cancel-btn {
+.simple-update-modal-buttons .save-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.simple-update-modal-buttons .cancel-btn {
     background-color: #ccc;
     color: #333;
 }
 
-.modal-cancel-btn:hover {
+.simple-update-modal-buttons .cancel-btn:hover {
     background-color: #bbb;
 }
 

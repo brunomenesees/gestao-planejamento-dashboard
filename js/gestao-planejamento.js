@@ -1357,18 +1357,21 @@ function updateTable() {
                 td.textContent = valor;
                 td.classList.add('clickable-cell');
                 td.addEventListener('click', () => {
+                    console.log('Clicou na célula Equipe:', valor, demanda.numero);
                     createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Equipe', SQUAD_OPTIONS, 49, td);
                 });
             } else if (index === 5) { // Analista Responsavel
                 td.textContent = valor;
                 td.classList.add('clickable-cell');
                 td.addEventListener('click', () => {
+                    console.log('Clicou na célula Analista Responsável:', valor, demanda.numero);
                     createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Analista Responsável', ANALISTA_RESPONSAVEL_OPTIONS, 65, td);
                 });
             } else if (index === 6) { // Responsavel Atual
                 td.textContent = valor;
                 td.classList.add('clickable-cell');
                 td.addEventListener('click', () => {
+                    console.log('Clicou na célula Responsável Atual:', valor, demanda.numero);
                     createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
                 });
             } else if (index === 14) { // Coluna Status - Dropdown editável
@@ -1392,121 +1395,7 @@ function updateTable() {
     applyColumnVisibility();
 }
 
-function createSimpleUpdateModal(ticketNumber, currentValue, title, options, fieldId, cellElement) {
-    // Remove qualquer modal existente para evitar duplicatas
-    const existingModal = document.getElementById('simple-update-modal');
-    if (existingModal) {
-        existingModal.remove();
-    }
 
-    // Cria o overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    document.body.appendChild(overlay);
-
-    // Cria o container do modal
-    const modal = document.createElement('div');
-    modal.id = 'simple-update-modal';
-    modal.className = 'simple-update-model'; // Corrigido para corresponder ao HTML renderizado
-
-    // Cria o conteúdo do modal (wrapper)
-    const modalContent = document.createElement('div');
-    modalContent.className = 'simple-update-modal-content';
-
-    // Cabeçalho do modal
-    const header = document.createElement('div');
-    header.className = 'modal-header';
-    header.innerHTML = `<h3>${title}</h3><button class="modal-close-btn">&times;</button>`;
-    modalContent.appendChild(header);
-
-    // Corpo do modal
-    const body = document.createElement('div');
-    body.className = 'modal-body';
-
-    // Select com as opções
-    const select = document.createElement('select');
-    select.className = 'modal-select';
-    options.forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt;
-        option.textContent = opt;
-        if (opt === currentValue) {
-            option.selected = true;
-        }
-        select.appendChild(option);
-    });
-    body.appendChild(select);
-    modalContent.appendChild(body);
-
-    // Rodapé do modal
-    const footer = document.createElement('div');
-    footer.className = 'modal-footer';
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = 'Salvar';
-    saveBtn.className = 'modal-save-btn';
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancelar';
-    cancelBtn.className = 'modal-cancel-btn';
-    footer.appendChild(saveBtn);
-    footer.appendChild(cancelBtn);
-    modalContent.appendChild(footer);
-
-    modal.appendChild(modalContent);
-
-    document.body.appendChild(modal);
-
-    // Centraliza o modal
-    modal.style.top = `50%`;
-    modal.style.left = `50%`;
-    modal.style.transform = 'translate(-50%, -50%)';
-    
-    // Lógica para fechar o modal
-    const closeModal = () => {
-        modal.remove();
-        overlay.remove();
-    };
-
-    overlay.addEventListener('click', closeModal);
-    modal.querySelector('.modal-close-btn').addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
-
-    // Lógica para salvar
-    saveBtn.addEventListener('click', async () => {
-        const newValue = select.value;
-        if (newValue !== currentValue) {
-            saveBtn.textContent = 'Salvando...';
-            saveBtn.disabled = true;
-
-            const success = await updateMantisCustomField(ticketNumber, fieldId, newValue);
-            
-            if (success) {
-                // Atualiza o valor na célula da tabela
-                cellElement.textContent = newValue;
-                // Atualiza o valor nos dados em memória
-                const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
-                if (demandaIndex !== -1) {
-                    const keyMap = {
-                        49: 'squad',
-                        65: 'atribuicao',
-                        69: 'resp_atual'
-                    };
-                    const dataKey = keyMap[fieldId];
-                    if(dataKey) {
-                        demandasData[demandaIndex][dataKey] = newValue;
-                    }
-                }
-                mostrarNotificacao('Atualização realizada com sucesso!', 'sucesso');
-                closeModal();
-            } else {
-                mostrarNotificacao('Falha ao atualizar. Verifique o console.', 'erro');
-                saveBtn.textContent = 'Salvar';
-                saveBtn.disabled = false;
-            }
-        } else {
-            closeModal();
-        }
-    });
-}
 
 function updatePaginationControls() {
     const prevBtn = document.getElementById('prevPage');
@@ -2158,29 +2047,75 @@ async function updateMantisHandler(ticketNumber, newHandlerUsername) {
  * @param {HTMLElement} targetCell - A célula da tabela que será atualizada na UI.
  */
 function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, optionsList, customFieldId, targetCell) {
+    console.log('createSimpleUpdateModal chamada:', { ticketNumber, currentValue, modalTitle, optionsList, customFieldId });
+    
     // Remove qualquer modal similar que já esteja aberto
     const existingModal = document.querySelector('.simple-update-modal');
     if (existingModal) {
         existingModal.remove();
     }
 
+    // Remove qualquer overlay existente
+    const existingOverlay = document.querySelector('.modal-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+
+    // Cria o overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+    document.body.appendChild(overlay);
+
     const modalContainer = document.createElement('div');
     modalContainer.className = 'simple-update-modal';
+    modalContainer.style.cssText = `
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        width: 90%;
+        max-width: 400px;
+        z-index: 10001;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    `;
 
     const modalContent = document.createElement('div');
     modalContent.className = 'simple-update-modal-content';
+    modalContent.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    `;
 
     modalContent.innerHTML = `
-        <h3>${modalTitle}</h3>
-        <div class="ticket-info">
+        <h3 style="margin: 0; font-size: 1.2rem; color: #333; border-bottom: 2px solid #3498db; padding-bottom: 10px;">${modalTitle}</h3>
+        <div class="ticket-info" style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #3498db;">
             <strong>Ticket:</strong> ${ticketNumber}<br>
             <strong>Valor Atual:</strong> ${currentValue || 'N/A'}
         </div>
-        <label for="simple-update-select">Novo Valor:</label>
-        <select id="simple-update-select"></select>
-        <div class="simple-update-modal-buttons">
-            <button class="cancel-btn">Cancelar</button>
-            <button class="save-btn">Salvar</button>
+        <label for="simple-update-select" style="font-weight: 600; color: #555; margin-bottom: 5px; display: block;">Novo Valor:</label>
+        <select id="simple-update-select" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem; background-color: #f8f9fa; color: #333;"></select>
+        <div class="simple-update-modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
+            <button class="cancel-btn" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; background-color: #ccc; color: #333;">Cancelar</button>
+            <button class="save-btn" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; background-color: #3498db; color: white;">Salvar</button>
         </div>
     `;
 
@@ -2198,9 +2133,18 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
     const saveBtn = modalContent.querySelector('.save-btn');
     const cancelBtn = modalContent.querySelector('.cancel-btn');
 
+    // Função para fechar o modal
+    const closeModal = () => {
+        modalContainer.remove();
+        overlay.remove();
+    };
+
     saveBtn.addEventListener('click', async () => {
         const newValue = select.value;
         if (newValue !== currentValue) {
+            saveBtn.textContent = 'Salvando...';
+            saveBtn.disabled = true;
+            
             let success = false;
             if (customFieldId === 65) { // Caso especial para Analista Responsável (handler)
                 success = await updateMantisHandler(ticketNumber, newValue);
@@ -2210,20 +2154,40 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
 
             if (success) {
                 targetCell.textContent = newValue;
-                modalContainer.remove();
+                // Atualiza o valor nos dados em memória
+                const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
+                if (demandaIndex !== -1) {
+                    const keyMap = {
+                        49: 'squad',
+                        65: 'atribuicao',
+                        69: 'resp_atual'
+                    };
+                    const dataKey = keyMap[customFieldId];
+                    if(dataKey) {
+                        demandasData[demandaIndex][dataKey] = newValue;
+                    }
+                }
                 mostrarNotificacao(`Campo "${modalTitle.replace('Atualizar ', '')}" do ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
+                closeModal();
+            } else {
+                mostrarNotificacao('Falha ao atualizar. Verifique o console.', 'erro');
+                saveBtn.textContent = 'Salvar';
+                saveBtn.disabled = false;
             }
         } else {
-            modalContainer.remove();
+            closeModal();
         }
     });
 
-    cancelBtn.addEventListener('click', () => {
-        modalContainer.remove();
-    });
+    cancelBtn.addEventListener('click', closeModal);
+    
+    // Fechar modal ao clicar no overlay
+    overlay.addEventListener('click', closeModal);
 
     modalContainer.appendChild(modalContent);
     document.body.appendChild(modalContainer);
+    
+    console.log('Modal criado e adicionado ao DOM');
 }
 
 async function updateTicketField(ticketNumber, fieldKey, value) {
