@@ -11,7 +11,7 @@
       "headers": [
         {
           "key": "Authorization",
-          "value": "GjDoN1uca9IC6GiZUcidMS5aixv6d8lZ"
+          "value": "Bearer GjDoN1uca9IC6GiZUcidMS5aixv6d8lZ"
         },
         {
           "key": "Content-Type",
