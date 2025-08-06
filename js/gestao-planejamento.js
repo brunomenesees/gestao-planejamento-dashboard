@@ -2404,7 +2404,7 @@ function showActionButtons(container, newStatus, ticketNumber) {
         e.stopPropagation();
         
         const note = previewTextarea.value;
-        let success = await postToMantis(ticketNumber, note);
+        let success = await postToMantis(ticketNumber, note, newStatus);
 
         if (success) {
             container.querySelector('.status-dropdown-btn').textContent = newStatus;
