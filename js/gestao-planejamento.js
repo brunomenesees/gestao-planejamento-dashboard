@@ -1947,7 +1947,6 @@ async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
         const response = await fetch(issueUrl, {
             method: 'PATCH',
             headers: {
-                'Authorization': token,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
@@ -2169,7 +2168,6 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     const updateIssuePromise = fetch(issueUrl, {
         method: 'PATCH',
         headers: {
-            'Authorization': token,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(issueUpdateBody)
