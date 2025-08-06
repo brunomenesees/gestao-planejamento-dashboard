@@ -2244,9 +2244,9 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     };
 
     try {
-        // Adiciona a nota
+        // Adiciona a nota usando PATCH conforme documentação da API
         const noteResponse = await fetch(issueUrl, {
-            method: 'POST',
+            method: 'PATCH',
             headers: { 'Authorization': token, 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: text, view_state: { name: 'public' } })
         });
