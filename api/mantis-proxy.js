@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   
     // Montar a URL do Mantis (pega o caminho e query string da requisição original)
     const mantisUrl = process.env.MANTIS_BASE_URL + '/api/rest' + req.url.replace(/^\/api\/mantis-proxy/, '');
-  
+    console.log('Mantis URL chamada:', mantisUrl);
     // Montar headers
     const headers = {
       'Authorization': process.env.MANTIS_API_TOKEN,
