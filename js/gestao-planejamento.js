@@ -117,6 +117,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Só executa a lógica do dashboard se existir o elemento principal
     if (document.getElementById('dashboard') || document.getElementById('chamadosTable')) {
         
+        // Adicionado: Verificação de autenticação para a página do dashboard
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            console.log("Usuário não autenticado. Redirecionando para a página de login.");
+            window.location.href = 'login.html';
+            return; // Impede a execução do resto do código do dashboard
+        }
+
         try {
             await loadInitialData(); // Carrega os dados do IndexedDB
 
@@ -2154,6 +2162,11 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
     modalContainer.appendChild(modalContent);
     document.body.appendChild(modalContainer);
     
+    // Focar no campo de observação
+    setTimeout(() => {
+        modalContent.querySelector('#simple-update-select').focus();
+    }, 100);
+
     console.log('Modal criado e adicionado ao DOM');
 }
 
@@ -2376,7 +2389,7 @@ function showActionButtons(container, newStatus, ticketNumber) {
         padding: 12px 24px;
         border: none;
         border-radius: 5px;
-        background-color: #28a745;
+        background-color: #3498db;
         color: white;
         cursor: pointer;
         font-size: 14px;
@@ -2389,7 +2402,7 @@ function showActionButtons(container, newStatus, ticketNumber) {
     });
 
     saveBtn.addEventListener('mouseleave', () => {
-        saveBtn.style.backgroundColor = '#28a745';
+        saveBtn.style.backgroundColor = '#3498db';
     });
 
     // Eventos dos botões
