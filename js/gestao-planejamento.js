@@ -2214,28 +2214,16 @@ function showActionButtons(container, newStatus, ticketNumber) {
     console.log('showActionButtons chamada:', newStatus, ticketNumber);
     
     // Remover modais existentes se houver
-    const existingModal = document.querySelector('.status-modal');
+    const existingModal = document.querySelector('.simple-update-modal');
     if (existingModal) {
         existingModal.remove();
     }
 
     const modalContainer = document.createElement('div');
-    modalContainer.className = 'status-modal';
-    modalContainer.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    `;
+    modalContainer.className = 'simple-update-modal';
 
     const modalContent = document.createElement('div');
-    modalContent.className = 'status-modal-content';
+    modalContent.className = 'simple-update-modal-content';
 
     modalContent.innerHTML = `
         <h3>Confirmar Alteração de Status</h3>
