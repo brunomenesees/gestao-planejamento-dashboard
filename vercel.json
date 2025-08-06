@@ -1,31 +1,23 @@
 {
-    "rewrites": [
-      {
-        "source": "/api/mantis/:path*",
-        "destination": "https://mantis.xcelis.com.br/mantis/api/rest/:path*"
-      }
-    ]
-  }
-  {
-    "rewrites": [
-      {
-        "source": "/api/mantis/(.*)",
-        "destination": "https://mantis.xcelis.com.br/mantis/api/rest/$1"
-      }
-    ],
-    "headers": [
-      {
-        "source": "/api/mantis/(.*)",
-        "headers": [
-          {
-            "key": "Authorization",
-            "value": "GjDoN1uca9IC6GiZUcidMS5aixv6d8lZ"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ]
-      }
-    ]
-  }
+  "rewrites": [
+    {
+      "source": "/api/mantis/(.*)",
+      "destination": "https://mantis.xcelis.com.br/mantis/api/rest/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/mantis/(.*)",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "GjDoN1uca9IC6GiZUcidMS5aixv6d8lZ"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    }
+  ]
+}
