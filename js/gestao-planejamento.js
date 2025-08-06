@@ -1392,6 +1392,116 @@ function updateTable() {
     applyColumnVisibility();
 }
 
+function createSimpleUpdateModal(ticketNumber, currentValue, title, options, fieldId, cellElement) {
+    // Remove qualquer modal existente para evitar duplicatas
+    const existingModal = document.getElementById('simple-update-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Cria o overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    document.body.appendChild(overlay);
+
+    // Cria o container do modal
+    const modal = document.createElement('div');
+    modal.id = 'simple-update-modal';
+    modal.className = 'modal-container';
+
+    // Cabeçalho do modal
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+    header.innerHTML = `<h3>${title}</h3><button class="modal-close-btn">&times;</button>`;
+    modal.appendChild(header);
+
+    // Corpo do modal
+    const body = document.createElement('div');
+    body.className = 'modal-body';
+
+    // Select com as opções
+    const select = document.createElement('select');
+    select.className = 'modal-select';
+    options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        if (opt === currentValue) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    });
+    body.appendChild(select);
+    modal.appendChild(body);
+
+    // Rodapé do modal
+    const footer = document.createElement('div');
+    footer.className = 'modal-footer';
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Salvar';
+    saveBtn.className = 'modal-save-btn';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancelar';
+    cancelBtn.className = 'modal-cancel-btn';
+    footer.appendChild(saveBtn);
+    footer.appendChild(cancelBtn);
+    modal.appendChild(footer);
+
+    document.body.appendChild(modal);
+
+    // Centraliza o modal
+    modal.style.top = `50%`;
+    modal.style.left = `50%`;
+    modal.style.transform = 'translate(-50%, -50%)';
+    
+    // Lógica para fechar o modal
+    const closeModal = () => {
+        modal.remove();
+        overlay.remove();
+    };
+
+    overlay.addEventListener('click', closeModal);
+    modal.querySelector('.modal-close-btn').addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+
+    // Lógica para salvar
+    saveBtn.addEventListener('click', async () => {
+        const newValue = select.value;
+        if (newValue !== currentValue) {
+            saveBtn.textContent = 'Salvando...';
+            saveBtn.disabled = true;
+
+            const success = await updateMantisCustomField(ticketNumber, fieldId, newValue);
+            
+            if (success) {
+                // Atualiza o valor na célula da tabela
+                cellElement.textContent = newValue;
+                // Atualiza o valor nos dados em memória
+                const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
+                if (demandaIndex !== -1) {
+                    const keyMap = {
+                        49: 'squad',
+                        65: 'atribuicao',
+                        69: 'resp_atual'
+                    };
+                    const dataKey = keyMap[fieldId];
+                    if(dataKey) {
+                        demandasData[demandaIndex][dataKey] = newValue;
+                    }
+                }
+                mostrarNotificacao('Atualização realizada com sucesso!', 'sucesso');
+                closeModal();
+            } else {
+                mostrarNotificacao('Falha ao atualizar. Verifique o console.', 'erro');
+                saveBtn.textContent = 'Salvar';
+                saveBtn.disabled = false;
+            }
+        } else {
+            closeModal();
+        }
+    });
+}
+
 function updatePaginationControls() {
     const prevBtn = document.getElementById('prevPage');
     const nextBtn = document.getElementById('nextPage');
