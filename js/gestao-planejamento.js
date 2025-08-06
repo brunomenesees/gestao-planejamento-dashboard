@@ -2110,14 +2110,62 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
     document.body.appendChild(modalContainer);
 }
 
+async function updateTicketField(ticketNumber, fieldKey, value) {
+    const token = window.AppConfig.MANTIS_API_TOKEN;
+    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
+    
+    const fieldIdMap = {
+        'squad': 72, // Substitua pelo ID correto se necessário
+        'atribuicao': 68, // Substitua pelo ID correto se necessário
+        'resp_atual': 69, // Substitua pelo ID correto se necessário
+    };
+
+    const fieldId = fieldIdMap[fieldKey];
+    if (!fieldId) {
+        console.error(`Chave de campo inválida: ${fieldKey}`);
+        return false;
+    }
+
+    const body = {
+        custom_fields: [{
+            field: { id: fieldId },
+            value: value
+        }]
+    };
+
+    try {
+        const response = await fetch(issueUrl, {
+            method: 'PATCH',
+            headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`Erro ao atualizar campo ${fieldKey}:`, errorData);
+            return false;
+        }
+
+        await updateDemandaLastUpdated(ticketNumber);
+        return true;
+
+    } catch (error) {
+        console.error(`Erro de rede ao atualizar campo ${fieldKey}:`, error);
+        return false;
+    }
+}
+
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
     const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
-    const noteUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}/notes`);
+
+    const body = {
+        custom_fields: []
+    };
 
     try {
         // Adiciona a nota
-        const noteResponse = await fetch(noteUrl, {
+        const noteResponse = await fetch(issueUrl, {
             method: 'POST',
             headers: { 'Authorization': token, 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: text, view_state: { name: 'public' } })
