@@ -2174,8 +2174,11 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
         // Executa as duas requisições em paralelo
         const [noteResponse, issueResponse] = await Promise.all([addNotePromise, updateIssuePromise]);
 
+        const noteOk = noteResponse.ok;
+        const issueOk = issueResponse.ok;
+
         // Tratamento da resposta da nota
-        if (noteResponse.ok) {
+        if (noteOk) {
             const responseData = await noteResponse.json();
             console.log('Nota adicionada com sucesso:', responseData);
             mostrarNotificacao(`Comentário adicionado ao ticket ${ticketNumber} com sucesso!`, 'sucesso');
@@ -2186,7 +2189,7 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
         }
 
         // Tratamento da resposta da atualização da issue
-        if (issueResponse.ok) {
+        if (issueOk) {
             const responseData = await issueResponse.json();
             console.log('Issue atualizada com sucesso:', responseData);
             mostrarNotificacao(`Status e/ou GMUD do ticket ${ticketNumber} atualizados com sucesso!`, 'sucesso');
@@ -2203,9 +2206,12 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
             mostrarNotificacao(`Erro ao atualizar status/GMUD do ticket ${ticketNumber}: ${errorData.message}`, 'erro');
         }
 
+        return noteOk && issueOk;
+
     } catch (error) {
         console.error('Erro nas requisições para o Mantis:', error);
         mostrarNotificacao(`Erro de rede ao tentar comunicar com o Mantis para o ticket ${ticketNumber}.`, 'erro');
+        return false;
     }
 }
 
