@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "description": "Dashboard de Gestão de Planejamento",
   "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step needed'",
+    "start": "vercel dev"
+  },
   "dependencies": {
     "@vercel/postgres": "^0.5.1",
     "jsonwebtoken": "^9.0.2",
