@@ -2353,23 +2353,41 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 
     const body = {
         custom_fields: []
-    };
+    console.log('postToMantis chamado com:', { ticketNumber, text, newStatus, gmudValue });
 
     try {
-        // Adiciona a nota usando PATCH conforme documentação da API
-        const noteResponse = await fetch(issueUrl, {
-            method: 'PATCH',
-            headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text, view_state: { name: 'public' } })
-        });
+        // Adiciona a nota usando POST no endpoint de notes
+        if (text && text.trim()) {
+            const noteBody = {
+                text: text,
+                view_state: { name: 'public' }
+            };
 
-        if (!noteResponse.ok) {
-            const errorData = await noteResponse.json();
-            console.error('Erro ao adicionar nota:', errorData);
-            return false;
+            console.log('Enviando nota para:', notesUrl);
+            console.log('Corpo da nota:', noteBody);
+
+            const noteResponse = await fetch(notesUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(noteBody)
+            });
+
+            if (!noteResponse.ok) {
+                const errorData = await noteResponse.json();
+                console.error('Erro ao adicionar nota:', errorData);
+                return false;
+            }
+
+            const noteResponseData = await noteResponse.json();
+            console.log('Nota adicionada com sucesso:', noteResponseData);
+        } else {
+            console.log('Nenhuma nota para adicionar');
         }
 
-        // Atualiza o status e/ou GMUD
+        // Atualiza o status e/ou GMUD usando PATCH no endpoint de issues
         const issueUpdateBody = { custom_fields: [] };
         if (newStatus) {
             issueUpdateBody.custom_fields.push({ field: { id: 70, name: "Status" }, value: newStatus });
@@ -2380,6 +2398,9 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 
         // Só faz a chamada PATCH se houver campos para atualizar
         if (issueUpdateBody.custom_fields.length > 0) {
+            console.log('Enviando atualização de campos para:', issueUrl);
+            console.log('Corpo da atualização:', issueUpdateBody);
+
             const issueResponse = await fetch(issueUrl, {
                 method: 'PATCH',
                 headers: { 'Authorization': token, 'Content-Type': 'application/json' },
@@ -2391,6 +2412,11 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
                 console.error('Erro ao atualizar a issue:', errorData);
                 return false;
             }
+
+            const issueResponseData = await issueResponse.json();
+            console.log('Campos customizados atualizados com sucesso:', issueResponseData);
+        } else {
+            console.log('Nenhum campo customizado para atualizar');
         }
 
         // Se chegou até aqui, ambas as operações (ou a única necessária) foram bem-sucedidas
