@@ -2019,11 +2019,12 @@ async function updateMantisHandler(ticketNumber, newHandlerUsername) {
             
             return true;
         } else {
+            let errorText = await response.text();
             let errorData;
             try {
-                errorData = await response.json();
-            } catch (jsonErr) {
-                errorData = await response.text();
+                errorData = JSON.parse(errorText);
+            } catch {
+                errorData = errorText;
             }
             console.error('Erro ao atualizar responsável:', errorData);
             mostrarNotificacao(`Erro ao atualizar o responsável do ticket ${ticketNumber}: ${errorData?.message || errorData || 'Erro desconhecido.'}`, 'erro');
@@ -2117,8 +2118,9 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
-    const noteUrl = `/api/mantis-proxy/issues/${ticketNumber}/notes`;
-    const issueUrl = `/api/mantis-proxy/issues/${ticketNumber}`;
+    const mantisBaseUrl = window.AppConfig.MANTIS_BASE_URL;
+    const noteUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}/notes`;
+    const issueUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}`;
 
     // Promise para adicionar a nota (comportamento antigo)
     const addNotePromise = fetch(noteUrl, {
