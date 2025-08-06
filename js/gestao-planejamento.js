@@ -2019,9 +2019,14 @@ async function updateMantisHandler(ticketNumber, newHandlerUsername) {
             
             return true;
         } else {
-            const errorData = await response.json();
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (jsonErr) {
+                errorData = await response.text();
+            }
             console.error('Erro ao atualizar responsável:', errorData);
-            mostrarNotificacao(`Erro ao atualizar o responsável do ticket ${ticketNumber}: ${errorData.message}`, 'erro');
+            mostrarNotificacao(`Erro ao atualizar o responsável do ticket ${ticketNumber}: ${errorData?.message || errorData || 'Erro desconhecido.'}`, 'erro');
             return false;
         }
     } catch (error) {
