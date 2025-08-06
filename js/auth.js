@@ -2,26 +2,46 @@ class AuthService {
     constructor() {
         this.baseUrl = '/api';
         this.token = localStorage.getItem('authToken');
+        console.log('AuthService initialized with baseUrl:', this.baseUrl);
     }
 
     async login(username, password) {
+        console.log('=== FRONTEND LOGIN ATTEMPT ===');
+        console.log('Username:', username);
+        console.log('Password provided:', password ? 'YES' : 'NO');
+        console.log('Making request to:', `${this.baseUrl}/auth`);
+        
         try {
+            const requestBody = { username, password };
+            console.log('Request body:', { ...requestBody, password: '***' });
+            
             const response = await fetch(`${this.baseUrl}/auth`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify(requestBody)
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
             if (response.ok) {
                 const data = await response.json();
+                console.log('Login successful, received data:', { ...data, token: '***' });
+                
                 this.token = data.token;
                 localStorage.setItem('authToken', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 return true;
+            } else {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+                console.error('Login failed with status:', response.status);
+                console.error('Error response:', errorData);
+                return false;
             }
-            return false;
         } catch (error) {
-            console.error('Erro no login:', error);
+            console.error('=== FRONTEND LOGIN ERROR ===');
+            console.error('Error details:', error);
+            console.error('Error message:', error.message);
             return false;
         }
     }
