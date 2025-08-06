@@ -2112,105 +2112,53 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
-    const noteUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}/notes`);
     const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
-
-    // Promise para adicionar a nota (comportamento antigo)
-    const addNotePromise = fetch(noteUrl, {
-        method: 'POST',
-        headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            text: text,
-            view_state: {
-                name: 'public'
-            }
-        })
-    });
-
-    // Corpo da requisição para atualizar a issue
-    const issueUpdateBody = {
-        custom_fields: [
-            {
-                field: {
-                    id: 70, // ID do campo customizado "Status"
-                    name: "Status"
-                },
-                value: newStatus // O valor do status que o usuário selecionou
-            }
-        ]
-    };
-
-    // Adicionar o campo customizado de GMUD se houver valor
-    if (gmudValue) {
-        const year = new Date().getFullYear();
-        issueUpdateBody.custom_fields.push({
-            field: {
-                id: 71, // ID Fixo para o campo GMUD
-                name: "Numero_GMUD"
-            },
-            value: gmudValue
-        });
-    }
-    
-    // Se não houver GMUD, removemos o campo para não enviar um array vazio desnecessariamente
-    if (issueUpdateBody.custom_fields.length === 0) {
-        delete issueUpdateBody.custom_fields;
-    }
-
-    // Promise para atualizar a issue (novo comportamento)
-    const updateIssuePromise = fetch(issueUrl, {
-        method: 'PATCH',
-        headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(issueUpdateBody)
-    });
+    const noteUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}/notes`);
 
     try {
-        // Executa as duas requisições em paralelo
-        const [noteResponse, issueResponse] = await Promise.all([addNotePromise, updateIssuePromise]);
+        // Adiciona a nota
+        const noteResponse = await fetch(noteUrl, {
+            method: 'POST',
+            headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text, view_state: { name: 'public' } })
+        });
 
-        const noteOk = noteResponse.ok;
-        const issueOk = issueResponse.ok;
-
-        // Tratamento da resposta da nota
-        if (noteOk) {
-            const responseData = await noteResponse.json();
-            console.log('Nota adicionada com sucesso:', responseData);
-            mostrarNotificacao(`Comentário adicionado ao ticket ${ticketNumber} com sucesso!`, 'sucesso');
-        } else {
+        if (!noteResponse.ok) {
             const errorData = await noteResponse.json();
             console.error('Erro ao adicionar nota:', errorData);
-            mostrarNotificacao(`Erro ao adicionar comentário ao ticket ${ticketNumber}: ${errorData.message}`, 'erro');
+            return false;
         }
 
-        // Tratamento da resposta da atualização da issue
-        if (issueOk) {
-            const responseData = await issueResponse.json();
-            console.log('Issue atualizada com sucesso:', responseData);
-            mostrarNotificacao(`Status e/ou GMUD do ticket ${ticketNumber} atualizados com sucesso!`, 'sucesso');
-            
-            // Atualizar o campo "Última atualização" no banco local
-            try {
-                await updateDemandaLastUpdated(ticketNumber);
-            } catch (error) {
-                console.error('Erro ao atualizar campo ultima_atualizacao:', error);
+        // Atualiza o status e/ou GMUD
+        const issueUpdateBody = { custom_fields: [] };
+        if (newStatus) {
+            issueUpdateBody.custom_fields.push({ field: { id: 70, name: "Status" }, value: newStatus });
+        }
+        if (gmudValue) {
+            issueUpdateBody.custom_fields.push({ field: { id: 71, name: "Numero_GMUD" }, value: gmudValue });
+        }
+
+        // Só faz a chamada PATCH se houver campos para atualizar
+        if (issueUpdateBody.custom_fields.length > 0) {
+            const issueResponse = await fetch(issueUrl, {
+                method: 'PATCH',
+                headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+                body: JSON.stringify(issueUpdateBody)
+            });
+
+            if (!issueResponse.ok) {
+                const errorData = await issueResponse.json();
+                console.error('Erro ao atualizar a issue:', errorData);
+                return false;
             }
-        } else {
-            const errorData = await issueResponse.json();
-            console.error('Erro ao atualizar a issue:', errorData);
-            mostrarNotificacao(`Erro ao atualizar status/GMUD do ticket ${ticketNumber}: ${errorData.message}`, 'erro');
         }
 
-        return noteOk && issueOk;
+        // Se chegou até aqui, ambas as operações (ou a única necessária) foram bem-sucedidas
+        await updateDemandaLastUpdated(ticketNumber);
+        return true;
 
     } catch (error) {
-        console.error('Erro nas requisições para o Mantis:', error);
-        mostrarNotificacao(`Erro de rede ao tentar comunicar com o Mantis para o ticket ${ticketNumber}.`, 'erro');
+        console.error('Erro na comunicação com o Mantis:', error);
         return false;
     }
 }
@@ -2409,8 +2357,9 @@ function showActionButtons(container, newStatus, ticketNumber) {
     saveBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         
+        const gmudValue = gmudInput.value.trim();
         const note = previewTextarea.value;
-        let success = await postToMantis(ticketNumber, note, newStatus);
+        let success = await postToMantis(ticketNumber, note, newStatus, gmudValue);
 
         if (success) {
             container.querySelector('.status-dropdown-btn').textContent = newStatus;
