@@ -1,0 +1,22 @@
+{
+    "name": "gestao-planejamento",
+    "version": "1.0.0",
+    "description": "Dashboard de Gestão de Planejamento",
+    "main": "index.js",
+    "scripts": {
+      "dev": "vercel dev",
+      "build": "echo 'No build step needed'",
+      "start": "vercel dev"
+    },
+    "dependencies": {
+      "jsonwebtoken": "^9.0.2",
+      "bcryptjs": "^2.4.3",
+      "cors": "^2.8.5"
+    },
+    "devDependencies": {
+      "vercel": "^32.0.0"
+    },
+    "engines": {
+      "node": ">=18.0.0"
+    }
+  }

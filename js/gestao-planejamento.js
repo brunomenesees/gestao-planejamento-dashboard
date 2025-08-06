@@ -1,3 +1,10 @@
+// Adicionar no início do arquivo
+document.addEventListener('DOMContentLoaded', async function() {
+    // Verificar autenticação
+    if (!window.authService || !window.authService.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+    };
 // Dados globais - inicializados vazios
 let demandasData = [];
 let currentPage = 1;
@@ -1936,96 +1943,18 @@ function mostrarNotificacao(mensagem, tipo) {
  * @returns {Promise<boolean>} - Retorna true se a atualização for bem-sucedida, false caso contrário.
  */
 async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
-    const token = window.AppConfig.MANTIS_API_TOKEN;
-    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
-
-    const body = {
-        custom_fields: [
-            {
-                field: { id: fieldId },
-                value: newValue
-            }
-        ]
-    };
-
-    try {
-        const response = await fetch(issueUrl, {
+    const response = await mantisRequest(
+        `issues/${ticketNumber}`,
+        {
             method: 'PATCH',
-            headers: {
-                'Authorization': token,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        });
-
-        if (response.ok) {
-            const responseData = await response.json();
-            console.log('Campo customizado atualizado com sucesso:', responseData);
-            mostrarNotificacao(`Campo customizado do ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
-            
-            // Atualizar o campo correspondente no banco local
-            try {
-                const db = await openDB();
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-                
-                const getRequest = store.get(ticketNumber);
-                getRequest.onsuccess = () => {
-                    const demanda = getRequest.result;
-                    if (demanda) {
-                        // Mapear o fieldId para o campo correspondente
-                        const fieldMap = {
-                            70: 'status',
-                            71: 'numero_gmud',
-                            49: 'squad',
-                            65: 'atribuicao',
-                            69: 'resp_atual'
-                        };
-                        
-                        const fieldKey = fieldMap[fieldId];
-                        if (fieldKey) {
-                            demanda[fieldKey] = newValue;
-                            
-                            // Salvar de volta no banco
-                            const putRequest = store.put(demanda);
-                            putRequest.onsuccess = () => {
-                                console.log(`Campo ${fieldKey} atualizado para ticket ${ticketNumber}: ${newValue}`);
-                                
-                                // Atualizar também os dados em memória
-                                const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
-                                if (demandaIndex !== -1) {
-                                    demandasData[demandaIndex][fieldKey] = newValue;
-                                }
-                                
-                                // Recarregar a tabela para mostrar as mudanças
-                                filterData();
-                            };
-                        }
-                    }
-                };
-            } catch (error) {
-                console.error('Erro ao atualizar campo no banco de dados local:', error);
-            }
-            
-            // Atualizar o campo "Última atualização" no banco local
-            try {
-                await updateDemandaLastUpdated(ticketNumber);
-            } catch (error) {
-                console.error('Erro ao atualizar campo ultima_atualizacao:', error);
-            }
-            
-            return true;
-        } else {
-            const errorData = await response.json();
-            console.error('Erro ao atualizar campo customizado:', errorData);
-            mostrarNotificacao(`Erro ao atualizar o ticket ${ticketNumber}: ${errorData.message}`, 'erro');
-            return false;
+            body: JSON.stringify({
+                custom_fields: [
+                    { field: { id: fieldId }, value: newValue }
+                ]
+            })
         }
-    } catch (error) {
-        console.error('Erro de rede ao atualizar campo customizado:', error);
-        mostrarNotificacao(`Erro de rede ao tentar comunicar com o Mantis para o ticket ${ticketNumber}.`, 'erro');
-        return false;
-    }
+    );
+    return response;
 }
 
 /**
@@ -2035,84 +1964,17 @@ async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
  * @returns {Promise<boolean>} - Retorna true se a atualização for bem-sucedida, false caso contrário.
  */
 async function updateMantisHandler(ticketNumber, newHandlerUsername) {
-    const token = window.AppConfig.MANTIS_API_TOKEN;
-    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
-
-    const body = {
-        handler: {
-            name: newHandlerUsername
-        }
-    };
-
-    try {
-        const response = await fetch(issueUrl, {
+    const response = await mantisRequest(
+        `issues/${ticketNumber}`,
+        {
             method: 'PATCH',
-            headers: {
-                'Authorization': token,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        });
-
-        if (response.ok) {
-            const responseData = await response.json();
-            console.log('Responsável atualizado com sucesso:', responseData);
-            mostrarNotificacao(`Responsável do ticket ${ticketNumber} atualizado com sucesso.`, 'sucesso');
-            
-            // Atualizar o campo atribuicao no banco local
-            try {
-                const db = await openDB();
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-                
-                const getRequest = store.get(ticketNumber);
-                getRequest.onsuccess = () => {
-                    const demanda = getRequest.result;
-                    if (demanda) {
-                        // Atualizar o campo atribuicao
-                        demanda.atribuicao = newHandlerUsername;
-                        
-                        // Salvar de volta no banco
-                        const putRequest = store.put(demanda);
-                        putRequest.onsuccess = () => {
-                            console.log(`Campo atribuicao atualizado para ticket ${ticketNumber}: ${newHandlerUsername}`);
-                            
-                            // Atualizar também os dados em memória
-                            const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
-                            if (demandaIndex !== -1) {
-                                demandasData[demandaIndex].atribuicao = newHandlerUsername;
-                            }
-                            
-                            // Recarregar a tabela para mostrar as mudanças
-                            filterData();
-                        };
-                    }
-                };
-            } catch (error) {
-                console.error('Erro ao atualizar atribuicao no banco de dados local:', error);
-            }
-            
-            // Atualizar o campo "Última atualização" no banco local
-            try {
-                await updateDemandaLastUpdated(ticketNumber);
-            } catch (error) {
-                console.error('Erro ao atualizar campo ultima_atualizacao:', error);
-            }
-            
-            return true;
-        } else {
-            const errorData = await response.json();
-            console.error('Erro ao atualizar responsável:', errorData);
-            mostrarNotificacao(`Erro ao atualizar o responsável do ticket ${ticketNumber}: ${errorData.message}`, 'erro');
-            return false;
+            body: JSON.stringify({
+                handler: { name: newHandlerUsername }
+            })
         }
-    } catch (error) {
-        console.error('Erro de rede ao atualizar responsável:', error);
-        mostrarNotificacao(`Erro de rede ao tentar comunicar com o Mantis para o ticket ${ticketNumber}.`, 'erro');
-        return false;
-    }
+    );
+    return response;
 }
-
 
 /**
  * Cria e exibe um modal simples para atualização de um campo com uma lista de opções.
@@ -2343,87 +2205,6 @@ async function updateTicketField(ticketNumber, fieldKey, value) {
 
     } catch (error) {
         console.error(`Erro de rede ao atualizar campo ${fieldKey}:`, error);
-        return false;
-    }
-}
-
-async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
-    const token = window.AppConfig.MANTIS_API_TOKEN;
-    const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
-    const notesUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}/notes`);
-
-    console.log('postToMantis chamado com:', { ticketNumber, text, newStatus, gmudValue });
-
-    try {
-        // Adiciona a nota usando POST no endpoint de notes
-        if (text && text.trim()) {
-            const noteBody = {
-                text: text,
-                view_state: { name: 'public' }
-            };
-
-            console.log('Enviando nota para:', notesUrl);
-            console.log('Corpo da nota:', noteBody);
-
-            const noteResponse = await fetch(notesUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': token,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(noteBody)
-            });
-
-            if (!noteResponse.ok) {
-                const errorData = await noteResponse.json();
-                console.error('Erro ao adicionar nota:', errorData);
-                return false;
-            }
-
-            const noteResponseData = await noteResponse.json();
-            console.log('Nota adicionada com sucesso:', noteResponseData);
-        } else {
-            console.log('Nenhuma nota para adicionar');
-        }
-
-        // Atualiza o status e/ou GMUD usando PATCH no endpoint de issues
-        const issueUpdateBody = { custom_fields: [] };
-        if (newStatus) {
-            issueUpdateBody.custom_fields.push({ field: { id: 70, name: "Status" }, value: newStatus });
-        }
-        if (gmudValue) {
-            issueUpdateBody.custom_fields.push({ field: { id: 71, name: "Numero_GMUD" }, value: gmudValue });
-        }
-
-        // Só faz a chamada PATCH se houver campos para atualizar
-        if (issueUpdateBody.custom_fields.length > 0) {
-            console.log('Enviando atualização de campos para:', issueUrl);
-            console.log('Corpo da atualização:', issueUpdateBody);
-
-            const issueResponse = await fetch(issueUrl, {
-                method: 'PATCH',
-                headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                body: JSON.stringify(issueUpdateBody)
-            });
-
-            if (!issueResponse.ok) {
-                const errorData = await issueResponse.json();
-                console.error('Erro ao atualizar a issue:', errorData);
-                return false;
-            }
-
-            const issueResponseData = await issueResponse.json();
-            console.log('Campos customizados atualizados com sucesso:', issueResponseData);
-        } else {
-            console.log('Nenhum campo customizado para atualizar');
-        }
-
-        // Se chegou até aqui, ambas as operações (ou a única necessária) foram bem-sucedidas
-        await updateDemandaLastUpdated(ticketNumber);
-        return true;
-
-    } catch (error) {
-        console.error('Erro na comunicação com o Mantis:', error);
         return false;
     }
 }
@@ -2751,3 +2532,53 @@ function showSaveFeedback(container, success) {
 async function atualizarDados() {
      // Lógica para forçar a atualização dos dados, se necessário.
  }
+
+// Função utilitária (deve estar disponível no escopo global)
+async function mantisRequest(endpoint, options = {}) {
+    const token = localStorage.getItem('authToken');
+    if (!token) throw new Error('Não autenticado');
+    const response = await fetch(`/api/mantis?endpoint=${encodeURIComponent(endpoint)}`, {
+        ...options,
+        headers: {
+            ...options.headers,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro na requisição');
+    }
+    return response.json();
+}
+
+async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
+    // Adiciona nota
+    if (text && text.trim()) {
+        await mantisRequest(
+            `issues/${ticketNumber}/notes`,
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    text: text,
+                    view_state: { name: 'public' }
+                })
+            }
+        );
+    }
+    // Atualiza status/GMUD
+    const customFields = [];
+    if (newStatus) customFields.push({ field: { id: 70, name: "Status" }, value: newStatus });
+    if (gmudValue) customFields.push({ field: { id: 71, name: "Numero_GMUD" }, value: gmudValue });
+    if (customFields.length > 0) {
+        await mantisRequest(
+            `issues/${ticketNumber}`,
+            {
+                method: 'PATCH',
+                body: JSON.stringify({ custom_fields: customFields })
+            }
+        );
+    }
+    return true;
+}
+});
