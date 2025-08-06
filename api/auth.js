@@ -5,12 +5,12 @@ import bcrypt from 'bcryptjs';
 const USERS = [
     {
         username: 'admin',
-        password: '$2a$10$rQZ8K9vX8K9vX8K9vX8K9O', // senha123
+        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // senha123
         role: 'admin'
     },
     {
         username: 'usuario',
-        password: '$2a$10$rQZ8K9vX8K9vX8K9vX8K9O', // senha123
+        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // senha123
         role: 'user'
     }
 ];
