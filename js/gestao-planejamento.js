@@ -1932,7 +1932,8 @@ function mostrarNotificacao(mensagem, tipo) {
  */
 async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
-    const issueUrl = `/api/mantis-proxy/issues/${ticketNumber}`;
+    const mantisBaseUrl = window.AppConfig.MANTIS_BASE_URL;
+const issueUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}`;
 
     const body = {
         custom_fields: [
@@ -1987,7 +1988,8 @@ async function updateMantisCustomField(ticketNumber, fieldId, newValue) {
  */
 async function updateMantisHandler(ticketNumber, newHandlerUsername) {
     const token = window.AppConfig.MANTIS_API_TOKEN;
-    const issueUrl = `/api/mantis-proxy/issues/${ticketNumber}`;
+    const mantisBaseUrl = window.AppConfig.MANTIS_BASE_URL;
+const issueUrl = `${mantisBaseUrl}/api/rest/issues/${ticketNumber}`;
 
     const body = {
         handler: {
