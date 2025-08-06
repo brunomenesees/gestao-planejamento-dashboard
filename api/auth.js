@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 const USERS = [
     {
         username: 'admin',
-        password: '$2a$10$rQZ8K9vX8K9vX8K9vX8K9O', // senha123
+        password: 'senha123', // senha123
         role: 'admin'
     },
     {
