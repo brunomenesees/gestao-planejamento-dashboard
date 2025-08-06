@@ -1,12 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "public" }
-    }
-  ],
   "routes": [
     {
       "src": "/api/mantis/(.*)",
@@ -16,10 +9,7 @@
         "Authorization": "GjDoN1uca9IC6GiZUcidMS5aixv6d8lZ",
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, X-Requested-With"
+        "X-Requested-With": "XMLHttpRequest"
       }
     },
     {
