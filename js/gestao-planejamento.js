@@ -2212,81 +2212,198 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 // Função para mostrar modal de confirmação com observação customizada
 function showActionButtons(container, newStatus, ticketNumber) {
     console.log('showActionButtons chamada:', newStatus, ticketNumber);
-    
+
     // Remover modais existentes se houver
-    const existingModal = document.querySelector('.simple-update-modal');
+    const existingModal = document.querySelector('.confirmation-modal');
     if (existingModal) {
         existingModal.remove();
     }
 
+    // Criar o contêiner do modal
     const modalContainer = document.createElement('div');
-    modalContainer.className = 'simple-update-modal';
-
-    const modalContent = document.createElement('div');
-    modalContent.className = 'simple-update-modal-content';
-
-    modalContent.innerHTML = `
-        <h3>Confirmar Alteração de Status</h3>
-        <div class="ticket-info-box">
-            <p><strong>Ticket:</strong> ${ticketNumber}</p>
-            <p><strong>Status Selecionado:</strong> ${newStatus || 'N/A'}</p>
-        </div>
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="status-input">Status:</label>
-                <input type="text" id="status-input" value="${newStatus || ''}" readonly>
-            </div>
-            <div class="form-group">
-                <label for="gmud-input">GMUD:</label>
-                <input type="text" id="gmud-input" placeholder="Ex: 12345">
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="observacao-input">Observação (opcional):</label>
-            <textarea id="observacao-input" placeholder="Digite uma observação ou contexto adicional..." maxlength="500"></textarea>
-            <div id="char-counter" class="char-counter">0/500</div>
-        </div>
-        <div class="form-group">
-            <label for="preview-output">Preview do texto que será enviado:</label>
-            <textarea id="preview-output" readonly>${newStatus || ''}</textarea>
-        </div>
-        <div class="simple-update-modal-buttons">
-            <button class="cancel-btn">Cancelar</button>
-            <button class="save-btn">Salvar</button>
-        </div>
+    modalContainer.className = 'confirmation-modal';
+    modalContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     `;
 
-    const gmudInput = modalContent.querySelector('#gmud-input');
-    const observacaoInput = modalContent.querySelector('#observacao-input');
-    const previewOutput = modalContent.querySelector('#preview-output');
-    const charCounter = modalContent.querySelector('#char-counter');
+    // Criar o conteúdo do modal
+    const modalContent = document.createElement('div');
+    modalContent.className = 'confirmation-modal-content';
+    modalContent.style.cssText = `
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        width: 90%;
+        max-width: 480px;
+        text-align: left;
+        position: relative;
+        animation: slide-down 0.3s ease-out;
+    `;
+
+    // Título do modal
+    const modalTitle = document.createElement('h3');
+    modalTitle.textContent = 'Confirmar Alteração de Status';
+    modalTitle.style.cssText = `
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #333;
+        font-size: 1.4rem;
+        font-weight: 600;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 15px;
+    `;
+
+    // Informações do Ticket
+    const ticketInfo = document.createElement('div');
+    ticketInfo.className = 'ticket-info-box';
+    ticketInfo.innerHTML = `<p><strong>Ticket:</strong> ${ticketNumber}</p><p><strong>Status Selecionado:</strong> ${newStatus}</p>`;
+    ticketInfo.style.cssText = `
+        background-color: #f8f9fa;
+        border-left: 5px solid #3498db;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        font-size: 1rem;
+    `;
+
+    // Container para Status e GMUD
+    const statusGmudContainer = document.createElement('div');
+    statusGmudContainer.style.cssText = `
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 15px;
+    `;
+
+    // Campo Status (somente leitura)
+    const statusGroup = document.createElement('div');
+    statusGroup.innerHTML = `
+        <label for="status-input" style="display: block; margin-bottom: 8px; font-weight: 600; color: #555;">Status:</label>
+        <input type="text" id="status-input" value="${newStatus}" readonly style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #e9ecef; cursor: not-allowed; box-sizing: border-box;">
+    `;
+
+    // Campo GMUD
+    const gmudGroup = document.createElement('div');
+    gmudGroup.innerHTML = `
+        <label for="gmud-input" style="display: block; margin-bottom: 8px; font-weight: 600; color: #555;">GMUD:</label>
+        <input type="text" id="gmud-input" placeholder="Ex: 12345" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+    `;
+
+    statusGmudContainer.appendChild(statusGroup);
+    statusGmudContainer.appendChild(gmudGroup);
+
+    // Campo Observação
+    const observacaoGroup = document.createElement('div');
+    observacaoGroup.style.position = 'relative';
+    observacaoGroup.innerHTML = `
+        <label for="observacao-input" style="display: block; margin-bottom: 8px; font-weight: 600; color: #555;">Observação (opcional):</label>
+        <textarea id="observacao-input" placeholder="Digite uma observação ou contexto adicional..." maxlength="500" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; min-height: 90px; resize: vertical; box-sizing: border-box;"></textarea>
+        <div id="char-counter" style="position: absolute; bottom: 15px; right: 15px; font-size: 0.8rem; color: #888;">0/500</div>
+    `;
+
+    // Campo Preview
+    const previewGroup = document.createElement('div');
+    previewGroup.style.marginBottom = '25px';
+    previewGroup.innerHTML = `
+        <label for="preview-output" style="display: block; margin-bottom: 8px; font-weight: 600; color: #555;">Preview do texto que será enviado:</label>
+        <textarea id="preview-output" readonly style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #e9ecef; min-height: 70px; resize: none; box-sizing: border-box;">${newStatus}</textarea>
+    `;
+
+    // Lógica de atualização
+    const gmudInput = gmudGroup.querySelector('#gmud-input');
+    const observacaoTextarea = observacaoGroup.querySelector('#observacao-input');
+    const previewTextarea = previewGroup.querySelector('#preview-output');
+    const charCounter = observacaoGroup.querySelector('#char-counter');
 
     const updatePreview = () => {
         const gmud = gmudInput.value.trim();
-        const observacao = observacaoInput.value.trim();
-        let previewText = newStatus || '';
+        const observacao = observacaoTextarea.value.trim();
+        let previewText = newStatus;
         if (gmud) {
             previewText += ` - GMUD: ${gmud}`;
         }
         if (observacao) {
             previewText += `\n${observacao}`;
         }
-        previewOutput.value = previewText;
+        previewTextarea.value = previewText;
     };
 
-    observacaoInput.addEventListener('input', () => {
-        const count = observacaoInput.value.length;
+    observacaoTextarea.addEventListener('input', () => {
+        const count = observacaoTextarea.value.length;
         charCounter.textContent = `${count}/500`;
         updatePreview();
     });
 
     gmudInput.addEventListener('input', updatePreview);
 
-    const saveBtn = modalContent.querySelector('.save-btn');
-    const cancelBtn = modalContent.querySelector('.cancel-btn');
+    // Botões
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    `;
 
-    saveBtn.addEventListener('click', async () => {
-        const note = previewOutput.value; 
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancelar';
+    cancelBtn.className = 'cancel-btn';
+    cancelBtn.style.cssText = `
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        background-color: #6c757d;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    `;
+
+    cancelBtn.addEventListener('mouseenter', () => {
+        cancelBtn.style.backgroundColor = '#5a6268';
+    });
+    cancelBtn.addEventListener('mouseleave', () => {
+        cancelBtn.style.backgroundColor = '#6c757d';
+    });
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Salvar';
+    saveBtn.className = 'save-btn';
+    saveBtn.style.cssText = `
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        background-color: #28a745;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    `;
+
+    saveBtn.addEventListener('mouseenter', () => {
+        saveBtn.style.backgroundColor = '#218838';
+    });
+
+    saveBtn.addEventListener('mouseleave', () => {
+        saveBtn.style.backgroundColor = '#28a745';
+    });
+
+    // Eventos dos botões
+    saveBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        
+        const note = previewTextarea.value;
         let success = await postToMantis(ticketNumber, note);
 
         if (success) {
@@ -2298,12 +2415,47 @@ function showActionButtons(container, newStatus, ticketNumber) {
         }
     });
 
-    cancelBtn.addEventListener('click', () => {
+    cancelBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         modalContainer.remove();
     });
 
+    // Fechar modal ao clicar fora
+    modalContainer.addEventListener('click', (e) => {
+        if (e.target === modalContainer) {
+            cancelBtn.click();
+        }
+    });
+
+    // Fechar modal com ESC
+    const handleEscKey = (e) => {
+        if (e.key === 'Escape') {
+            cancelBtn.click();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    };
+    document.addEventListener('keydown', handleEscKey);
+
+    // Montar o modal
+    buttonContainer.appendChild(cancelBtn);
+    buttonContainer.appendChild(saveBtn);
+
+    modalContent.appendChild(modalTitle);
+    modalContent.appendChild(ticketInfo);
+    modalContent.appendChild(statusGmudContainer);
+    modalContent.appendChild(observacaoGroup);
+    modalContent.appendChild(previewGroup);
+    modalContent.appendChild(buttonContainer);
+
     modalContainer.appendChild(modalContent);
     document.body.appendChild(modalContainer);
+
+    // Focar no campo de observação
+    setTimeout(() => {
+        observacaoTextarea.focus();
+    }, 100);
+
+    console.log('Modal de confirmação adicionado ao body');
 }
 
 // Função para mostrar feedback de salvamento
