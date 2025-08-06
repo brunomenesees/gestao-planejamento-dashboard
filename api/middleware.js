@@ -8,7 +8,7 @@ export function verifyToken(req) {
     if (!token) return null;
 
     try {
-        return jwt.verify(token, process.env.JWT_SECRET || 'sua-chave-secreta-aqui');
+        return jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
         return null;
     }

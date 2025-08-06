@@ -1,19 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-
-// Usuários hardcoded (em produção, use banco de dados)
-const USERS = [
-    {
-        username: 'admin',
-        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
-        role: 'admin'
-    },
-    {
-        username: 'usuario',
-        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
-        role: 'user'
-    }
-];
+import { sql } from '@vercel/postgres';
 
 export default async function handler(req, res) {
     console.log('=== AUTH FUNCTION CALLED ===');
@@ -47,9 +34,11 @@ export default async function handler(req, res) {
         console.log('bcrypt available:', typeof bcrypt !== 'undefined');
         console.log('jwt available:', typeof jwt !== 'undefined');
 
-        // Validar credenciais
-        console.log('Looking for user:', username);
-        const user = USERS.find(u => u.username === username);
+        // Validar credenciais consultando o banco de dados
+        console.log('Looking for user in the database:', username);
+        const { rows } = await sql`SELECT * FROM users WHERE username = ${username};`;
+        const user = rows[0];
+        
         console.log('User found:', user ? 'YES' : 'NO');
         
         if (!user) {
@@ -69,7 +58,7 @@ export default async function handler(req, res) {
         console.log('Authentication successful for user:', username);
 
         // Gerar JWT token
-        const jwtSecret = process.env.JWT_SECRET || '286793b2b247581d130514b7';
+        const jwtSecret = process.env.JWT_SECRET;
         console.log('Using JWT secret:', jwtSecret ? 'YES' : 'NO');
         
         const token = jwt.sign(
