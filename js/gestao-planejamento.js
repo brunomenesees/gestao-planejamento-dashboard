@@ -1999,7 +1999,6 @@ async function updateMantisHandler(ticketNumber, newHandlerUsername) {
         const response = await fetch(issueUrl, {
             method: 'PATCH',
             headers: {
-                'Authorization': token,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
