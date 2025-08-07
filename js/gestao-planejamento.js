@@ -34,6 +34,7 @@ const STATUS_OPTIONS = [
     'Análise Suporte',
     'Code Review',
     'Desenvolvimento',
+    'Despriorizado',
     'Especificação',
     'Revisão Especificação',
     'Fila ABAP',
@@ -41,6 +42,7 @@ const STATUS_OPTIONS = [
     'Fila Especificação',
     'Fila WEB',
     'Testes',
+    'Pendência',
     'Pendência Cliente',
     'Validação Cliente'
 ];
