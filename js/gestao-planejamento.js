@@ -2742,6 +2742,7 @@ function createUnifiedEditModal(demanda) {
 
             // 3. Enviar a requisição PATCH somente se houver algo para atualizar
             if (Object.keys(payload).length > 0) {
+                console.log('PAYLOAD SENDING TO MANTIS API:', JSON.stringify(payload, null, 2));
                 await mantisRequest(`issues/${demanda.numero}`, {
                     method: 'PATCH',
                     body: JSON.stringify(payload)
@@ -2843,4 +2844,11 @@ function createUnifiedEditModal(demanda) {
 
     modalContainer.appendChild(modalContent);
     document.body.appendChild(modalContainer);
+    
+    // Focar no campo de observação
+    setTimeout(() => {
+        notaTextarea.focus();
+    }, 100);
+
+    console.log('Modal criado e adicionado ao DOM');
 }
