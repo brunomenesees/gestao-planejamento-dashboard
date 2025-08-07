@@ -1081,7 +1081,90 @@ tr:hover {
 .filters .choices {
     margin-right: 8px !important;
 }
-/* Deixar o multi-seletor igual ao select padrão */
+
+/* Estilos para o Modal de Edição Unificado */
+.modal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Espaçamento entre os elementos do formulário */
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Garante que o padding não afete a largura total */
+}
+
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.edit-btn, .save-btn, .cancel-btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.edit-btn {
+    background-color: #f0ad4e; /* Laranja */
+    color: white;
+}
+
+.save-btn {
+    background-color: #5cb85c; /* Verde */
+    color: white;
+}
+
+.cancel-btn {
+    background-color: #d9534f; /* Vermelho */
+    color: white;
+}
+
+/* Estilos para Choices.js (multi-seletor de Equipe) */
 .choices__inner {
     background: #fff !important;
     border: 1px solid #d1d5db !important;
