@@ -2583,6 +2583,7 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 
     // Envia anotação se houver pelo menos um dos campos preenchidos
     if (noteText) {
+        console.log(`[Mantis] POST anotação para issue #${ticketNumber}:`, noteText);
         await mantisRequest(
             `issues/${ticketNumber}/notes`,
             {
