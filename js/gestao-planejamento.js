@@ -35,12 +35,14 @@ const STATUS_OPTIONS = [
     'Code Review',
     'Desenvolvimento',
     'Especificação',
+    'Revisão Especificação',
     'Fila ABAP',
     'Fila Analytics',
     'Fila Especificação',
     'Fila WEB',
+    'Testes',
     'Pendência Cliente',
-    'Testes'
+    'Validação Cliente'
 ];
 // Lista de opções para os novos modais de atualização
 const SQUAD_OPTIONS = [
