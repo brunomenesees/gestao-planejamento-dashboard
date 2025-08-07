@@ -1386,15 +1386,23 @@ function updateTable() {
                     console.log('Clicou na célula Responsável Atual:', valor, demanda.numero);
                     createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
                 });
-            } else if (index === 14) { // Coluna Status - Dropdown editável
-                console.log('Criando dropdown para coluna Status:', valor, demanda.numero);
-                td.className = 'col-center status-dropdown-cell';
-                createStatusDropdown(td, valor, demanda.numero);
             } else {
                 td.textContent = valor;
             }
             row.appendChild(td);
         });
+
+        // Adicionar a nova célula de Ações com o botão Editar
+        const actionsTd = document.createElement('td');
+        actionsTd.className = 'col-center';
+
+        const editButton = document.createElement('button');
+        editButton.textContent = 'Editar';
+        editButton.className = 'edit-btn'; // Adicionar uma classe para estilização
+        editButton.addEventListener('click', () => createUnifiedEditModal(demanda));
+
+        actionsTd.appendChild(editButton);
+        row.appendChild(actionsTd);
 
         tbody.appendChild(row);
     });
@@ -2590,4 +2598,139 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
         );
     }
     return true;
+}
+
+// Passo 1.2: Criar o Modal de Edição Unificado
+function createUnifiedEditModal(demanda) {
+    // Remover qualquer modal existente para evitar duplicatas
+    const existingModal = document.querySelector('.modal-container');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Criar os elementos do modal
+    const modalContainer = document.createElement('div');
+    modalContainer.className = 'modal-container';
+
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+
+    const modalTitle = document.createElement('h2');
+    modalTitle.textContent = `Editar Chamado #${demanda.numero}`;
+
+    // Campo de Status (Dropdown)
+    const statusGroup = document.createElement('div');
+    statusGroup.className = 'form-group';
+    const statusLabel = document.createElement('label');
+    statusLabel.textContent = 'Status:';
+    const statusSelect = document.createElement('select');
+    statusSelect.className = 'form-control';
+    STATUS_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        if (option === demanda.status) {
+            opt.selected = true;
+        }
+        statusSelect.appendChild(opt);
+    });
+    statusGroup.appendChild(statusLabel);
+    statusGroup.appendChild(statusSelect);
+
+    // Campo de GMUD (Input de texto)
+    const gmudGroup = document.createElement('div');
+    gmudGroup.className = 'form-group';
+    const gmudLabel = document.createElement('label');
+    gmudLabel.textContent = 'Número da GMUD:';
+    const gmudInput = document.createElement('input');
+    gmudInput.type = 'text';
+    gmudInput.className = 'form-control';
+    gmudInput.value = demanda.numero_gmud || ''; // Assumindo que o campo se chama 'numero_gmud'
+    gmudGroup.appendChild(gmudLabel);
+    gmudGroup.appendChild(gmudInput);
+
+    // Campo de Nota/Observação (Textarea)
+    const notaGroup = document.createElement('div');
+    notaGroup.className = 'form-group';
+    const notaLabel = document.createElement('label');
+    notaLabel.textContent = 'Adicionar Nota/Observação:';
+    const notaTextarea = document.createElement('textarea');
+    notaTextarea.className = 'form-control';
+    notaTextarea.rows = 3;
+    notaGroup.appendChild(notaLabel);
+    notaGroup.appendChild(notaTextarea);
+
+    // Botões de Ação
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'button-container';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Salvar';
+    saveBtn.className = 'save-btn';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancelar';
+    cancelBtn.className = 'cancel-btn';
+
+    // Lógica dos botões
+    cancelBtn.addEventListener('click', () => modalContainer.remove());
+    modalContainer.addEventListener('click', (e) => {
+        if (e.target === modalContainer) {
+            modalContainer.remove();
+        }
+    });
+    document.addEventListener('keydown', function handleEsc(e) {
+        if (e.key === 'Escape') {
+            modalContainer.remove();
+            document.removeEventListener('keydown', handleEsc);
+        }
+    });
+
+    // Passo 1.4: Lógica de Salvamento
+    saveBtn.addEventListener('click', async () => {
+        try {
+            // Coletar os dados do modal
+            const newStatus = statusSelect.value;
+            const gmudValue = gmudInput.value;
+            const notaText = notaTextarea.value;
+
+            // Chamar a função que já conhecemos para interagir com a API
+            await postToMantis(demanda.numero, notaText, newStatus, gmudValue);
+
+            mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
+
+            // Atualizar os dados locais para reflexo imediato na tabela
+            const dataIndex = demandasData.findIndex(d => d.numero === demanda.numero);
+            if (dataIndex !== -1) {
+                demandasData[dataIndex].status = newStatus;
+                // O campo para GMUD pode não existir no objeto inicial, mas o adicionamos
+                // para consistência caso o usuário edite o mesmo item novamente.
+                demandasData[dataIndex].numero_gmud = gmudValue;
+            }
+
+            // Fechar o modal
+            modalContainer.remove();
+
+            // Atualizar a tabela para refletir a mudança. A função filterData() será chamada
+            // dentro de updateDashboard() que é chamado por updateTable()
+            filterData(); // Garante que os filtros sejam reaplicados antes de redesenhar
+
+        } catch (error) {
+            console.error('Erro ao salvar as alterações:', error);
+            mostrarNotificacao(`Erro ao salvar: ${error.message}`, 'erro');
+        }
+    });
+
+    // Montar o modal
+    buttonContainer.appendChild(cancelBtn);
+    buttonContainer.appendChild(saveBtn);
+
+    modalContent.appendChild(modalTitle);
+    modalContent.appendChild(statusGroup);
+    modalContent.appendChild(gmudGroup);
+    modalContent.appendChild(notaGroup);
+    modalContent.appendChild(buttonContainer);
+
+    modalContainer.appendChild(modalContent);
+    document.body.appendChild(modalContainer);
 }
