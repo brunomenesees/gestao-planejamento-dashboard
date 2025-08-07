@@ -2723,16 +2723,16 @@ function createUnifiedEditModal(demanda) {
 
             // Campos Personalizados: Status, GMUD, Equipe, Responsável Atual
             if (newStatus !== demanda.status) {
-                custom_fields.push({ field: { id: 70 }, value: newStatus }); // Assumindo ID 70 para Status
+                custom_fields.push({ field: { id: 70 }, value: newStatus }); 
             }
             if (gmudValue !== (demanda.numero_gmud || '')) {
-                custom_fields.push({ field: { id: 71 }, value: gmudValue }); // Assumindo ID 71 para GMUD
+                custom_fields.push({ field: { id: 71 }, value: gmudValue }); 
             }
             if (newEquipe !== demanda.squad) {
-                custom_fields.push({ field: { id: 68 }, value: newEquipe }); // Assumindo ID 68 para Equipe
+                custom_fields.push({ field: { id: 49 }, value: newEquipe }); 
             }
             if (newResponsavel !== demanda.resp_atual) {
-                custom_fields.push({ field: { id: 69 }, value: newResponsavel }); // Assumindo ID 69 para Resp. Atual
+                custom_fields.push({ field: { id: 69 }, value: newResponsavel }); 
             }
 
             if (custom_fields.length > 0) {
