@@ -2574,14 +2574,21 @@ async function mantisRequest(endpoint, options = {}) {
 }
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
-    // Adiciona nota
-    if (text && text.trim()) {
+    // Monta o conteúdo da anotação conforme regras do usuário
+    let noteLines = [];
+    if (newStatus) noteLines.push(newStatus);
+    if (gmudValue) noteLines.push(`GMUD: ${gmudValue}`);
+    if (text && text.trim()) noteLines.push(text.trim());
+    const noteText = noteLines.join('\n');
+
+    // Envia anotação se houver pelo menos um dos campos preenchidos
+    if (noteText) {
         await mantisRequest(
             `issues/${ticketNumber}/notes`,
             {
                 method: 'POST',
                 body: JSON.stringify({
-                    text: text,
+                    text: noteText,
                     view_state: { name: 'public' }
                 })
             }
