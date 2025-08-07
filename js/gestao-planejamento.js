@@ -2706,7 +2706,37 @@ function createUnifiedEditModal(demanda) {
 
             // 1. Capturar valores dos campos
             const notaText = notaTextarea.value;
+            const newStatus = statusSelect.value;
+            const gmudValue = gmudInput.value;
+            const newEquipe = equipeSelect.value;
+            const newAnalista = analistaSelect.value;
+            const newResponsavel = responsavelSelect.value;
 
+            // 2. Atualizar handler (analista) se mudou
+            if (newAnalista !== demanda.atribuicao) {
+                await updateMantisHandler(demanda.numero, newAnalista);
+                hasChanges = true;
+            }
+
+            // 3. Atualizar equipe e responsável atual via PATCH separado, se mudou
+            if (newEquipe !== demanda.squad) {
+                await updateMantisCustomField(demanda.numero, 49, newEquipe);
+                hasChanges = true;
+            }
+            if (newResponsavel !== demanda.resp_atual) {
+                await updateMantisCustomField(demanda.numero, 69, newResponsavel);
+                hasChanges = true;
+            }
+
+            // 4. Atualizar status/GMUD e enviar anotação centralizadamente
+            const patchFieldsChanged = (newStatus !== demanda.status) || (gmudValue !== (demanda.numero_gmud || ''));
+            if (patchFieldsChanged || (notaText && notaText.trim())) {
+                await postToMantis(demanda.numero, notaText, 
+                    (newStatus !== demanda.status) ? newStatus : null,
+                    (gmudValue !== (demanda.numero_gmud || '')) ? gmudValue : null
+                );
+                hasChanges = true;
+            }
 
             // Campo Padrão: Analista Responsável
             if (newAnalista !== demanda.atribuicao) {
