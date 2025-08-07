@@ -2707,9 +2707,8 @@ function createUnifiedEditModal(demanda) {
             }
 
             // 2. Construir um único objeto de atualização para a requisição PATCH
-            const updatePayload = {
-                custom_fields: []
-            };
+            const payload = {};
+            const custom_fields = [];
 
             const newStatus = statusSelect.value;
             const gmudValue = gmudInput.value;
@@ -2717,29 +2716,35 @@ function createUnifiedEditModal(demanda) {
             const newAnalista = analistaSelect.value;
             const newResponsavel = responsavelSelect.value;
 
-            // Adiciona os campos ao payload SOMENTE se eles mudaram
+            // Adiciona os campos padrão ao payload SOMENTE se eles mudaram
             if (newStatus !== demanda.status) {
-                updatePayload.custom_fields.push({ field: { id: 70, name: "Status" }, value: newStatus });
-            }
-            if (gmudValue !== (demanda.numero_gmud || '')) {
-                updatePayload.custom_fields.push({ field: { id: 71, name: "Numero_GMUD" }, value: gmudValue });
-            }
-            if (newEquipe !== demanda.squad) {
-                updatePayload.custom_fields.push({ field: { id: 68, name: "Equipe" }, value: newEquipe });
-            }
-            if (newResponsavel !== demanda.resp_atual) {
-                updatePayload.custom_fields.push({ field: { id: 69, name: "Responsavel Atual" }, value: newResponsavel });
+                payload.status = { name: newStatus };
             }
             if (newAnalista !== demanda.atribuicao) {
-                // O campo 'handler' (atribuição) é um campo padrão, não um custom_field
-                updatePayload.handler = { name: newAnalista };
+                payload.handler = { name: newAnalista };
+            }
+
+            // Adiciona os campos personalizados à lista SOMENTE se eles mudaram
+            if (gmudValue !== (demanda.numero_gmud || '')) {
+                custom_fields.push({ field: { id: 71 }, value: gmudValue });
+            }
+            if (newEquipe !== demanda.squad) {
+                custom_fields.push({ field: { id: 68 }, value: newEquipe });
+            }
+            if (newResponsavel !== demanda.resp_atual) {
+                custom_fields.push({ field: { id: 69 }, value: newResponsavel });
+            }
+
+            // Adiciona a lista de custom_fields ao payload principal se ela não estiver vazia
+            if (custom_fields.length > 0) {
+                payload.custom_fields = custom_fields;
             }
 
             // 3. Enviar a requisição PATCH somente se houver algo para atualizar
-            if (updatePayload.custom_fields.length > 0 || updatePayload.handler) {
+            if (Object.keys(payload).length > 0) {
                 await mantisRequest(`issues/${demanda.numero}`, {
                     method: 'PATCH',
-                    body: JSON.stringify(updatePayload)
+                    body: JSON.stringify(payload)
                 });
             }
 
