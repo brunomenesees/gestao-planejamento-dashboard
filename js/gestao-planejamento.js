@@ -2691,22 +2691,22 @@ function createUnifiedEditModal(demanda) {
         }
     });
 
-    // Passo 1.4: Lógica de Salvamento (Refatorada)
+    // Passo 1.4: Lógica de Salvamento (Implementação Final)
     saveBtn.addEventListener('click', async () => {
         try {
-            // 1. Adicionar nota (se houver)
+            let hasChanges = false;
+
+            // 1. Enviar nota (POST separado)
             const notaText = notaTextarea.value;
             if (notaText && notaText.trim()) {
                 await mantisRequest(`issues/${demanda.numero}/notes`, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        text: notaText,
-                        view_state: { name: 'public' }
-                    })
+                    body: JSON.stringify({ text: notaText, view_state: { name: 'public' } })
                 });
+                hasChanges = true;
             }
 
-            // 2. Construir um único objeto de atualização para a requisição PATCH
+            // 2. Montar e enviar payload de atualização de campos (PATCH consolidado)
             const payload = {};
             const custom_fields = [];
 
@@ -2716,59 +2716,62 @@ function createUnifiedEditModal(demanda) {
             const newAnalista = analistaSelect.value;
             const newResponsavel = responsavelSelect.value;
 
-            // Adiciona os campos padrão ao payload SOMENTE se eles mudaram
-            if (newStatus !== demanda.status) {
-                payload.status = { name: newStatus };
-            }
+            // Campo Padrão: Analista Responsável
             if (newAnalista !== demanda.atribuicao) {
                 payload.handler = { name: newAnalista };
             }
 
-            // Adiciona os campos personalizados à lista SOMENTE se eles mudaram
+            // Campos Personalizados: Status, GMUD, Equipe, Responsável Atual
+            if (newStatus !== demanda.status) {
+                custom_fields.push({ field: { id: 70 }, value: newStatus }); // Assumindo ID 70 para Status
+            }
             if (gmudValue !== (demanda.numero_gmud || '')) {
-                custom_fields.push({ field: { id: 71 }, value: gmudValue });
+                custom_fields.push({ field: { id: 71 }, value: gmudValue }); // Assumindo ID 71 para GMUD
             }
             if (newEquipe !== demanda.squad) {
-                custom_fields.push({ field: { id: 68 }, value: newEquipe });
+                custom_fields.push({ field: { id: 68 }, value: newEquipe }); // Assumindo ID 68 para Equipe
             }
             if (newResponsavel !== demanda.resp_atual) {
-                custom_fields.push({ field: { id: 69 }, value: newResponsavel });
+                custom_fields.push({ field: { id: 69 }, value: newResponsavel }); // Assumindo ID 69 para Resp. Atual
             }
 
-            // Adiciona a lista de custom_fields ao payload principal se ela não estiver vazia
             if (custom_fields.length > 0) {
                 payload.custom_fields = custom_fields;
             }
 
-            // 3. Enviar a requisição PATCH somente se houver algo para atualizar
+            // Enviar PATCH apenas se houver alterações nos campos
             if (Object.keys(payload).length > 0) {
-                console.log('PAYLOAD SENDING TO MANTIS API:', JSON.stringify(payload, null, 2));
+                console.log('PAYLOAD PATCH ENVIADO PARA A API MANTIS:', JSON.stringify(payload, null, 2));
                 await mantisRequest(`issues/${demanda.numero}`, {
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
+                hasChanges = true;
             }
 
-            mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
+            // 3. Feedback e atualização da UI
+            if (hasChanges) {
+                mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
 
-            // 4. Atualizar os dados locais para reflexo imediato na tabela
-            const dataIndex = demandasData.findIndex(d => d.numero === demanda.numero);
-            if (dataIndex !== -1) {
-                demandasData[dataIndex].status = newStatus;
-                demandasData[dataIndex].numero_gmud = gmudValue;
-                demandasData[dataIndex].squad = newEquipe;
-                demandasData[dataIndex].atribuicao = newAnalista;
-                demandasData[dataIndex].resp_atual = newResponsavel;
+                // Atualizar dados locais para reflexo imediato na tabela
+                const dataIndex = demandasData.findIndex(d => d.numero === demanda.numero);
+                if (dataIndex !== -1) {
+                    demandasData[dataIndex].status = newStatus;
+                    demandasData[dataIndex].numero_gmud = gmudValue;
+                    demandasData[dataIndex].squad = newEquipe;
+                    demandasData[dataIndex].atribuicao = newAnalista;
+                    demandasData[dataIndex].resp_atual = newResponsavel;
+                }
+                filterData(); // Re-renderiza a tabela com os novos dados
             }
 
             modalContainer.remove();
-            filterData();
 
         } catch (error) {
             console.error('Erro ao salvar as alterações:', error);
-            const errorData = await error.response?.json().catch(() => null);
-            const errorMessage = errorData?.message || error.message || 'Erro desconhecido';
-            mostrarNotificacao(`Erro ao salvar: ${errorMessage}`, 'erro');
+            const errorData = await error.response?.json().catch(() => ({}))
+            const errorMessage = errorData.message || error.message || 'Erro desconhecido ao salvar no Mantis.';
+            mostrarNotificacao(`Erro: ${errorMessage}`, 'erro');
         }
     });
 
