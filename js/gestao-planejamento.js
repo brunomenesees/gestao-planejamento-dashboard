@@ -2574,22 +2574,14 @@ async function mantisRequest(endpoint, options = {}) {
 }
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
-    // Monta o conteúdo da anotação conforme regras do usuário
-    let noteLines = [];
-    if (newStatus) noteLines.push(newStatus);
-    if (gmudValue) noteLines.push(`GMUD: ${gmudValue}`);
-    if (text && text.trim()) noteLines.push(text.trim());
-    const noteText = noteLines.join('\n');
-
-    // Envia anotação se houver pelo menos um dos campos preenchidos
-    if (noteText) {
-        console.log(`[Mantis] POST anotação para issue #${ticketNumber}:`, noteText);
+    // Adiciona nota
+    if (text && text.trim()) {
         await mantisRequest(
             `issues/${ticketNumber}/notes`,
             {
                 method: 'POST',
                 body: JSON.stringify({
-                    text: noteText,
+                    text: text,
                     view_state: { name: 'public' }
                 })
             }
@@ -2704,39 +2696,25 @@ function createUnifiedEditModal(demanda) {
         try {
             let hasChanges = false;
 
-            // 1. Capturar valores dos campos
+            // 1. Enviar nota (POST separado)
             const notaText = notaTextarea.value;
+            if (notaText && notaText.trim()) {
+                await mantisRequest(`issues/${demanda.numero}/notes`, {
+                    method: 'POST',
+                    body: JSON.stringify({ text: notaText, view_state: { name: 'public' } })
+                });
+                hasChanges = true;
+            }
+
+            // 2. Montar e enviar payload de atualização de campos (PATCH consolidado)
+            const payload = {};
+            const custom_fields = [];
+
             const newStatus = statusSelect.value;
             const gmudValue = gmudInput.value;
             const newEquipe = equipeSelect.value;
             const newAnalista = analistaSelect.value;
             const newResponsavel = responsavelSelect.value;
-
-            // 2. Atualizar handler (analista) se mudou
-            if (newAnalista !== demanda.atribuicao) {
-                await updateMantisHandler(demanda.numero, newAnalista);
-                hasChanges = true;
-            }
-
-            // 3. Atualizar equipe e responsável atual via PATCH separado, se mudou
-            if (newEquipe !== demanda.squad) {
-                await updateMantisCustomField(demanda.numero, 49, newEquipe);
-                hasChanges = true;
-            }
-            if (newResponsavel !== demanda.resp_atual) {
-                await updateMantisCustomField(demanda.numero, 69, newResponsavel);
-                hasChanges = true;
-            }
-
-            // 4. Atualizar status/GMUD e enviar anotação centralizadamente
-            const patchFieldsChanged = (newStatus !== demanda.status) || (gmudValue !== (demanda.numero_gmud || ''));
-            if (patchFieldsChanged || (notaText && notaText.trim())) {
-                await postToMantis(demanda.numero, notaText, 
-                    (newStatus !== demanda.status) ? newStatus : null,
-                    (gmudValue !== (demanda.numero_gmud || '')) ? gmudValue : null
-                );
-                hasChanges = true;
-            }
 
             // Campo Padrão: Analista Responsável
             if (newAnalista !== demanda.atribuicao) {
