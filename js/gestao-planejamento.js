@@ -1399,7 +1399,10 @@ function updateTable() {
         const editButton = document.createElement('button');
         editButton.textContent = 'Editar';
         editButton.className = 'edit-btn'; // Adicionar uma classe para estilização
-        editButton.addEventListener('click', () => createUnifiedEditModal(demanda));
+        editButton.addEventListener('click', () => {
+            console.log('Botão Editar clicado para a demanda:', demanda);
+            createUnifiedEditModal(demanda);
+        });
 
         actionsTd.appendChild(editButton);
         row.appendChild(actionsTd);
@@ -2602,6 +2605,8 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 
 // Passo 1.2: Criar o Modal de Edição Unificado
 function createUnifiedEditModal(demanda) {
+    console.log('Função createUnifiedEditModal chamada com a demanda:', demanda);
+
     // Remover qualquer modal existente para evitar duplicatas
     const existingModal = document.querySelector('.modal-container');
     if (existingModal) {
