@@ -2691,36 +2691,61 @@ function createUnifiedEditModal(demanda) {
         }
     });
 
-    // Passo 1.4: Lógica de Salvamento
+    // Passo 1.4: Lógica de Salvamento (Refatorada)
     saveBtn.addEventListener('click', async () => {
         try {
-            // Coletar os dados do modal
+            // 1. Adicionar nota (se houver)
+            const notaText = notaTextarea.value;
+            if (notaText && notaText.trim()) {
+                await mantisRequest(`issues/${demanda.numero}/notes`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        text: notaText,
+                        view_state: { name: 'public' }
+                    })
+                });
+            }
+
+            // 2. Construir um único objeto de atualização para a requisição PATCH
+            const updatePayload = {
+                custom_fields: []
+            };
+
             const newStatus = statusSelect.value;
             const gmudValue = gmudInput.value;
-            const notaText = notaTextarea.value;
-
-            // Coletar os dados dos novos campos
             const newEquipe = equipeSelect.value;
             const newAnalista = analistaSelect.value;
             const newResponsavel = responsavelSelect.value;
 
-            // Chamar a função que já conhecemos para interagir com a API (Status, GMUD, Nota)
-            await postToMantis(demanda.numero, notaText, newStatus, gmudValue);
-
-            // Chamar as funções de atualização para os novos campos, se eles mudaram
-            if (newEquipe !== demanda.squad) {
-                await updateMantisCustomField(demanda.numero, 68, newEquipe); // ID 68 para Equipe
+            // Adiciona os campos ao payload SOMENTE se eles mudaram
+            if (newStatus !== demanda.status) {
+                updatePayload.custom_fields.push({ field: { id: 70, name: "Status" }, value: newStatus });
             }
-            if (newAnalista !== demanda.atribuicao) {
-                await updateMantisHandler(demanda.numero, newAnalista); // Função específica para Analista
+            if (gmudValue !== (demanda.numero_gmud || '')) {
+                updatePayload.custom_fields.push({ field: { id: 71, name: "Numero_GMUD" }, value: gmudValue });
+            }
+            if (newEquipe !== demanda.squad) {
+                updatePayload.custom_fields.push({ field: { id: 68, name: "Equipe" }, value: newEquipe });
             }
             if (newResponsavel !== demanda.resp_atual) {
-                await updateMantisCustomField(demanda.numero, 69, newResponsavel); // ID 69 para Responsável Atual
+                updatePayload.custom_fields.push({ field: { id: 69, name: "Responsavel Atual" }, value: newResponsavel });
+            }
+            if (newAnalista !== demanda.atribuicao) {
+                // O campo 'handler' (atribuição) é um campo padrão, não um custom_field
+                updatePayload.handler = { name: newAnalista };
+            }
+
+            // 3. Enviar a requisição PATCH somente se houver algo para atualizar
+            if (updatePayload.custom_fields.length > 0 || updatePayload.handler) {
+                await mantisRequest(`issues/${demanda.numero}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(updatePayload)
+                });
             }
 
             mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
 
-            // Atualizar os dados locais para reflexo imediato na tabela
+            // 4. Atualizar os dados locais para reflexo imediato na tabela
             const dataIndex = demandasData.findIndex(d => d.numero === demanda.numero);
             if (dataIndex !== -1) {
                 demandasData[dataIndex].status = newStatus;
@@ -2730,16 +2755,14 @@ function createUnifiedEditModal(demanda) {
                 demandasData[dataIndex].resp_atual = newResponsavel;
             }
 
-            // Fechar o modal
             modalContainer.remove();
-
-            // Atualizar a tabela para refletir a mudança. A função filterData() será chamada
-            // dentro de updateDashboard() que é chamado por updateTable()
-            filterData(); // Garante que os filtros sejam reaplicados antes de redesenhar
+            filterData();
 
         } catch (error) {
             console.error('Erro ao salvar as alterações:', error);
-            mostrarNotificacao(`Erro ao salvar: ${error.message}`, 'erro');
+            const errorData = await error.response?.json().catch(() => null);
+            const errorMessage = errorData?.message || error.message || 'Erro desconhecido';
+            mostrarNotificacao(`Erro ao salvar: ${errorMessage}`, 'erro');
         }
     });
 
