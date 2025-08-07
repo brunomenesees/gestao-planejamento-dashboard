@@ -2699,8 +2699,24 @@ function createUnifiedEditModal(demanda) {
             const gmudValue = gmudInput.value;
             const notaText = notaTextarea.value;
 
-            // Chamar a função que já conhecemos para interagir com a API
+            // Coletar os dados dos novos campos
+            const newEquipe = equipeSelect.value;
+            const newAnalista = analistaSelect.value;
+            const newResponsavel = responsavelSelect.value;
+
+            // Chamar a função que já conhecemos para interagir com a API (Status, GMUD, Nota)
             await postToMantis(demanda.numero, notaText, newStatus, gmudValue);
+
+            // Chamar as funções de atualização para os novos campos, se eles mudaram
+            if (newEquipe !== demanda.squad) {
+                await updateMantisCustomField(demanda.numero, 68, newEquipe); // ID 68 para Equipe
+            }
+            if (newAnalista !== demanda.atribuicao) {
+                await updateMantisHandler(demanda.numero, newAnalista); // Função específica para Analista
+            }
+            if (newResponsavel !== demanda.resp_atual) {
+                await updateMantisCustomField(demanda.numero, 69, newResponsavel); // ID 69 para Responsável Atual
+            }
 
             mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
 
@@ -2708,9 +2724,10 @@ function createUnifiedEditModal(demanda) {
             const dataIndex = demandasData.findIndex(d => d.numero === demanda.numero);
             if (dataIndex !== -1) {
                 demandasData[dataIndex].status = newStatus;
-                // O campo para GMUD pode não existir no objeto inicial, mas o adicionamos
-                // para consistência caso o usuário edite o mesmo item novamente.
                 demandasData[dataIndex].numero_gmud = gmudValue;
+                demandasData[dataIndex].squad = newEquipe;
+                demandasData[dataIndex].atribuicao = newAnalista;
+                demandasData[dataIndex].resp_atual = newResponsavel;
             }
 
             // Fechar o modal
@@ -2726,6 +2743,63 @@ function createUnifiedEditModal(demanda) {
         }
     });
 
+    // Campo de Equipe (Dropdown)
+    const equipeGroup = document.createElement('div');
+    equipeGroup.className = 'form-group';
+    const equipeLabel = document.createElement('label');
+    equipeLabel.textContent = 'Equipe:';
+    const equipeSelect = document.createElement('select');
+    equipeSelect.className = 'form-control';
+    SQUAD_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        if (option === demanda.squad) {
+            opt.selected = true;
+        }
+        equipeSelect.appendChild(opt);
+    });
+    equipeGroup.appendChild(equipeLabel);
+    equipeGroup.appendChild(equipeSelect);
+
+    // Campo de Analista Responsável (Dropdown)
+    const analistaGroup = document.createElement('div');
+    analistaGroup.className = 'form-group';
+    const analistaLabel = document.createElement('label');
+    analistaLabel.textContent = 'Analista Responsável:';
+    const analistaSelect = document.createElement('select');
+    analistaSelect.className = 'form-control';
+    ANALISTA_RESPONSAVEL_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        if (option === demanda.atribuicao) { // Assumindo que o campo é 'atribuicao'
+            opt.selected = true;
+        }
+        analistaSelect.appendChild(opt);
+    });
+    analistaGroup.appendChild(analistaLabel);
+    analistaGroup.appendChild(analistaSelect);
+
+    // Campo de Responsável Atual (Dropdown)
+    const responsavelGroup = document.createElement('div');
+    responsavelGroup.className = 'form-group';
+    const responsavelLabel = document.createElement('label');
+    responsavelLabel.textContent = 'Responsável Atual:';
+    const responsavelSelect = document.createElement('select');
+    responsavelSelect.className = 'form-control';
+    RESPONSAVEL_ATUAL_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        if (option === demanda.resp_atual) { // Assumindo que o campo é 'resp_atual'
+            opt.selected = true;
+        }
+        responsavelSelect.appendChild(opt);
+    });
+    responsavelGroup.appendChild(responsavelLabel);
+    responsavelGroup.appendChild(responsavelSelect);
+
     // Montar o modal
     buttonContainer.appendChild(cancelBtn);
     buttonContainer.appendChild(saveBtn);
@@ -2733,6 +2807,9 @@ function createUnifiedEditModal(demanda) {
     modalContent.appendChild(modalTitle);
     modalContent.appendChild(statusGroup);
     modalContent.appendChild(gmudGroup);
+    modalContent.appendChild(equipeGroup);
+    modalContent.appendChild(analistaGroup);
+    modalContent.appendChild(responsavelGroup);
     modalContent.appendChild(notaGroup);
     modalContent.appendChild(buttonContainer);
 
