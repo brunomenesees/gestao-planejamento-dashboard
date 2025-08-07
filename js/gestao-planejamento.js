@@ -2190,8 +2190,8 @@ async function updateTicketField(ticketNumber, fieldKey, value) {
     const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
     
     const fieldIdMap = {
-        'squad': 72, // Substitua pelo ID correto se necessário
-        'atribuicao': 68, // Substitua pelo ID correto se necessário
+        'squad': 49, // Substitua pelo ID correto se necessário
+        'atribuicao': 65, // Substitua pelo ID correto se necessário
         'resp_atual': 69, // Substitua pelo ID correto se necessário
     };
 
