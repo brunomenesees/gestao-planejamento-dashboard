@@ -2704,25 +2704,9 @@ function createUnifiedEditModal(demanda) {
         try {
             let hasChanges = false;
 
-            // 1. Enviar nota (POST separado)
+            // 1. Capturar valores dos campos
             const notaText = notaTextarea.value;
-            if (notaText && notaText.trim()) {
-                await mantisRequest(`issues/${demanda.numero}/notes`, {
-                    method: 'POST',
-                    body: JSON.stringify({ text: notaText, view_state: { name: 'public' } })
-                });
-                hasChanges = true;
-            }
 
-            // 2. Montar e enviar payload de atualização de campos (PATCH consolidado)
-            const payload = {};
-            const custom_fields = [];
-
-            const newStatus = statusSelect.value;
-            const gmudValue = gmudInput.value;
-            const newEquipe = equipeSelect.value;
-            const newAnalista = analistaSelect.value;
-            const newResponsavel = responsavelSelect.value;
 
             // Campo Padrão: Analista Responsável
             if (newAnalista !== demanda.atribuicao) {
