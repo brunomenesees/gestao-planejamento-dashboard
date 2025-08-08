@@ -3122,9 +3122,8 @@ function showSaveFeedback(container, success) {
     }, 2000);
 }
 
-async function atualizarDados() {
-     // Lógica para forçar a atualização dos dados, se necessário.
- }
+// Nota: a função atualizarDados() já foi definida anteriormente com a implementação correta.
+// Evitar redefinições para não sobrescrever o comportamento.
 
 // Função utilitária (deve estar disponível no escopo global)
 async function mantisRequest(endpoint, options = {}) {
