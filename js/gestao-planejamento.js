@@ -1,5 +1,7 @@
 // Dados globais - inicializados vazios
 let demandasData = [];
+// Seleção de tickets para edição massiva
+let selectedTickets = new Set();
 let currentPage = 1;
 let rowsPerPage = 20;
 let filteredData = [];
@@ -145,6 +147,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             initCharts();
             addTableSortListeners();
+            setupMassSelectionControls();
             setupColumnToggle();
             
             // Aplica a visibilidade das colunas imediatamente
@@ -1315,10 +1318,32 @@ function updateTable() {
     const end = start + rowsPerPage;
     const pageData = filteredByStatus.slice(start, end);
     
+    // Atualizar estado do botão massivo conforme seleção
+    const massEditBtn = document.getElementById('massEditBtn');
+    if (massEditBtn) {
+        massEditBtn.disabled = selectedTickets.size === 0;
+    }
+
     pageData.forEach(demanda => {
         const row = document.createElement('tr');
         row.setAttribute('data-demanda', demanda.numero);
         row.className = 'status-dropdown-row';
+
+        // Coluna de seleção
+        const selectTd = document.createElement('td');
+        selectTd.className = 'col-center';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'ticket-select-cb';
+        cb.dataset.numero = demanda.numero;
+        cb.checked = selectedTickets.has(demanda.numero);
+        cb.addEventListener('change', () => {
+            toggleSelectTicket(demanda.numero, cb.checked);
+            // Atualiza header checkbox (selecionar todos) estado
+            syncSelectAllCheckboxForPage();
+        });
+        selectTd.appendChild(cb);
+        row.appendChild(selectTd);
 
         const colunas = [
             demanda.numero || '',
@@ -1409,6 +1434,9 @@ function updateTable() {
 
         tbody.appendChild(row);
     });
+
+    // Sincroniza estado do checkbox Selecionar Todos após render da página
+    syncSelectAllCheckboxForPage();
 
     const totalPages = Math.ceil(filteredByStatus.length / rowsPerPage);
     currentPage = Math.min(currentPage, totalPages);

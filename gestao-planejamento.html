@@ -214,12 +214,18 @@
                                     <option value="50">50 registros</option>
                                     <option value="100">100 registros</option>
                                 </select>
+                                <button id="massEditBtn" class="btn" disabled style="margin-left: 8px;">
+                                    <i class="fas fa-edit"></i> Editar selecionados
+                                </button>
                             </div>
                         </div>
                     </div>
                     <table id="chamadosTable" class="table">
                         <thead>
                             <tr>
+                                <th class="col-center">
+                                    <input type="checkbox" id="selectAllTickets" title="Selecionar todos" />
+                                </th>
                                 <th data-sort="numero" class="col-center">Ticket</th>
                                 <th data-sort="categoria" class="col-center">Categoria</th>
                                 <th data-sort="projeto" class="col-left">Cliente/Projeto</th>
