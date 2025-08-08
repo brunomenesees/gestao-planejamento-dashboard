@@ -1444,9 +1444,18 @@ function updateTable() {
     
     const dataToShow = filteredData;
     
-    const filteredByStatus = dataToShow.filter(demanda => {
-        return selectedStatusFilter.has(demanda.estado);
-    });
+    // Determina se devemos aplicar filtro de estado baseado em interseção com o dataset
+    const estadosNoDataset = new Set(dataToShow.map(d => d.estado).filter(Boolean));
+    const shouldFilterByEstado = selectedStatusFilter && selectedStatusFilter.size > 0 && Array.from(selectedStatusFilter).some(s => estadosNoDataset.has(s));
+    const filteredByStatus = shouldFilterByEstado
+        ? dataToShow.filter(demanda => selectedStatusFilter.has(demanda.estado))
+        : dataToShow;
+    
+    if (window.DEBUG_DASHBOARD) {
+        try {
+            console.log('[updateTable] rows before status filter:', dataToShow.length, 'after:', filteredByStatus.length, { shouldFilterByEstado, estadosNoDataset: Array.from(estadosNoDataset).slice(0, 10) });
+        } catch {}
+    }
 
     filteredByStatus.sort((a, b) => {
         if (sortColumn === 'default') {
