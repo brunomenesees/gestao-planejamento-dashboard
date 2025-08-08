@@ -2034,34 +2034,27 @@ function updateGlobalLastUpdated(formattedDate) {
 }
 
 async function atualizarDados() {
+    const btn = document.getElementById('refreshButton');
+    const icon = btn ? btn.querySelector('i') : null;
     try {
-        // Busca dados mais recentes da API
-        const apiData = await fetchAllIssuesFromMantis({ filterId: 1477 });
-        if (apiData && apiData.length > 0) {
-            // Persiste em IndexedDB e atualiza estado local
-            await saveChamados(apiData);
-            demandasData = apiData;
+        console.debug('[atualizarDados] início');
+        // Feedback visual do botão
+        if (btn) btn.disabled = true;
+        if (icon) icon.classList.add('fa-spin');
 
-            // Atualiza UI
-            selectedProjetoFilter = new Set(demandasData.map(c => c.projeto).filter(Boolean));
-            selectedSquadFilter = new Set();
-            if (hiddenColumns.size === 0) hiddenColumns = new Set(DEFAULT_HIDDEN_COLUMNS);
-            updateFilterOptions();
-            filterData();
-            if (typeof updateCharts === 'function') {
-                try { updateCharts(); } catch (e) { console.warn('Falha ao atualizar gráficos:', e); }
-            }
+        // Reutiliza o pipeline já consolidado
+        await loadInitialData({ forceRefresh: true });
+        console.debug('[atualizarDados] loadInitialData(forceRefresh) concluído. demandasData:', Array.isArray(demandasData) ? demandasData.length : 'n/a');
 
-            const now = new Date();
-            const formattedDate = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-            updateGlobalLastUpdated(formattedDate);
-            mostrarNotificacao('Dados atualizados da API Mantis.', 'sucesso');
-        } else {
-            mostrarNotificacao('Nenhum dado retornado pela API Mantis.', 'aviso');
-        }
+        mostrarNotificacao('Dados atualizados da API Mantis.', 'sucesso');
     } catch (error) {
         console.error('Erro ao atualizar os dados:', error);
         mostrarNotificacao('Erro ao atualizar os dados.', 'erro');
+    } finally {
+        // Restaurar estado visual do botão
+        if (icon) icon.classList.remove('fa-spin');
+        if (btn) btn.disabled = false;
+        console.debug('[atualizarDados] fim');
     }
 }
 
