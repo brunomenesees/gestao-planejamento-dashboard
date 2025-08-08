@@ -106,7 +106,7 @@ function mapIssueToDemanda(issue) {
         data_abertura: issue.created_at || '',
         ultima_atualizacao: issue.updated_at || '',
         resumo: issue.summary || '',
-        ordem_plnj: getCustomFieldValue(issue, 0) || '', // ajuste se houver ID específico
+        ordem_plnj: getCustomFieldValue(issue, 50) || '', // CF ID 50 informado para Ordem Planejamento
         data_prometida: issue.due_date || '', // se usar custom field, ajustar aqui
         squad: getCustomFieldValue(issue, 49) || '',
         resp_atual: getCustomFieldValue(issue, 69) || '',
@@ -2687,6 +2687,7 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
 }
 
 async function updateTicketField(ticketNumber, fieldKey, value) {
+    const ORDEM_PLNJ_CF_ID = (window.AppConfig && window.AppConfig.CF_ORDEM_PLNJ_ID) || 50; // informado: ID 50
     const token = window.AppConfig.MANTIS_API_TOKEN;
     const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
     
