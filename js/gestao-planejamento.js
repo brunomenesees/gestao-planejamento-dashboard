@@ -649,6 +649,18 @@ function filterData() {
         dataFinal: document.getElementById('filter-data-final').value
     };
     
+    // Debug: início do filtro
+    if (window.DEBUG_DASHBOARD) {
+        try {
+            console.log('[filterData] start', {
+                demandasCount: Array.isArray(demandasData) ? demandasData.length : 0,
+                selectedStatus: Array.from(selectedStatusFilter || []),
+                filters
+            });
+        } catch {}
+    }
+    
+    const demandasCountBeforeFilter = demandasData.length;
     filteredData = demandasData.filter(demanda => {
         // Regra especial para categoria "Suporte Informatica"
         // Só incluir se tiver um responsável atual definido (campo resp_atual)
@@ -703,6 +715,14 @@ function filterData() {
     });
     
     currentPage = 1;
+    // Debug: resultado do filtro
+    if (window.DEBUG_DASHBOARD) {
+        try {
+            console.log('[filterData] end', {
+                filteredCount: Array.isArray(filteredData) ? filteredData.length : 0
+            });
+        } catch {}
+    }
     updateDashboard();
 }
 
@@ -1110,7 +1130,7 @@ function updateDemandasPorSquad() {
     
     const data = squads.map(s => ({
         squad: s,
-        count: filteredData.filter(c => (c.squad || '').toLowerCase().trim() === s.toLowerCase().trim() && c.dataAbertura).length
+        count: filteredData.filter(c => (c.squad || '').toLowerCase().trim() === s.toLowerCase().trim() && c.data_abertura).length
     }));
     
     window.demandasPorSquadChart = new Chart(ctx, {
@@ -1196,8 +1216,8 @@ function updateDemandasPorHora() {
     const data = horas.map(h => ({
         hora: h,
         count: filteredData.filter(c => {
-            if (!c.dataAbertura) return false;
-            const partes = c.dataAbertura.split(' ');
+            if (!c.data_abertura) return false;
+            const partes = String(c.data_abertura).split(' ');
             if (partes.length < 2) return false;
             const horaDemanda = partes[1].split(':')[0];
             return horaDemanda === h;
@@ -1241,7 +1261,7 @@ function updateDemandasPorAtribuicao() {
     
     const data = atribuicoes.map(a => ({
         atribuicao: a,
-        count: filteredData.filter(c => c.atribuicao === a && c.dataAbertura).length
+        count: filteredData.filter(c => c.atribuicao === a && c.data_abertura).length
     }));
     
     window.demandasPorAtribuicaoChart = new Chart(ctx, {
