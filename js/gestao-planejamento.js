@@ -1570,6 +1570,12 @@ function updateTable() {
         row.setAttribute('data-demanda', demanda.numero);
         row.className = 'status-dropdown-row';
 
+        // Marcação de linha inteira se o status (custom CF 70) estiver vazio
+        const isStatusEmptyForRow = String(demanda.status || '').trim() === '';
+        if (isStatusEmptyForRow) {
+            row.classList.add('status-empty-row');
+        }
+
         // Coluna de seleção
         const selectTd = document.createElement('td');
         selectTd.className = 'col-center';
@@ -1658,14 +1664,9 @@ function updateTable() {
                         createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
                     });
                 }
-            } else if (index === 14) { // Status (custom CF 70): realce quando vazio
+            } else if (index === 14) { // Status (custom CF 70): mostrar traço quando vazio
                 const isEmpty = String(valor).trim() === '';
-                if (isEmpty) {
-                    td.classList.add('status-empty');
-                    td.textContent = '—';
-                } else {
-                    td.textContent = valor;
-                }
+                td.textContent = isEmpty ? '—' : valor;
             } else {
                 td.textContent = valor;
             }

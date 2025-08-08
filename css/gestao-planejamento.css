@@ -568,3 +568,14 @@
 #chamadosTable tbody tr:hover .status-empty {
     background-color: #ffe6e6;
 }
+
+/* Linha inteira quando status está vazio */
+tr.status-empty-row td {
+    background-color: #fff1f0; /* mesmo tom suave */
+    color: #6b0f19;            /* um pouco mais neutro para linha inteira */
+}
+
+/* Hover da linha inteira mantém a sutileza */
+tr.status-empty-row:hover td {
+    background-color: #ffe6e6;
+}
