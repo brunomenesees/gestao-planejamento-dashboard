@@ -131,6 +131,9 @@ async function fetchIssuesPage({ page = 1, pageSize = 100, projectId, filterId, 
 
 async function fetchAllIssuesFromMantis({ projectId, filterId, categoryId, categoryName, pageSize = 250 } = {}) {
     try {
+        const MAX_PAGES = 10;     // limite solicitado
+        const MAX_ITEMS = 3000;   // limite solicitado
+        const seenIds = new Set();
         const first = await fetchIssuesPage({ page: 1, pageSize, projectId, filterId, categoryId, categoryName });
         if (!first || !Array.isArray(first.issues)) return [];
         // Debug minimal para inspecionar metadados de paginação (uma vez)
@@ -146,27 +149,54 @@ async function fetchAllIssuesFromMantis({ projectId, filterId, categoryId, categ
         } catch {}
 
         const totalResults = first.total_results || first.total || first.total_count;
-        const totalPages = first.page_count || first.total_pages || (totalResults ? Math.ceil(totalResults / pageSize) : 0);
-        const allIssues = [...first.issues];
+        const totalPagesRaw = first.page_count || first.total_pages || (totalResults ? Math.ceil(totalResults / pageSize) : 0);
+        const totalPages = totalPagesRaw ? Math.min(totalPagesRaw, MAX_PAGES) : 0;
+        const allIssues = [];
+        // adiciona com deduplicação
+        for (const it of first.issues) {
+            const id = it?.id;
+            if (!seenIds.has(id)) { seenIds.add(id); allIssues.push(it); }
+        }
 
         if (totalPages && totalPages > 1) {
             const pages = [];
-            for (let p = 2; p <= totalPages; p++) pages.push(p);
+            for (let p = 2; p <= totalPages && pages.length < (MAX_PAGES - 1); p++) pages.push(p);
             // Concorrência limitada em lote de páginas (3 simultâneas)
             await runWithConcurrency(pages, async (p) => {
                 const r = await fetchIssuesPage({ page: p, pageSize, projectId, filterId, categoryId, categoryName });
-                if (r && Array.isArray(r.issues)) allIssues.push(...r.issues);
+                if (r && Array.isArray(r.issues)) {
+                    let added = 0;
+                    for (const it of r.issues) {
+                        if (allIssues.length >= MAX_ITEMS) break;
+                        const id = it?.id;
+                        if (!seenIds.has(id)) { seenIds.add(id); allIssues.push(it); added++; }
+                    }
+                    try { console.log(`Mantis page ${p}: received=${r.issues.length}, added_unique=${added}, total=${allIssues.length}`); } catch {}
+                }
             }, 3);
         } else {
             // Fallback: paginar até esgotar, caso a API não informe totalPages
             let page = 2;
-            const MAX_PAGES = 500; // segurança para não loopar infinito
-            while (page <= MAX_PAGES) {
+            let noNewCount = 0;
+            while (page <= MAX_PAGES && allIssues.length < MAX_ITEMS) {
                 const r = await fetchIssuesPage({ page, pageSize, projectId, filterId, categoryId, categoryName });
                 const items = (r && Array.isArray(r.issues)) ? r.issues : [];
-                if (!items.length) break;
-                allIssues.push(...items);
-                if (items.length < pageSize) break; // última página
+                if (!items.length) { try { console.log(`Mantis page ${page}: vazia, parando.`); } catch {}; break; }
+                const before = allIssues.length;
+                for (const it of items) {
+                    if (allIssues.length >= MAX_ITEMS) break;
+                    const id = it?.id;
+                    if (!seenIds.has(id)) { seenIds.add(id); allIssues.push(it); }
+                }
+                const added = allIssues.length - before;
+                try { console.log(`Mantis page ${page}: received=${items.length}, added_unique=${added}, total=${allIssues.length}`); } catch {}
+                if (added === 0) {
+                    noNewCount++;
+                    if (noNewCount >= 2) { try { console.log('Sem novos itens em 2 páginas consecutivas, parando.'); } catch {}; break; }
+                } else {
+                    noNewCount = 0;
+                }
+                if (items.length < pageSize) { try { console.log('Última página detectada pelo tamanho.'); } catch {}; break; }
                 page++;
             }
         }
