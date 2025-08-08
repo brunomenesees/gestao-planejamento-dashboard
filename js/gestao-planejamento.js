@@ -408,33 +408,33 @@ function setupFileInput() {
                             document.getElementById('ultimaAtualizacao').textContent = `Última atualização: ${formattedDate}`;
                             localStorage.setItem('ultimaAtualizacao', formattedDate);
                             
-                            alert('Dados carregados e salvos com sucesso!');
+                            mostrarNotificacao('Dados carregados e salvos com sucesso!', 'sucesso');
                             loadingSpan.style.display = 'none';
                         },
                         error: function(error) {
                             console.error('Erro ao processar CSV:', error);
                             loadingSpan.style.display = 'none';
-                            alert('Erro ao processar o arquivo CSV');
+                            mostrarNotificacao('Erro ao processar o arquivo CSV', 'erro');
                         }
                     });
                 } catch (error) {
                     console.error('Erro ao processar arquivo:', error);
                     loadingSpan.style.display = 'none';
-                    alert('Erro ao processar o arquivo');
+                    mostrarNotificacao('Erro ao processar o arquivo', 'erro');
                 }
             };
 
             reader.onerror = () => {
                 console.error('Erro ao ler arquivo');
                 loadingSpan.style.display = 'none';
-                alert('Erro ao ler o arquivo');
+                mostrarNotificacao('Erro ao ler o arquivo', 'erro');
             };
 
             reader.readAsText(file, 'ISO-8859-1');
         } catch (error) {
             console.error('Erro ao processar arquivo:', error);
             loadingSpan.style.display = 'none';
-            alert('Erro ao processar o arquivo');
+            mostrarNotificacao('Erro ao processar o arquivo', 'erro');
         }
     });
 }
@@ -478,14 +478,14 @@ function processAndNormalizeData(data) {
         }).filter(Boolean); // Remove null entries
 
         if (processedData.length === 0 && data.length > 0) {
-            alert('Nenhum dado válido foi encontrado no arquivo CSV. Verifique se o arquivo contém uma coluna de identificação para os tickets (ex: "Núm", "Ticket", "ID") e se ela está preenchida.');
+            mostrarNotificacao('Nenhum dado válido foi encontrado no arquivo CSV. Verifique se o arquivo contém uma coluna de identificação para os tickets (ex: "Núm", "Ticket", "ID") e se ela está preenchida.', 'aviso');
         }
         
         return processedData;
 
     } catch (error) {
         console.error('Erro ao processar dados:', error);
-        alert('Ocorreu um erro ao processar os dados do arquivo. Verifique o console para mais detalhes.');
+        mostrarNotificacao('Ocorreu um erro ao processar os dados do arquivo. Verifique o console para mais detalhes.', 'erro');
         return [];
     }
 }
@@ -1643,7 +1643,7 @@ function setupExport() {
 
 function exportToExcel() {
     if (filteredData.length === 0) {
-        alert('Não há dados para exportar.');
+        mostrarNotificacao('Não há dados para exportar.', 'aviso');
         return;
     }
     
@@ -1655,7 +1655,7 @@ function exportToExcel() {
 
 function exportToCSV() {
     if (filteredData.length === 0) {
-        alert('Não há dados para exportar.');
+        mostrarNotificacao('Não há dados para exportar.', 'aviso');
         return;
     }
     
