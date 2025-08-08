@@ -222,21 +222,46 @@ async function fetchAllIssuesFromMantis({ projectId, filterId, categoryId, categ
     }
 }
 
-async function loadInitialData() {
+async function loadInitialData({ forceRefresh = false } = {}) {
     try {
-        // 1) Tenta via API Mantis primeiro
-        // Usar filtro salvo do Mantis: filter_id=1477 (Categoria=Projetos)
-        const apiData = await fetchAllIssuesFromMantis({ filterId: 1477 });
+        // 1) Cache-first: tenta carregar do IndexedDB para evitar recarregar no F5
+        if (!forceRefresh) {
+            const cached = await getChamados();
+            if (Array.isArray(cached) && cached.length > 0) {
+                demandasData = cached;
+                try { console.log('Carregados via IndexedDB (demanda count):', demandasData.length); } catch {}
+
+                // Renderiza imediatamente com os dados em cache
+                selectedProjetoFilter = new Set(demandasData.map(c => c.projeto).filter(Boolean));
+                selectedSquadFilter = new Set();
+                if (hiddenColumns.size === 0) hiddenColumns = new Set(DEFAULT_HIDDEN_COLUMNS);
+                updateFilterOptions();
+                filterData();
+
+                // Mantém a última atualização exibida (vinda do localStorage se existir)
+                const ultimaData = localStorage.getItem('ultimaAtualizacao');
+                if (ultimaData) {
+                    const el = document.getElementById('ultimaAtualizacao');
+                    if (el) el.textContent = `Última atualização: ${ultimaData}`;
+                }
+                return; // Evita chamada de rede no carregamento inicial
+            }
+        }
+
+        // 2) Se não houver cache (ou forço refresh), busca na API
+        const apiData = await fetchAllIssuesFromMantis({ filterId: 1477 }); // Categoria=Projetos
         if (apiData && apiData.length > 0) {
-            await saveChamados(apiData);
+            await saveChamados(apiData); // Persiste para próximos reloads
             demandasData = apiData;
             try { console.log('Carregados via API (demanda count):', demandasData.length); } catch {}
+
             const now = new Date();
             const formattedDate = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-            document.getElementById('ultimaAtualizacao').textContent = `Última atualização: ${formattedDate}`;
+            const el = document.getElementById('ultimaAtualizacao');
+            if (el) el.textContent = `Última atualização: ${formattedDate}`;
             localStorage.setItem('ultimaAtualizacao', formattedDate);
         } else {
-            // 2) Fallback para o IndexedDB (que pode ter sido alimentado via CSV)
+            // 3) Último recurso: tenta novamente cache (pode ter vindo de CSV previamente)
             const data = await getChamados();
             demandasData = Array.isArray(data) ? data : [];
             try { console.log('Carregados via IndexedDB (demanda count):', demandasData.length); } catch {}
@@ -251,12 +276,13 @@ async function loadInitialData() {
             filterData();
             const ultimaData = localStorage.getItem('ultimaAtualizacao');
             if (ultimaData) {
-                document.getElementById('ultimaAtualizacao').textContent = `Última atualização: ${ultimaData}`;
+                const el = document.getElementById('ultimaAtualizacao');
+                if (el) el.textContent = `Última atualização: ${ultimaData}`;
             }
         } else {
             // Sem dados ainda – usuário pode usar CSV manualmente
             updateDashboard();
-            mostrarNotificacao('Nenhum dado carregado da API. Você pode importar um CSV como fallback.', 'aviso');
+            mostrarNotificacao('Nenhum dado disponível. Importe um CSV ou use o botão Atualizar.', 'aviso');
         }
     } catch (error) {
         console.error('Erro ao carregar dados iniciais:', error);
@@ -1985,8 +2011,36 @@ function updateGlobalLastUpdated(formattedDate) {
 }
 
 async function atualizarDados() {
-     // Lógica para forçar a atualização dos dados, se necessário.
- }
+    try {
+        // Busca dados mais recentes da API
+        const apiData = await fetchAllIssuesFromMantis({ filterId: 1477 });
+        if (apiData && apiData.length > 0) {
+            // Persiste em IndexedDB e atualiza estado local
+            await saveChamados(apiData);
+            demandasData = apiData;
+
+            // Atualiza UI
+            selectedProjetoFilter = new Set(demandasData.map(c => c.projeto).filter(Boolean));
+            selectedSquadFilter = new Set();
+            if (hiddenColumns.size === 0) hiddenColumns = new Set(DEFAULT_HIDDEN_COLUMNS);
+            updateFilterOptions();
+            filterData();
+            if (typeof updateCharts === 'function') {
+                try { updateCharts(); } catch (e) { console.warn('Falha ao atualizar gráficos:', e); }
+            }
+
+            const now = new Date();
+            const formattedDate = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+            updateGlobalLastUpdated(formattedDate);
+            mostrarNotificacao('Dados atualizados da API Mantis.', 'sucesso');
+        } else {
+            mostrarNotificacao('Nenhum dado retornado pela API Mantis.', 'aviso');
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar os dados:', error);
+        mostrarNotificacao('Erro ao atualizar os dados.', 'erro');
+    }
+}
 
 function setupColumnToggle() {
     const toggleButton = document.getElementById('toggle-columns-btn');
