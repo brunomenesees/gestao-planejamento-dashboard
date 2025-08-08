@@ -525,3 +525,34 @@
     to { transform: rotate(360deg); }
 }
 
+/* ===== Data Table Enhancements (zebra, hover, sticky header) ===== */
+#chamadosTable {
+    border-collapse: separate; /* preserves border-radius/shadows */
+    border-spacing: 0;
+}
+
+#chamadosTable thead th {
+    position: sticky;
+    top: 0;
+    background: var(--table-header-bg, #f8f9fb);
+    color: var(--table-header-fg, #2c3e50);
+    z-index: 2; /* above rows */
+    box-shadow: 0 2px 0 rgba(0,0,0,0.04);
+}
+
+/* Zebra striping */
+#chamadosTable tbody tr:nth-child(even) {
+    background-color: var(--table-zebra, #fafbfc);
+}
+
+/* Row hover */
+#chamadosTable tbody tr:hover {
+    background-color: var(--table-row-hover, #eef6ff);
+    transition: background-color 0.15s ease-in-out;
+}
+
+/* Ensure header cells have a border to separate visually */
+#chamadosTable thead th,
+#chamadosTable tbody td {
+    border-bottom: 1px solid var(--table-divider, #e6e8eb);
+}
