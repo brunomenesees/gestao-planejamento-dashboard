@@ -1658,6 +1658,14 @@ function updateTable() {
                         createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
                     });
                 }
+            } else if (index === 14) { // Status (custom CF 70): realce quando vazio
+                const isEmpty = String(valor).trim() === '';
+                if (isEmpty) {
+                    td.classList.add('status-empty');
+                    td.textContent = '—';
+                } else {
+                    td.textContent = valor;
+                }
             } else {
                 td.textContent = valor;
             }

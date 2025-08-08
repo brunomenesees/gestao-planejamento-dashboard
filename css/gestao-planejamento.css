@@ -556,3 +556,15 @@
 #chamadosTable tbody td {
     border-bottom: 1px solid var(--table-divider, #e6e8eb);
 }
+
+/* Status vazio: destaque sutil em vermelho */
+.status-empty {
+    background-color: #fff1f0; /* fundo suave */
+    color: #a8071a;            /* texto sutil e legível */
+    border-left: 3px solid #ffccc7; /* indicador discreto */
+}
+
+/* Em hover, manter sutil */
+#chamadosTable tbody tr:hover .status-empty {
+    background-color: #ffe6e6;
+}
