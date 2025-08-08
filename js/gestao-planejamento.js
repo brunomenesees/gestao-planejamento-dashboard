@@ -90,17 +90,94 @@ function getNomeAmigavelProjeto(nomeOriginal) {
     return mapeamentoProjetos[nomeOriginal] || nomeOriginal;
 }
 
+// === Carregamento de dados: API Mantis primeiro, CSV/IndexedDB como fallback ===
+function getCustomFieldValue(issue, fieldId) {
+    const cf = (issue.custom_fields || []).find(cf => cf?.field?.id === fieldId);
+    return cf ? cf.value : '';
+}
+
+function mapIssueToDemanda(issue) {
+    return {
+        numero: String(issue.id),
+        categoria: issue.category?.name || '',
+        projeto: getNomeAmigavelProjeto(issue.project?.name || ''),
+        atribuicao: issue.handler?.name || '',
+        estado: (issue.status?.name || '').toLowerCase().trim(),
+        data_abertura: issue.created_at || '',
+        ultima_atualizacao: issue.updated_at || '',
+        resumo: issue.summary || '',
+        ordem_plnj: getCustomFieldValue(issue, 0) || '', // ajuste se houver ID específico
+        data_prometida: issue.due_date || '', // se usar custom field, ajustar aqui
+        squad: getCustomFieldValue(issue, 49) || '',
+        resp_atual: getCustomFieldValue(issue, 69) || '',
+        solicitante: issue.reporter?.name || '',
+        status: getCustomFieldValue(issue, 70) || '',
+        numero_gmud: getCustomFieldValue(issue, 71) || ''
+    };
+}
+
+async function fetchIssuesPage({ page = 1, pageSize = 100, projectId, filterId }) {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('page_size', String(pageSize));
+    if (projectId) params.set('project_id', String(projectId));
+    if (filterId) params.set('filter_id', String(filterId));
+    const endpoint = `issues?${params.toString()}`;
+    const resp = await mantisRequest(endpoint, { method: 'GET' });
+    return resp; // esperado: { issues: [...], total_results, page_count, current_page }
+}
+
+async function fetchAllIssuesFromMantis({ projectId, filterId, pageSize = 100 } = {}) {
+    try {
+        const first = await fetchIssuesPage({ page: 1, pageSize, projectId, filterId });
+        if (!first || !Array.isArray(first.issues)) return [];
+        const totalPages = first.page_count || 1;
+        const allIssues = [...first.issues];
+
+        const pages = [];
+        for (let p = 2; p <= totalPages; p++) pages.push(p);
+
+        // Concorrência limitada em lote de páginas (3 simultâneas)
+        await runWithConcurrency(pages, async (p) => {
+            const r = await fetchIssuesPage({ page: p, pageSize, projectId, filterId });
+            if (r && Array.isArray(r.issues)) allIssues.push(...r.issues);
+        }, 3);
+
+        // Filtrar por estado nativo: excluir Resolvido/Fechado
+        const filteredIssues = allIssues.filter(issue => {
+            const name = (issue.status?.name || '').toLowerCase().trim();
+            return name !== 'resolved' && name !== 'fechado' && name !== 'closed' && name !== 'resolvido';
+        });
+
+        return filteredIssues.map(mapIssueToDemanda);
+    } catch (e) {
+        console.warn('Falha ao carregar issues via API Mantis, usando fallback:', e);
+        return [];
+    }
+}
+
 async function loadInitialData() {
     try {
-        const data = await getChamados();
-        if (data && data.length > 0) {
-            demandasData = data; // Usa os dados diretamente do DB
-            // Restante da lógica de inicialização que depende dos dados
+        // 1) Tenta via API Mantis primeiro
+        const apiData = await fetchAllIssuesFromMantis({ /* projectId, filterId se desejar */ });
+        if (apiData && apiData.length > 0) {
+            await saveChamados(apiData);
+            demandasData = apiData;
+            const now = new Date();
+            const formattedDate = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+            document.getElementById('ultimaAtualizacao').textContent = `Última atualização: ${formattedDate}`;
+            localStorage.setItem('ultimaAtualizacao', formattedDate);
+        } else {
+            // 2) Fallback para o IndexedDB (que pode ter sido alimentado via CSV)
+            const data = await getChamados();
+            demandasData = Array.isArray(data) ? data : [];
+        }
+
+        // Prosseguir com a pipeline da UI
+        if (demandasData && demandasData.length > 0) {
             selectedProjetoFilter = new Set(demandasData.map(c => c.projeto).filter(Boolean));
             selectedSquadFilter = new Set();
-            if (hiddenColumns.size === 0) {
-                hiddenColumns = new Set(DEFAULT_HIDDEN_COLUMNS);
-            }
+            if (hiddenColumns.size === 0) hiddenColumns = new Set(DEFAULT_HIDDEN_COLUMNS);
             updateFilterOptions();
             filterData();
             const ultimaData = localStorage.getItem('ultimaAtualizacao');
@@ -108,13 +185,14 @@ async function loadInitialData() {
                 document.getElementById('ultimaAtualizacao').textContent = `Última atualização: ${ultimaData}`;
             }
         } else {
-            // Se não há dados, o dashboard simplesmente ficará vazio.
-            updateDashboard(); 
+            // Sem dados ainda – usuário pode usar CSV manualmente
+            updateDashboard();
+            mostrarNotificacao('Nenhum dado carregado da API. Você pode importar um CSV como fallback.', 'aviso');
         }
     } catch (error) {
-        console.error('Erro ao carregar dados iniciais do IndexedDB:', error);
-        // Em caso de erro, o dashboard ficará vazio.
+        console.error('Erro ao carregar dados iniciais:', error);
         updateDashboard();
+        mostrarNotificacao('Erro ao carregar dados. Tente importar via CSV como fallback.', 'erro');
     }
 }
 
