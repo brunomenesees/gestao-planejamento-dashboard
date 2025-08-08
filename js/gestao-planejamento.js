@@ -336,6 +336,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 refreshButton.addEventListener('click', async (ev) => {
                     ev.preventDefault();
                     try {
+                        console.debug('Clique no botão de atualização (handler direto)');
                         await atualizarDados();
                     } catch (e) {
                         console.error('Erro no handler de atualização:', e);
@@ -353,6 +354,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                 updateTable();
             }
         }, 60000);
+    }
+});
+
+// Fallback: event delegation para garantir captura do clique no botão de atualização
+document.addEventListener('click', async (ev) => {
+    const btn = ev.target && (ev.target.id === 'refreshButton' ? ev.target : ev.target.closest && ev.target.closest('#refreshButton'));
+    if (btn) {
+        ev.preventDefault();
+        try {
+            console.debug('Clique no botão de atualização (delegated)');
+            await atualizarDados();
+        } catch (e) {
+            console.error('Erro no delegated handler de atualização:', e);
+        }
     }
 });
 
