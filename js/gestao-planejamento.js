@@ -225,8 +225,8 @@ async function fetchAllIssuesFromMantis({ projectId, filterId, categoryId, categ
 async function loadInitialData() {
     try {
         // 1) Tenta via API Mantis primeiro
-        // Filtro por Categoria: Projetos (id: 28) solicitado
-        const apiData = await fetchAllIssuesFromMantis({ /* projectId, filterId se desejar */ categoryId: 28, categoryName: 'Projetos' });
+        // Usar filtro salvo do Mantis: filter_id=1477 (Categoria=Projetos)
+        const apiData = await fetchAllIssuesFromMantis({ filterId: 1477 });
         if (apiData && apiData.length > 0) {
             await saveChamados(apiData);
             demandasData = apiData;
