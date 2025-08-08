@@ -2747,6 +2747,24 @@ function createUnifiedEditModal(demanda) {
                     body: JSON.stringify(payload)
                 });
                 hasChanges = true;
+
+                // Após PATCH, enviar comentário automático com Status/GMUD alterados (sem duplicar comentário do usuário)
+                const statusChanged = newStatus !== demanda.status;
+                const gmudChanged = gmudValue !== (demanda.numero_gmud || '');
+                if (statusChanged || gmudChanged) {
+                    const lines = [];
+                    if (statusChanged && newStatus) lines.push(`Status: ${newStatus}`);
+                    if (gmudChanged && gmudValue) lines.push(`GMUD: ${gmudValue}`);
+                    if (lines.length > 0) {
+                        await mantisRequest(`issues/${demanda.numero}/notes`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                text: lines.join('\n'),
+                                view_state: { name: 'public' }
+                            })
+                        });
+                    }
+                }
             }
 
             // 3. Feedback e atualização da UI
