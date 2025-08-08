@@ -659,7 +659,8 @@ function filterData() {
             }
         }
 
-        if (!selectedProjetoFilter.has(demanda.projeto)) {
+        // Se nenhum projeto estiver selecionado, não filtra por projeto
+        if (selectedProjetoFilter.size > 0 && !selectedProjetoFilter.has(demanda.projeto)) {
             return false;
         }
 
