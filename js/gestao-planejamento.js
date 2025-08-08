@@ -7,6 +7,10 @@ let rowsPerPage = 20;
 let filteredData = [];
 let hiddenColumns = new Set();
 
+// Feature flag: edição inline nas colunas Equipe/Analista/Responsável Atual
+// Mantenha como false para desabilitar cliques e forçar uso do modal unificado
+const ENABLE_INLINE_EDIT = false;
+
 // Colunas que devem ser ocultas por padrão
 const DEFAULT_HIDDEN_COLUMNS = new Set([
     'categoria',      // Categoria
@@ -1392,25 +1396,31 @@ function updateTable() {
                 td.setAttribute('title', decodificarTexto(demanda.resumo) || '');
             } else if (index === 4) { // Equipe
                 td.textContent = valor;
-                td.classList.add('clickable-cell');
-                td.addEventListener('click', () => {
-                    console.log('Clicou na célula Equipe:', valor, demanda.numero);
-                    createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Equipe', SQUAD_OPTIONS, 49, td);
-                });
+                if (ENABLE_INLINE_EDIT) {
+                    td.classList.add('clickable-cell');
+                    td.addEventListener('click', () => {
+                        console.log('Clicou na célula Equipe:', valor, demanda.numero);
+                        createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Equipe', SQUAD_OPTIONS, 49, td);
+                    });
+                }
             } else if (index === 5) { // Analista Responsavel
                 td.textContent = valor;
-                td.classList.add('clickable-cell');
-                td.addEventListener('click', () => {
-                    console.log('Clicou na célula Analista Responsável:', valor, demanda.numero);
-                    createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Analista Responsável', ANALISTA_RESPONSAVEL_OPTIONS, 65, td);
-                });
+                if (ENABLE_INLINE_EDIT) {
+                    td.classList.add('clickable-cell');
+                    td.addEventListener('click', () => {
+                        console.log('Clicou na célula Analista Responsável:', valor, demanda.numero);
+                        createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Analista Responsável', ANALISTA_RESPONSAVEL_OPTIONS, 65, td);
+                    });
+                }
             } else if (index === 6) { // Responsavel Atual
                 td.textContent = valor;
-                td.classList.add('clickable-cell');
-                td.addEventListener('click', () => {
-                    console.log('Clicou na célula Responsável Atual:', valor, demanda.numero);
-                    createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
-                });
+                if (ENABLE_INLINE_EDIT) {
+                    td.classList.add('clickable-cell');
+                    td.addEventListener('click', () => {
+                        console.log('Clicou na célula Responsável Atual:', valor, demanda.numero);
+                        createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
+                    });
+                }
             } else {
                 td.textContent = valor;
             }
