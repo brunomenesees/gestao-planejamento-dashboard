@@ -1961,6 +1961,25 @@ function updateGlobalLastUpdated(formattedDate) {
     }
 }
 
+// Helpers de overlay de carregamento
+function showLoading(message = 'Carregando...') {
+    const overlay = document.getElementById('loadingOverlay');
+    const msg = document.getElementById('loadingOverlayMessage');
+    if (msg) msg.textContent = message;
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+}
+
 // Função para atualizar o campo "Última atualização" de uma demanda específica
 async function updateDemandaLastUpdated(ticketNumber) {
     try {
@@ -2038,6 +2057,7 @@ async function atualizarDados() {
     const icon = btn ? btn.querySelector('i') : null;
     try {
         console.debug('[atualizarDados] início');
+        showLoading('Atualizando dados...');
         // Feedback visual do botão
         if (btn) btn.disabled = true;
         if (icon) icon.classList.add('fa-spin');
@@ -2054,6 +2074,7 @@ async function atualizarDados() {
         // Restaurar estado visual do botão
         if (icon) icon.classList.remove('fa-spin');
         if (btn) btn.disabled = false;
+        hideLoading();
         console.debug('[atualizarDados] fim');
     }
 }
