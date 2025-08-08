@@ -335,6 +335,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             initCharts();
             addTableSortListeners();
+            // Ativa o checkbox "Selecionar todos" e edição massiva
             setupMassSelectionControls();
             setupColumnToggle();
             
@@ -1811,16 +1812,16 @@ function setupMassSelectionControls() {
 }
 
 function toggleSelectAllOnCurrentPage(checked) {
-    const dataToShow = filteredData;
-    const filteredByStatus = dataToShow.filter(demanda => selectedStatusFilter.has(demanda.estado));
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    const pageData = filteredByStatus.slice(start, end);
-    pageData.forEach(d => {
-        if (checked) selectedTickets.add(d.numero); else selectedTickets.delete(d.numero);
-    });
-    document.querySelectorAll('#chamadosTable tbody .ticket-select-cb').forEach(cb => {
+    // Opera sobre os checkboxes atualmente renderizados (página visível)
+    const cbs = document.querySelectorAll('#chamadosTable tbody .ticket-select-cb');
+    cbs.forEach(cb => {
         cb.checked = checked;
+        const numero = cb.dataset.numero;
+        if (checked) {
+            selectedTickets.add(numero);
+        } else {
+            selectedTickets.delete(numero);
+        }
     });
     const massEditBtn = document.getElementById('massEditBtn');
     if (massEditBtn) massEditBtn.disabled = selectedTickets.size === 0;
@@ -1836,13 +1837,9 @@ function toggleSelectTicket(numero, isSelected) {
 function syncSelectAllCheckboxForPage() {
     const selectAll = document.getElementById('selectAllTickets');
     if (!selectAll) return;
-    const dataToShow = filteredData;
-    const filteredByStatus = dataToShow.filter(demanda => selectedStatusFilter.has(demanda.estado));
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    const pageData = filteredByStatus.slice(start, end);
-    const totalOnPage = pageData.length;
-    const selectedOnPage = pageData.filter(d => selectedTickets.has(d.numero)).length;
+    const cbs = Array.from(document.querySelectorAll('#chamadosTable tbody .ticket-select-cb'));
+    const totalOnPage = cbs.length;
+    const selectedOnPage = cbs.filter(cb => cb.checked).length;
     if (totalOnPage === 0) {
         selectAll.checked = false;
         selectAll.indeterminate = false;
