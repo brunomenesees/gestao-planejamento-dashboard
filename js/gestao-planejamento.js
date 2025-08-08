@@ -223,6 +223,7 @@ async function fetchAllIssuesFromMantis({ projectId, filterId, categoryId, categ
 }
 
 async function loadInitialData({ forceRefresh = false } = {}) {
+    let overlayShown = false;
     try {
         // 1) Cache-first: tenta carregar do IndexedDB para evitar recarregar no F5
         if (!forceRefresh) {
@@ -246,6 +247,12 @@ async function loadInitialData({ forceRefresh = false } = {}) {
                 }
                 return; // Evita chamada de rede no carregamento inicial
             }
+        }
+        
+        // Exibir overlay de carregamento apenas em primeiro carregamento sem cache (evita duplicar com atualizarDados)
+        if (!forceRefresh) {
+            showLoading('Carregando dados...');
+            overlayShown = true;
         }
 
         // 2) Se não houver cache (ou forço refresh), busca na API
@@ -288,6 +295,10 @@ async function loadInitialData({ forceRefresh = false } = {}) {
         console.error('Erro ao carregar dados iniciais:', error);
         updateDashboard();
         mostrarNotificacao('Erro ao carregar dados. Tente importar via CSV como fallback.', 'erro');
+    } finally {
+        if (overlayShown) {
+            hideLoading();
+        }
     }
 }
 
