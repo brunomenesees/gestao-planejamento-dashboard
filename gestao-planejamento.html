@@ -26,14 +26,6 @@
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
-        <div class="loading-box" role="status" aria-live="polite">
-            <div class="loading-spinner" aria-hidden="true"></div>
-            <span id="loadingOverlayMessage">Atualizando dados...</span>
-        </div>
-    </div>
             <nav class="sidebar-nav">
                 <a href="index.html">
                     <i class="fas fa-chart-line"></i>
@@ -427,11 +419,11 @@
         cursor: pointer;
     }
     </style>
-    <div id="loading-overlay" class="hidden">
-        <div class="loading-spinner">
-            <div class="spinner-border" role="status">
-                <span class="sr-only">Carregando...</span>
-            </div>
+    <!-- Loading Overlay (único) -->
+    <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
+        <div class="loading-box" role="status" aria-live="polite">
+            <div class="loading-spinner" aria-hidden="true"></div>
+            <span id="loadingOverlayMessage">Atualizando dados...</span>
         </div>
     </div>
 </body>

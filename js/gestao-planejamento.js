@@ -1963,21 +1963,29 @@ function updateGlobalLastUpdated(formattedDate) {
 
 // Helpers de overlay de carregamento
 function showLoading(message = 'Carregando...') {
-    const overlay = document.getElementById('loadingOverlay');
+    const overlay = document.getElementById('loadingOverlay') || document.getElementById('loading-overlay');
     const msg = document.getElementById('loadingOverlayMessage');
     if (msg) msg.textContent = message;
     if (overlay) {
+        console.debug('[loading] show');
         overlay.style.display = 'flex';
+        overlay.style.zIndex = overlay.style.zIndex || '100000';
         overlay.setAttribute('aria-hidden', 'false');
+        // Evita scroll durante o loading
+        document.body.style.overflow = 'hidden';
+    } else {
+        console.warn('[loading] overlay element não encontrado');
     }
 }
 
 function hideLoading() {
-    const overlay = document.getElementById('loadingOverlay');
+    const overlay = document.getElementById('loadingOverlay') || document.getElementById('loading-overlay');
     if (overlay) {
+        console.debug('[loading] hide');
         overlay.style.display = 'none';
         overlay.setAttribute('aria-hidden', 'true');
     }
+    document.body.style.overflow = '';
 }
 
 // Função para atualizar o campo "Última atualização" de uma demanda específica
