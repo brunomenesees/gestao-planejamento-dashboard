@@ -1537,6 +1537,88 @@ function addTableSortListeners() {
     });
 }
 
+// ===== Seleção massiva: setup e utilitários =====
+function setupMassSelectionControls() {
+    const selectAll = document.getElementById('selectAllTickets');
+    const massEditBtn = document.getElementById('massEditBtn');
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            toggleSelectAllOnCurrentPage(selectAll.checked);
+        });
+    }
+    if (massEditBtn) {
+        massEditBtn.addEventListener('click', () => {
+            if (selectedTickets.size === 0) return;
+            createMassEditModal(Array.from(selectedTickets));
+        });
+    }
+}
+
+function toggleSelectAllOnCurrentPage(checked) {
+    const dataToShow = filteredData;
+    const filteredByStatus = dataToShow.filter(demanda => selectedStatusFilter.has(demanda.estado));
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const pageData = filteredByStatus.slice(start, end);
+    pageData.forEach(d => {
+        if (checked) selectedTickets.add(d.numero); else selectedTickets.delete(d.numero);
+    });
+    document.querySelectorAll('#chamadosTable tbody .ticket-select-cb').forEach(cb => {
+        cb.checked = checked;
+    });
+    const massEditBtn = document.getElementById('massEditBtn');
+    if (massEditBtn) massEditBtn.disabled = selectedTickets.size === 0;
+    syncSelectAllCheckboxForPage();
+}
+
+function toggleSelectTicket(numero, isSelected) {
+    if (isSelected) selectedTickets.add(numero); else selectedTickets.delete(numero);
+    const massEditBtn = document.getElementById('massEditBtn');
+    if (massEditBtn) massEditBtn.disabled = selectedTickets.size === 0;
+}
+
+function syncSelectAllCheckboxForPage() {
+    const selectAll = document.getElementById('selectAllTickets');
+    if (!selectAll) return;
+    const dataToShow = filteredData;
+    const filteredByStatus = dataToShow.filter(demanda => selectedStatusFilter.has(demanda.estado));
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const pageData = filteredByStatus.slice(start, end);
+    const totalOnPage = pageData.length;
+    const selectedOnPage = pageData.filter(d => selectedTickets.has(d.numero)).length;
+    if (totalOnPage === 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        return;
+    }
+    selectAll.checked = selectedOnPage === totalOnPage;
+    selectAll.indeterminate = selectedOnPage > 0 && selectedOnPage < totalOnPage;
+}
+
+// Concorrência limitada
+async function runWithConcurrency(items, worker, limit = 3) {
+    const results = [];
+    let i = 0;
+    const runners = new Array(Math.min(limit, items.length)).fill(0).map(async () => {
+        while (true) {
+            const idx = i++;
+            if (idx >= items.length) break;
+            try {
+                results[idx] = await worker(items[idx], idx);
+            } catch (e) {
+                results[idx] = { ok: false, error: e };
+            }
+        }
+    });
+    await Promise.all(runners);
+    return results;
+}
+
+function getDemandaByNumero(numero) {
+    return demandasData.find(d => d.numero === numero);
+}
+
 function calcularTempoTotal(demanda) {
     if (!demanda.data_abertura) return 0;
     const dataAbertura = parseDateBR(demanda.data_abertura);
@@ -1974,9 +2056,213 @@ function createStatusDropdown(td, currentStatus, ticketNumber) {
     console.log('Dropdown element:', dropdown);
 }
 
-function mostrarNotificacao(mensagem, tipo) {
-    // Implementação simples de notificação via alert
-    alert(`[${tipo.toUpperCase()}] ${mensagem}`);
+function mostrarNotificacao(mensagem, tipo = 'info', timeoutMs = 3500) {
+    // Toast container
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position:fixed;top:16px;right:16px;z-index:100000;display:flex;flex-direction:column;gap:8px;';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    const colors = { sucesso: '#2ecc71', erro: '#e74c3c', aviso: '#f39c12', info: '#3498db' };
+    const color = colors[tipo] || colors.info;
+    toast.style.cssText = `min-width:260px;max-width:420px;background:#fff;border-left:6px solid ${color};box-shadow:0 8px 24px rgba(0,0,0,.15);border-radius:6px;padding:10px 12px;font-size:13px;color:#333;display:flex;align-items:flex-start;gap:8px;`;
+    toast.innerHTML = `<div style="margin-top:2px;width:10px;height:10px;border-radius:50%;background:${color}"></div><div>${mensagem}</div>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .25s'; setTimeout(() => toast.remove(), 300); }, timeoutMs);
+}
+
+// ===== Modal de Edição Massiva =====
+function createMassEditModal(ticketNumbers) {
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    document.body.appendChild(overlay);
+
+    // Container
+    const modal = document.createElement('div');
+    modal.className = 'mass-edit-modal';
+    modal.style.cssText = 'background:#fff;border-radius:8px;width:95%;max-width:720px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25);';
+    overlay.appendChild(modal);
+
+    modal.innerHTML = `
+      <h3 style="margin:0 0 12px;">Edição Massiva (${ticketNumbers.length} selecionados)</h3>
+      <div style="display:grid; grid-template-columns: 28px 1fr 1fr; gap:10px; align-items:center;">
+        <div></div><div style=\"font-weight:600;\">Campo</div><div style=\"font-weight:600;\">Valor</div>
+        <input type=\"checkbox\" id=\"applyStatus\" />
+        <label for=\"applyStatus\">Status (ID 70)</label>
+        <select id=\"massStatus\" disabled></select>
+
+        <input type=\"checkbox\" id=\"applyGmud\" />
+        <label for=\"applyGmud\">GMUD (ID 71)</label>
+        <input id=\"massGmud\" type=\"text\" placeholder=\"Número/Descrição GMUD\" disabled />
+
+        <input type=\"checkbox\" id=\"applyEquipe\" />
+        <label for=\"applyEquipe\">Equipe (ID 49)</label>
+        <select id=\"massEquipe\" disabled></select>
+
+        <input type=\"checkbox\" id=\"applyRespAtual\" />
+        <label for=\"applyRespAtual\">Responsável Atual (ID 69)</label>
+        <select id=\"massRespAtual\" disabled></select>
+
+        <input type=\"checkbox\" id=\"applyAnalista\" />
+        <label for=\"applyAnalista\">Analista Responsável (handler)</label>
+        <select id=\"massAnalista\" disabled></select>
+      </div>
+      <div style="margin-top:12px;">
+        <label for="massComment" style="font-weight:600; display:block; margin-bottom:6px;">Comentário (opcional)</label>
+        <textarea id="massComment" rows="4" style="width:100%;"></textarea>
+      </div>
+      <div id="massProgress" style="margin-top:10px; font-size:12px; color:#555;">Pronto</div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+        <button id="massCancel" class="btn">Cancelar</button>
+        <button id="massSave" class="btn btn-primary">Salvar</button>
+      </div>
+    `;
+
+    const close = () => { overlay.remove(); };
+    modal.querySelector('#massCancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Populate selects
+    const statusSel = modal.querySelector('#massStatus');
+    STATUS_OPTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o); });
+    const equipeSel = modal.querySelector('#massEquipe');
+    SQUAD_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; equipeSel.appendChild(o); });
+    const respSel = modal.querySelector('#massRespAtual');
+    RESPONSAVEL_ATUAL_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; respSel.appendChild(o); });
+    const analistaSel = modal.querySelector('#massAnalista');
+    ANALISTA_RESPONSAVEL_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; analistaSel.appendChild(o); });
+
+    // Enable/disable
+    const pairs = [
+        ['applyStatus','massStatus'],['applyGmud','massGmud'],['applyEquipe','massEquipe'],['applyRespAtual','massRespAtual'],['applyAnalista','massAnalista']
+    ];
+    pairs.forEach(([chkId, inputId]) => {
+        const chk = modal.querySelector('#' + chkId);
+        const inp = modal.querySelector('#' + inputId);
+        chk.addEventListener('change', () => { inp.disabled = !chk.checked; });
+    });
+
+    // Save handler
+    modal.querySelector('#massSave').addEventListener('click', async () => {
+        const apply = {
+            status: modal.querySelector('#applyStatus').checked,
+            gmud: modal.querySelector('#applyGmud').checked,
+            equipe: modal.querySelector('#applyEquipe').checked,
+            respAtual: modal.querySelector('#applyRespAtual').checked,
+            analista: modal.querySelector('#applyAnalista').checked,
+        };
+        const values = {
+            status: modal.querySelector('#massStatus').value,
+            gmud: modal.querySelector('#massGmud').value,
+            equipe: modal.querySelector('#massEquipe').value,
+            respAtual: modal.querySelector('#massRespAtual').value,
+            analista: modal.querySelector('#massAnalista').value,
+            comment: modal.querySelector('#massComment').value?.trim()
+        };
+
+        if (!apply.status && !apply.gmud && !apply.equipe && !apply.respAtual && !apply.analista && !values.comment) {
+            mostrarNotificacao('Selecione pelo menos um campo para aplicar ou insira um comentário.', 'aviso');
+            return;
+        }
+
+        const progress = modal.querySelector('#massProgress');
+        const total = ticketNumbers.length;
+        let done = 0;
+        progress.textContent = `Processando 0/${total}...`;
+        modal.querySelector('#massSave').disabled = true;
+
+        const worker = async (numero) => {
+            const base = getDemandaByNumero(numero) || {};
+            const patchPayload = {};
+            const custom_fields = [];
+            if (apply.status) custom_fields.push({ field: { id: 70 }, value: values.status });
+            if (apply.gmud) custom_fields.push({ field: { id: 71 }, value: values.gmud });
+            if (apply.equipe) custom_fields.push({ field: { id: 49 }, value: values.equipe });
+            if (apply.respAtual) custom_fields.push({ field: { id: 69 }, value: values.respAtual });
+            if (custom_fields.length) patchPayload.custom_fields = custom_fields;
+            if (apply.analista) patchPayload.handler = { name: values.analista };
+
+            let patchOk = true;
+            if (Object.keys(patchPayload).length > 0) {
+                try {
+                    await mantisRequest(`issues/${numero}`, { method: 'PATCH', body: JSON.stringify(patchPayload) });
+                } catch (e) {
+                    patchOk = false;
+                }
+            }
+
+            // Montar comentário
+            const lines = [];
+            if (apply.status) {
+                const oldStatus = base.status || '';
+                if (patchOk && (!oldStatus || oldStatus !== values.status)) lines.push(`Status: ${values.status}`);
+            }
+            if (apply.gmud) {
+                const oldGmud = base.numero_gmud || '';
+                if (patchOk && (!oldGmud || oldGmud !== values.gmud)) lines.push(`GMUD: ${values.gmud}`);
+            }
+            if (values.comment) lines.push(values.comment);
+
+            let postOk = true;
+            if (lines.length > 0) {
+                try {
+                    await mantisRequest(`issues/${numero}/notes`, { method: 'POST', body: JSON.stringify({ text: lines.join('\n'), view_state: { name: 'public' } }) });
+                } catch (e) { postOk = false; }
+            }
+
+            // Atualiza dados locais e IndexedDB se patch OK
+            if (patchOk) {
+                const idx = demandasData.findIndex(d => d.numero === numero);
+                if (idx !== -1) {
+                    if (apply.status) demandasData[idx].status = values.status;
+                    if (apply.gmud) demandasData[idx].numero_gmud = values.gmud;
+                    if (apply.equipe) demandasData[idx].squad = values.equipe;
+                    if (apply.respAtual) demandasData[idx].resp_atual = values.respAtual;
+                    if (apply.analista) demandasData[idx].atribuicao = values.analista;
+                }
+                try {
+                    const db = await openDB();
+                    const tx = db.transaction([STORE_NAME], 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    const getReq = store.get(numero);
+                    await new Promise((resolve) => { getReq.onsuccess = resolve; getReq.onerror = resolve; });
+                    const demanda = getReq.result || { numero };
+                    if (apply.status) demanda.status = values.status;
+                    if (apply.gmud) demanda.numero_gmud = values.gmud;
+                    if (apply.equipe) demanda.squad = values.equipe;
+                    if (apply.respAtual) demanda.resp_atual = values.respAtual;
+                    if (apply.analista) demanda.atribuicao = values.analista;
+                    const putReq = store.put(demanda);
+                    await new Promise((resolve) => { putReq.onsuccess = resolve; putReq.onerror = resolve; });
+                } catch (e) {
+                    console.warn('Falha ao atualizar IndexedDB para ticket', numero, e);
+                }
+                try { await updateDemandaLastUpdated(numero); } catch {}
+            }
+
+            done++;
+            progress.textContent = `Processando ${done}/${total}...`;
+            return { numero, patchOk, postOk };
+        };
+
+        const results = await runWithConcurrency(ticketNumbers, worker, 3);
+        const okCount = results.filter(r => r && r.patchOk !== false).length;
+        const fail = results.filter(r => r && r.patchOk === false);
+        progress.textContent = `Concluído. Sucesso: ${okCount} | Falhas: ${fail.length}`;
+
+        filterData();
+        selectedTickets.clear();
+        syncSelectAllCheckboxForPage();
+        const massEditBtn = document.getElementById('massEditBtn');
+        if (massEditBtn) massEditBtn.disabled = true;
+        mostrarNotificacao(`Edição massiva concluída. Sucesso: ${okCount} | Falhas: ${fail.length}`, fail.length ? 'aviso' : 'sucesso');
+        setTimeout(() => { close(); }, 1200);
+    });
 }
 
 /**
