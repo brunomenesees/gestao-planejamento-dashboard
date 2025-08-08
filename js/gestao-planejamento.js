@@ -127,29 +127,63 @@ async function fetchIssuesPage({ page = 1, pageSize = 100, projectId, filterId }
     return resp; // esperado: { issues: [...], total_results, page_count, current_page }
 }
 
-async function fetchAllIssuesFromMantis({ projectId, filterId, pageSize = 100 } = {}) {
+async function fetchAllIssuesFromMantis({ projectId, filterId, pageSize = 250 } = {}) {
     try {
         const first = await fetchIssuesPage({ page: 1, pageSize, projectId, filterId });
         if (!first || !Array.isArray(first.issues)) return [];
-        const totalPages = first.page_count || 1;
+        // Debug minimal para inspecionar metadados de paginação (uma vez)
+        try {
+            console.log('Mantis first page meta:', {
+                keys: Object.keys(first || {}),
+                total_results: first.total_results,
+                page_count: first.page_count,
+                total_pages: first.total_pages,
+                current_page: first.current_page || first.page,
+                received_count: first.issues?.length
+            });
+        } catch {}
+
+        const totalResults = first.total_results || first.total || first.total_count;
+        const totalPages = first.page_count || first.total_pages || (totalResults ? Math.ceil(totalResults / pageSize) : 0);
         const allIssues = [...first.issues];
 
-        const pages = [];
-        for (let p = 2; p <= totalPages; p++) pages.push(p);
-
-        // Concorrência limitada em lote de páginas (3 simultâneas)
-        await runWithConcurrency(pages, async (p) => {
-            const r = await fetchIssuesPage({ page: p, pageSize, projectId, filterId });
-            if (r && Array.isArray(r.issues)) allIssues.push(...r.issues);
-        }, 3);
+        if (totalPages && totalPages > 1) {
+            const pages = [];
+            for (let p = 2; p <= totalPages; p++) pages.push(p);
+            // Concorrência limitada em lote de páginas (3 simultâneas)
+            await runWithConcurrency(pages, async (p) => {
+                const r = await fetchIssuesPage({ page: p, pageSize, projectId, filterId });
+                if (r && Array.isArray(r.issues)) allIssues.push(...r.issues);
+            }, 3);
+        } else {
+            // Fallback: paginar até esgotar, caso a API não informe totalPages
+            let page = 2;
+            const MAX_PAGES = 500; // segurança para não loopar infinito
+            while (page <= MAX_PAGES) {
+                const r = await fetchIssuesPage({ page, pageSize, projectId, filterId });
+                const items = (r && Array.isArray(r.issues)) ? r.issues : [];
+                if (!items.length) break;
+                allIssues.push(...items);
+                if (items.length < pageSize) break; // última página
+                page++;
+            }
+        }
 
         // Filtrar por estado nativo: excluir Resolvido/Fechado
         const filteredIssues = allIssues.filter(issue => {
             const name = (issue.status?.name || '').toLowerCase().trim();
             return name !== 'resolved' && name !== 'fechado' && name !== 'closed' && name !== 'resolvido';
         });
-
-        return filteredIssues.map(mapIssueToDemanda);
+        const mapped = filteredIssues.map(mapIssueToDemanda);
+        try {
+            console.log('Mantis pagination summary:', {
+                pageSize,
+                fetched_total: allIssues.length,
+                filtered_total: filteredIssues.length,
+                mapped_total: mapped.length
+            });
+        } catch {}
+        return mapped;
     } catch (e) {
         console.warn('Falha ao carregar issues via API Mantis, usando fallback:', e);
         return [];
@@ -163,6 +197,7 @@ async function loadInitialData() {
         if (apiData && apiData.length > 0) {
             await saveChamados(apiData);
             demandasData = apiData;
+            try { console.log('Carregados via API (demanda count):', demandasData.length); } catch {}
             const now = new Date();
             const formattedDate = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
             document.getElementById('ultimaAtualizacao').textContent = `Última atualização: ${formattedDate}`;
@@ -171,6 +206,7 @@ async function loadInitialData() {
             // 2) Fallback para o IndexedDB (que pode ter sido alimentado via CSV)
             const data = await getChamados();
             demandasData = Array.isArray(data) ? data : [];
+            try { console.log('Carregados via IndexedDB (demanda count):', demandasData.length); } catch {}
         }
 
         // Prosseguir com a pipeline da UI
