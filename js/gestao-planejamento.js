@@ -2696,15 +2696,8 @@ function createUnifiedEditModal(demanda) {
         try {
             let hasChanges = false;
 
-            // 1. Enviar nota (POST separado)
+            // 1. Preparar valores atuais do formulário
             const notaText = notaTextarea.value;
-            if (notaText && notaText.trim()) {
-                await mantisRequest(`issues/${demanda.numero}/notes`, {
-                    method: 'POST',
-                    body: JSON.stringify({ text: notaText, view_state: { name: 'public' } })
-                });
-                hasChanges = true;
-            }
 
             // 2. Montar e enviar payload de atualização de campos (PATCH consolidado)
             const payload = {};
@@ -2747,24 +2740,27 @@ function createUnifiedEditModal(demanda) {
                     body: JSON.stringify(payload)
                 });
                 hasChanges = true;
+            }
 
-                // Após PATCH, enviar comentário automático com Status/GMUD alterados (sem duplicar comentário do usuário)
-                const statusChanged = newStatus !== demanda.status;
-                const gmudChanged = gmudValue !== (demanda.numero_gmud || '');
-                if (statusChanged || gmudChanged) {
-                    const lines = [];
-                    if (statusChanged && newStatus) lines.push(`Status: ${newStatus}`);
-                    if (gmudChanged && gmudValue) lines.push(`GMUD: ${gmudValue}`);
-                    if (lines.length > 0) {
-                        await mantisRequest(`issues/${demanda.numero}/notes`, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                text: lines.join('\n'),
-                                view_state: { name: 'public' }
-                            })
-                        });
-                    }
-                }
+            // 2. Enviar comentário unificado (após PATCH):
+            //    - Inclui apenas Status/GMUD que mudaram
+            //    - Inclui o comentário opcional do usuário, se houver
+            //    - Se Status/GMUD não mudarem, envia somente o comentário do usuário (se houver)
+            const statusChanged = newStatus !== demanda.status;
+            const gmudChanged = gmudValue !== (demanda.numero_gmud || '');
+            const lines = [];
+            if (statusChanged && newStatus) lines.push(`Status: ${newStatus}`);
+            if (gmudChanged && gmudValue) lines.push(`GMUD: ${gmudValue}`);
+            if (notaText && notaText.trim()) lines.push(notaText.trim());
+            if (lines.length > 0) {
+                await mantisRequest(`issues/${demanda.numero}/notes`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        text: lines.join('\n'),
+                        view_state: { name: 'public' }
+                    })
+                });
+                hasChanges = true;
             }
 
             // 3. Feedback e atualização da UI
