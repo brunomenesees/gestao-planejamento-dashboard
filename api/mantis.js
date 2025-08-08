@@ -44,15 +44,22 @@ export default async function handler(req, res) {
         const { endpoint } = req.query;
         const mantisUrl = `${process.env.MANTIS_BASE_URL}/api/rest/${endpoint}`;
         
-        const response = await fetch(mantisUrl, {
-            method: req.method,
-            headers: {
-                'Authorization': process.env.MANTIS_API_TOKEN,
-                'Content-Type': 'application/json',
-                ...(req.body && { 'Content-Type': 'application/json' })
-            },
-            ...(req.body && { body: JSON.stringify(req.body) })
-        });
+        const method = req.method;
+        const headers = {
+            'Authorization': process.env.MANTIS_API_TOKEN,
+        };
+        // Define Content-Type apenas quando houver corpo
+        const canHaveBody = method !== 'GET' && method !== 'HEAD';
+        if (canHaveBody) {
+            headers['Content-Type'] = 'application/json';
+        }
+
+        const fetchOptions = { method, headers };
+        if (canHaveBody && req.body && Object.keys(req.body).length > 0) {
+            fetchOptions.body = JSON.stringify(req.body);
+        }
+
+        const response = await fetch(mantisUrl, fetchOptions);
 
         const data = await response.json();
         res.status(response.status).json(data);
