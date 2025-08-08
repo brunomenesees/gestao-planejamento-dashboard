@@ -116,20 +116,22 @@ function mapIssueToDemanda(issue) {
     };
 }
 
-async function fetchIssuesPage({ page = 1, pageSize = 100, projectId, filterId }) {
+async function fetchIssuesPage({ page = 1, pageSize = 100, projectId, filterId, categoryId, categoryName }) {
     const params = new URLSearchParams();
     params.set('page', String(page));
     params.set('page_size', String(pageSize));
     if (projectId) params.set('project_id', String(projectId));
     if (filterId) params.set('filter_id', String(filterId));
+    if (categoryId) params.set('category_id', String(categoryId));
+    if (categoryName) params.set('category', String(categoryName));
     const endpoint = `issues?${params.toString()}`;
     const resp = await mantisRequest(endpoint, { method: 'GET' });
     return resp; // esperado: { issues: [...], total_results, page_count, current_page }
 }
 
-async function fetchAllIssuesFromMantis({ projectId, filterId, pageSize = 250 } = {}) {
+async function fetchAllIssuesFromMantis({ projectId, filterId, categoryId, categoryName, pageSize = 250 } = {}) {
     try {
-        const first = await fetchIssuesPage({ page: 1, pageSize, projectId, filterId });
+        const first = await fetchIssuesPage({ page: 1, pageSize, projectId, filterId, categoryId, categoryName });
         if (!first || !Array.isArray(first.issues)) return [];
         // Debug minimal para inspecionar metadados de paginação (uma vez)
         try {
@@ -152,7 +154,7 @@ async function fetchAllIssuesFromMantis({ projectId, filterId, pageSize = 250 } 
             for (let p = 2; p <= totalPages; p++) pages.push(p);
             // Concorrência limitada em lote de páginas (3 simultâneas)
             await runWithConcurrency(pages, async (p) => {
-                const r = await fetchIssuesPage({ page: p, pageSize, projectId, filterId });
+                const r = await fetchIssuesPage({ page: p, pageSize, projectId, filterId, categoryId, categoryName });
                 if (r && Array.isArray(r.issues)) allIssues.push(...r.issues);
             }, 3);
         } else {
@@ -160,7 +162,7 @@ async function fetchAllIssuesFromMantis({ projectId, filterId, pageSize = 250 } 
             let page = 2;
             const MAX_PAGES = 500; // segurança para não loopar infinito
             while (page <= MAX_PAGES) {
-                const r = await fetchIssuesPage({ page, pageSize, projectId, filterId });
+                const r = await fetchIssuesPage({ page, pageSize, projectId, filterId, categoryId, categoryName });
                 const items = (r && Array.isArray(r.issues)) ? r.issues : [];
                 if (!items.length) break;
                 allIssues.push(...items);
@@ -193,7 +195,8 @@ async function fetchAllIssuesFromMantis({ projectId, filterId, pageSize = 250 } 
 async function loadInitialData() {
     try {
         // 1) Tenta via API Mantis primeiro
-        const apiData = await fetchAllIssuesFromMantis({ /* projectId, filterId se desejar */ });
+        // Filtro por Categoria: Projetos (id: 28) solicitado
+        const apiData = await fetchAllIssuesFromMantis({ /* projectId, filterId se desejar */ categoryId: 28, categoryName: 'Projetos' });
         if (apiData && apiData.length > 0) {
             await saveChamados(apiData);
             demandasData = apiData;
