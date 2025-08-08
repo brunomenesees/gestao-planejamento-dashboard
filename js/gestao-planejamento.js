@@ -332,7 +332,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             const refreshButton = document.getElementById('refreshButton');
             if (refreshButton) {
-                refreshButton.addEventListener('click', atualizarDados);
+                console.debug('Ligando handler do botão de atualização');
+                refreshButton.addEventListener('click', async (ev) => {
+                    ev.preventDefault();
+                    try {
+                        await atualizarDados();
+                    } catch (e) {
+                        console.error('Erro no handler de atualização:', e);
+                    }
+                });
             }
         } catch (error) {
             console.error('Erro crítico durante a inicialização do dashboard:', error);
