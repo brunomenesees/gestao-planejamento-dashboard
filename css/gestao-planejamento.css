@@ -449,11 +449,7 @@
 }
 
 .simple-update-modal {
-    z-index: 10001;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    /* Rely on .modal-overlay for centering, like mass modal */
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -471,6 +467,36 @@
     color: var(--text-color, #333);
     border-bottom: 2px solid var(--primary-color, #3498db);
     padding-bottom: 10px;
+}
+
+/* Unificar estilos de campos/labels entre modais simples e massivo */
+.mass-edit-modal .form-group,
+.simple-update-modal .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mass-edit-modal label,
+.simple-update-modal label {
+    font-weight: 600;
+    color: var(--text-color, #555);
+}
+
+.mass-edit-modal select,
+.mass-edit-modal input[type="text"],
+.mass-edit-modal textarea,
+.simple-update-modal select,
+.simple-update-modal input[type="text"],
+.simple-update-modal textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #ccc);
+    font-size: 1rem;
+    background-color: #fff;
+    color: var(--text-color, #333);
+    box-sizing: border-box;
 }
 
 .simple-update-modal-content .ticket-info {
