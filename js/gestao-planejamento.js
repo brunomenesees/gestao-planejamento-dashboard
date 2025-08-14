@@ -2507,7 +2507,7 @@ function createMassEditModal(ticketNumbers) {
 
         <input type=\"checkbox\" id=\"applyGmud\" />
         <label for=\"applyGmud\">GMUD</label>
-        <input id=\"massGmud\" type=\"text\" placeholder=\"Número/Descrição GMUD\" disabled />
+        <input id=\"massGmud\" type=\"text\" placeholder=\"Número GMUD\" disabled />
 
         <input type=\"checkbox\" id=\"applyEquipe\" />
         <label for=\"applyEquipe\">Equipe</label>
