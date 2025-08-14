@@ -3483,6 +3483,14 @@ function showActionButtons(container, newStatus, ticketNumber) {
     };
     document.addEventListener('keydown', handleEscKey);
 
+    // Ícones de status para os campos com salvamento inline
+    const equipeIcon = makeStatusIcon();
+    equipeLabel.appendChild(equipeIcon);
+    const analistaIcon = makeStatusIcon();
+    analistaLabel.appendChild(analistaIcon);
+    const respIcon = makeStatusIcon();
+    responsavelLabel.appendChild(respIcon);
+
     // Montar o modal
     buttonContainer.appendChild(cancelBtn);
     buttonContainer.appendChild(saveBtn);
@@ -3612,6 +3620,183 @@ function createUnifiedEditModal(demanda) {
     const modalTitle = document.createElement('h3');
     modalTitle.textContent = `Editar Chamado #${demanda.numero}`;
 
+    // Estado interno do modal unificado
+    let isSubmitting = false;
+    let isDirty = false;
+    const original = {
+        status: demanda.status || '',
+        gmud: demanda.numero_gmud || '',
+        previsao: (() => {
+            const v = (demanda.previsao_etapa || '').trim();
+            if (!v) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+            const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+            const ts = Date.parse(v); if (!Number.isNaN(ts)) { const d = new Date(ts); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mm}-${dd}`; }
+            return '';
+        })(),
+        equipe: demanda.squad || '',
+        analista: demanda.atribuicao || '',
+        responsavel: demanda.resp_atual || ''
+    };
+    const undoStack = []; // { field, prev, next }
+    let snackbarTimer = null;
+    let lastUndo = null;
+
+    // Helpers de UI
+    const makeStatusIcon = () => {
+        const span = document.createElement('span');
+        span.className = 'inline-status';
+        span.style.cssText = 'margin-left:8px;font-size:12px;vertical-align:middle;display:inline-flex;align-items:center;gap:6px;';
+        return span;
+    };
+    const setIconState = (el, state, msg = '') => {
+        // state: idle|saving|ok|err
+        el.innerHTML = '';
+        if (state === 'saving') {
+            const i = document.createElement('span'); i.textContent = '⏳'; i.setAttribute('aria-label','salvando'); el.appendChild(i);
+        } else if (state === 'ok') {
+            const i = document.createElement('span'); i.textContent = '✅'; i.setAttribute('aria-label','salvo'); el.appendChild(i);
+        } else if (state === 'err') {
+            const i = document.createElement('span'); i.textContent = '⚠️'; i.title = msg || 'Erro'; el.appendChild(i);
+        }
+    };
+    const showSnackbar = (text, onUndo) => {
+        // Cria container se necessário
+        let container = document.getElementById('snackbar-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'snackbar-container';
+            container.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100001;display:flex;flex-direction:column;gap:8px;';
+            document.body.appendChild(container);
+        }
+        const bar = document.createElement('div');
+        bar.style.cssText = 'background:#323232;color:#fff;padding:10px 12px;border-radius:6px;min-width:280px;max-width:480px;display:flex;align-items:center;gap:12px;';
+        bar.setAttribute('role','status');
+        bar.setAttribute('aria-live','polite');
+        const msg = document.createElement('div'); msg.textContent = text; msg.style.flex = '1';
+        const undoBtn = document.createElement('button'); undoBtn.textContent = 'Desfazer'; undoBtn.className = 'btn'; undoBtn.style.cssText = 'background:#555;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+        const closeBtn = document.createElement('button'); closeBtn.textContent = 'Fechar'; closeBtn.className = 'btn'; closeBtn.style.cssText = 'background:#444;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+        bar.appendChild(msg); bar.appendChild(undoBtn); bar.appendChild(closeBtn);
+        container.appendChild(bar);
+        const remove = () => { try { bar.remove(); } catch {} };
+        closeBtn.addEventListener('click', remove);
+        undoBtn.addEventListener('click', async () => { try { await onUndo?.(); } finally { remove(); } });
+        clearTimeout(snackbarTimer); snackbarTimer = setTimeout(remove, 5000);
+    };
+
+    // Validação e detecção de alterações
+    const isValidDate = (v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const updateDirty = () => {
+        try {
+            isDirty = (
+                statusSelect?.value !== original.status ||
+                gmudInput?.value !== original.gmud ||
+                previsaoInput?.value !== original.previsao ||
+                equipeSelect?.value !== original.equipe ||
+                analistaSelect?.value !== original.analista ||
+                responsavelSelect?.value !== original.responsavel
+            );
+        } catch {}
+    };
+    const validateForm = () => {
+        const invalid = !isValidDate(previsaoInput?.value || '');
+        saveBtn.disabled = isSubmitting || invalid;
+        return !invalid;
+    };
+
+    // Patch de campo único (inline)
+    const patchField = async (field, nextValue) => {
+        const payload = {};
+        const cfs = [];
+        if (field === 'status') {
+            cfs.push({ field: { id: 70 }, value: nextValue });
+        } else if (field === 'gmud') {
+            cfs.push({ field: { id: 71 }, value: nextValue });
+        } else if (field === 'previsao') {
+            let ts = null;
+            if (nextValue && /^\d{4}-\d{2}-\d{2}$/.test(nextValue)) ts = Math.floor(Date.parse(nextValue + 'T00:00:00') / 1000);
+            if (ts !== null) cfs.push({ field: { id: 72 }, value: ts });
+        } else if (field === 'equipe') {
+            cfs.push({ field: { id: 49 }, value: nextValue });
+        } else if (field === 'resp') {
+            cfs.push({ field: { id: 69 }, value: nextValue });
+        } else if (field === 'analista') {
+            payload.handler = { name: nextValue };
+        }
+        if (cfs.length > 0) payload.custom_fields = cfs;
+        if (!payload.custom_fields && !payload.handler) return false;
+        await mantisRequest(`issues/${demanda.numero}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        try { await updateDemandaLastUpdated(demanda.numero); } catch {}
+        try { markRecentlyUpdated([demanda.numero]); } catch {}
+        return true;
+    };
+
+    // Conector de salvamento inline com UNDO
+    const attachInlineSave = (el, field, icon) => {
+        const getVal = () => (el.tagName === 'SELECT') ? el.value : el.value;
+        const setVal = (v) => { el.value = v ?? ''; };
+        const evt = (el.tagName === 'SELECT') ? 'change' : 'blur';
+        el.addEventListener(evt, async () => {
+            if (field === 'previsao' && !isValidDate(getVal())) {
+                setIconState(icon, 'err', 'Data inválida');
+                validateForm();
+                return;
+            }
+            const prev = original[field];
+            const next = getVal();
+            if (String(prev ?? '') === String(next ?? '')) return;
+            setIconState(icon, 'saving');
+            try {
+                const ok = await patchField(field, next);
+                if (!ok) throw new Error('Nada para atualizar');
+                // Atualiza originals e dados locais
+                original[field] = next;
+                const idx = demandasData.findIndex(d => d.numero === demanda.numero);
+                if (idx !== -1) {
+                    if (field === 'status') demandasData[idx].status = next;
+                    if (field === 'gmud') demandasData[idx].numero_gmud = next;
+                    if (field === 'previsao') demandasData[idx].previsao_etapa = next;
+                    if (field === 'equipe') demandasData[idx].squad = next;
+                    if (field === 'resp') demandasData[idx].resp_atual = next;
+                    if (field === 'analista') demandasData[idx].atribuicao = next;
+                }
+                filterData();
+                setIconState(icon, 'ok');
+
+                // Empilha UNDO
+                undoStack.push({ field, prev, next });
+                showSnackbar('Alteração salva. Desfazer?', async () => {
+                    setIconState(icon, 'saving');
+                    await patchField(field, prev);
+                    setVal(prev);
+                    original[field] = prev;
+                    const i2 = demandasData.findIndex(d => d.numero === demanda.numero);
+                    if (i2 !== -1) {
+                        if (field === 'status') demandasData[i2].status = prev;
+                        if (field === 'gmud') demandasData[i2].numero_gmud = prev;
+                        if (field === 'previsao') demandasData[i2].previsao_etapa = prev;
+                        if (field === 'equipe') demandasData[i2].squad = prev;
+                        if (field === 'resp') demandasData[i2].resp_atual = prev;
+                        if (field === 'analista') demandasData[i2].atribuicao = prev;
+                    }
+                    filterData();
+                    setIconState(icon, 'ok');
+                });
+            } catch (e) {
+                console.error('Erro no salvamento inline:', e);
+                setIconState(icon, 'err', e?.message || 'Erro');
+                mostrarNotificacao('Falha ao salvar alteração.', 'erro');
+            } finally {
+                updateDirty();
+                validateForm();
+            }
+        });
+        // Atualiza estado em digitação
+        const changeEvt = (el.tagName === 'SELECT') ? 'change' : 'input';
+        el.addEventListener(changeEvt, () => { updateDirty(); validateForm(); });
+    };
+
     // Checkbox: Marcar como Resolvido (estado nativo)
     const resolvedGroup = document.createElement('div');
     resolvedGroup.className = 'form-group inline';
@@ -3643,6 +3828,9 @@ function createUnifiedEditModal(demanda) {
     statusGroup.appendChild(statusLabel);
     statusGroup.appendChild(statusSelect);
 
+    const statusIcon = makeStatusIcon();
+    statusLabel.appendChild(statusIcon);
+
     // Campo de GMUD (Input de texto)
     const gmudGroup = document.createElement('div');
     gmudGroup.className = 'form-group';
@@ -3654,6 +3842,9 @@ function createUnifiedEditModal(demanda) {
     gmudInput.value = demanda.numero_gmud || ''; // Assumindo que o campo se chama 'numero_gmud'
     gmudGroup.appendChild(gmudLabel);
     gmudGroup.appendChild(gmudInput);
+
+    const gmudIcon = makeStatusIcon();
+    gmudLabel.appendChild(gmudIcon);
 
     // Campo de Previsão Etapa (Input de data)
     const previsaoGroup = document.createElement('div');
@@ -3682,6 +3873,11 @@ function createUnifiedEditModal(demanda) {
     previsaoGroup.appendChild(previsaoLabel);
     previsaoGroup.appendChild(previsaoInput);
 
+    const prevIcon = makeStatusIcon();
+    previsaoLabel.appendChild(prevIcon);
+
+    // Ícones adicionais para Equipe/Analista/Responsável
+
     // Campo de Nota/Observação (Textarea)
     const notaGroup = document.createElement('div');
     notaGroup.className = 'form-group';
@@ -3706,21 +3902,51 @@ function createUnifiedEditModal(demanda) {
     cancelBtn.className = 'btn btn-cancel';
 
     // Lógica dos botões
-    const closeUnified = () => { try { overlay.remove(); } catch {} };
-    cancelBtn.addEventListener('click', closeUnified);
+    const confirmCloseIfDirty = () => {
+        if (isSubmitting) return false;
+        if (!isDirty) return true;
+        return window.confirm('Há alterações não salvas. Deseja realmente fechar?');
+    };
+    const closeUnified = () => { try { document.removeEventListener('keydown', handleEsc); } catch {} try { overlay.remove(); } catch {} };
+    cancelBtn.addEventListener('click', () => { if (confirmCloseIfDirty()) closeUnified(); });
     overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) closeUnified();
+        if (e.target === overlay && confirmCloseIfDirty()) closeUnified();
     });
-    document.addEventListener('keydown', function handleEsc(e) {
+    const handleEsc = (e) => {
         if (e.key === 'Escape') {
-            closeUnified();
+            if (confirmCloseIfDirty()) closeUnified();
             document.removeEventListener('keydown', handleEsc);
         }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'enter') {
+            e.preventDefault();
+            if (!saveBtn.disabled) saveBtn.click();
+        }
+    };
+    document.addEventListener('keydown', handleEsc);
+
+    // Preferência: fechar automaticamente após salvar
+    const prefsKey = 'unified_auto_close';
+    let autoClose = false;
+    try { autoClose = localStorage.getItem(prefsKey) === '1'; } catch {}
+    const prefsGroup = document.createElement('div');
+    prefsGroup.className = 'form-group';
+    const autoCloseLabel = document.createElement('label');
+    const autoCloseChk = document.createElement('input');
+    autoCloseChk.type = 'checkbox';
+    autoCloseChk.checked = autoClose;
+    autoCloseLabel.appendChild(autoCloseChk);
+    autoCloseLabel.appendChild(document.createTextNode(' Fechar automaticamente após salvar'));
+    prefsGroup.appendChild(autoCloseLabel);
+    autoCloseChk.addEventListener('change', () => {
+        autoClose = autoCloseChk.checked; try { localStorage.setItem(prefsKey, autoClose ? '1' : '0'); } catch {}
     });
 
     // Passo 1.4: Lógica de Salvamento (Implementação Final)
     saveBtn.addEventListener('click', async () => {
         try {
+            if (isSubmitting) return;
+            isSubmitting = true;
+            saveBtn.disabled = true;
             let hasChanges = false;
 
             // 1. Preparar valores atuais do formulário
@@ -3832,15 +4058,28 @@ function createUnifiedEditModal(demanda) {
                     if (markResolved) demandasData[dataIndex].estado = 'resolved';
                 }
                 filterData(); // Re-renderiza a tabela com os novos dados
+                isDirty = false;
+                if (autoClose) {
+                    closeUnified();
+                } else {
+                    // Mostrar estado de sucesso dentro do modal
+                    const successBox = document.createElement('div');
+                    successBox.style.cssText = 'margin-top:8px;padding:10px;border-radius:6px;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;display:flex;align-items:center;gap:8px;';
+                    successBox.innerHTML = '<span>✅</span><div>Alterações salvas. Você pode continuar editando ou fechar.</div>';
+                    modal.appendChild(successBox);
+                }
             }
 
-            modalContainer.remove();
+            isSubmitting = false;
+            saveBtn.disabled = false;
 
         } catch (error) {
             console.error('Erro ao salvar as alterações:', error);
             const errorData = await error.response?.json().catch(() => ({}))
             const errorMessage = errorData.message || error.message || 'Erro desconhecido ao salvar no Mantis.';
             mostrarNotificacao(`Erro: ${errorMessage}`, 'erro');
+            isSubmitting = false;
+            saveBtn.disabled = false;
         }
     });
 
@@ -3849,6 +4088,8 @@ function createUnifiedEditModal(demanda) {
     equipeGroup.className = 'form-group';
     const equipeLabel = document.createElement('label');
     equipeLabel.textContent = 'Equipe:';
+    const equipeIcon = makeStatusIcon();
+    equipeLabel.appendChild(equipeIcon);
     const equipeSelect = document.createElement('select');
     equipeSelect.className = 'form-control';
     SQUAD_OPTIONS.forEach(option => {
@@ -3868,6 +4109,8 @@ function createUnifiedEditModal(demanda) {
     analistaGroup.className = 'form-group';
     const analistaLabel = document.createElement('label');
     analistaLabel.textContent = 'Analista Responsável:';
+    const analistaIcon = makeStatusIcon();
+    analistaLabel.appendChild(analistaIcon);
     const analistaSelect = document.createElement('select');
     analistaSelect.className = 'form-control';
     ANALISTA_RESPONSAVEL_OPTIONS.forEach(option => {
@@ -3887,6 +4130,8 @@ function createUnifiedEditModal(demanda) {
     responsavelGroup.className = 'form-group';
     const responsavelLabel = document.createElement('label');
     responsavelLabel.textContent = 'Responsável Atual:';
+    const respIcon = makeStatusIcon();
+    responsavelLabel.appendChild(respIcon);
     const responsavelSelect = document.createElement('select');
     responsavelSelect.className = 'form-control';
     RESPONSAVEL_ATUAL_OPTIONS.forEach(option => {
@@ -3923,6 +4168,15 @@ function createUnifiedEditModal(demanda) {
     setTimeout(() => {
         try { statusSelect.focus(); } catch {}
     }, 100);
+
+    // Conectar salvamento inline e validações
+    attachInlineSave(statusSelect, 'status', statusIcon);
+    attachInlineSave(gmudInput, 'gmud', gmudIcon);
+    attachInlineSave(previsaoInput, 'previsao', prevIcon);
+    attachInlineSave(equipeSelect, 'equipe', equipeIcon);
+    attachInlineSave(analistaSelect, 'analista', analistaIcon);
+    attachInlineSave(responsavelSelect, 'resp', respIcon);
+    validateForm();
 
     console.log('Modal criado e adicionado ao DOM');
 }
