@@ -2496,28 +2496,29 @@ function createMassEditModal(ticketNumbers) {
       <h3>Edição Massiva (${selectionText})</h3>
       <div style="display:grid; grid-template-columns: 28px 1fr 1fr; gap:10px; align-items:center;">
         <div></div><div style=\"font-weight:600;\">Campo</div><div style=\"font-weight:600;\">Valor</div>
-        <input type=\"checkbox\" id=\"applyStatus\" />
-        <label for=\"applyStatus\">Status (ID 70)</label>
-        <select id=\"massStatus\" disabled></select>
 
         <input type=\"checkbox\" id=\"applyResolved\" />
         <label for=\"applyResolved\">Marcar como Resolvido</label>
         <div></div>
 
+        <input type=\"checkbox\" id=\"applyStatus\" />
+        <label for=\"applyStatus\">Status</label>
+        <select id=\"massStatus\" disabled></select>
+
         <input type=\"checkbox\" id=\"applyGmud\" />
-        <label for=\"applyGmud\">GMUD (ID 71)</label>
+        <label for=\"applyGmud\">GMUD</label>
         <input id=\"massGmud\" type=\"text\" placeholder=\"Número/Descrição GMUD\" disabled />
 
         <input type=\"checkbox\" id=\"applyEquipe\" />
-        <label for=\"applyEquipe\">Equipe (ID 49)</label>
+        <label for=\"applyEquipe\">Equipe</label>
         <select id=\"massEquipe\" disabled></select>
 
         <input type=\"checkbox\" id=\"applyRespAtual\" />
-        <label for=\"applyRespAtual\">Responsável Atual (ID 69)</label>
+        <label for=\"applyRespAtual\">Responsável Atual</label>
         <select id=\"massRespAtual\" disabled></select>
 
         <input type=\"checkbox\" id=\"applyAnalista\" />
-        <label for=\"applyAnalista\">Analista Responsável (handler)</label>
+        <label for=\"applyAnalista\">Analista Responsável</label>
         <select id=\"massAnalista\" disabled></select>
       </div>
       <div style="margin-top:12px;">
