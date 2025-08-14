@@ -3484,12 +3484,7 @@ function showActionButtons(container, newStatus, ticketNumber) {
     document.addEventListener('keydown', handleEscKey);
 
     // Ícones de status para os campos com salvamento inline
-    const equipeIcon = makeStatusIcon();
-    equipeLabel.appendChild(equipeIcon);
-    const analistaIcon = makeStatusIcon();
-    analistaLabel.appendChild(analistaIcon);
-    const respIcon = makeStatusIcon();
-    responsavelLabel.appendChild(respIcon);
+    // Removido ícone inline (modelo massivo)
 
     // Montar o modal
     buttonContainer.appendChild(cancelBtn);
@@ -3619,6 +3614,15 @@ function createUnifiedEditModal(demanda) {
 
     const modalTitle = document.createElement('h3');
     modalTitle.textContent = `Editar Chamado #${demanda.numero}`;
+    // Barra de progresso (mesmo estilo do massivo)
+    const progressWrap = document.createElement('div');
+    progressWrap.style.cssText = 'margin:8px 0 12px;background:#f3f4f6;border-radius:6px;height:8px;position:relative;overflow:hidden;display:none;';
+    const progressBar = document.createElement('div');
+    progressBar.style.cssText = 'height:100%;width:0%;background:#10b981;transition:width .25s';
+    progressWrap.appendChild(progressBar);
+    const progressText = document.createElement('div');
+    progressText.style.cssText = 'font-size:12px;color:#6b7280;margin:-2px 0 8px 0;display:none;';
+    progressText.textContent = 'Processando...';
 
     // Estado interno do modal unificado
     let isSubmitting = false;
@@ -3814,6 +3818,12 @@ function createUnifiedEditModal(demanda) {
     statusGroup.className = 'form-group';
     const statusLabel = document.createElement('label');
     statusLabel.textContent = 'Status:';
+    const applyStatusChk = document.createElement('input');
+    applyStatusChk.type = 'checkbox';
+    applyStatusChk.style.marginLeft = '8px';
+    const applyStatusSpan = document.createElement('span');
+    applyStatusSpan.textContent = 'Aplicar';
+    applyStatusSpan.style.marginLeft = '4px';
     const statusSelect = document.createElement('select');
     statusSelect.className = 'form-control';
     STATUS_OPTIONS.forEach(option => {
@@ -3826,31 +3836,41 @@ function createUnifiedEditModal(demanda) {
         statusSelect.appendChild(opt);
     });
     statusGroup.appendChild(statusLabel);
+    statusLabel.appendChild(applyStatusChk);
+    statusLabel.appendChild(applyStatusSpan);
     statusGroup.appendChild(statusSelect);
-
-    const statusIcon = makeStatusIcon();
-    statusLabel.appendChild(statusIcon);
 
     // Campo de GMUD (Input de texto)
     const gmudGroup = document.createElement('div');
     gmudGroup.className = 'form-group';
     const gmudLabel = document.createElement('label');
     gmudLabel.textContent = 'Número da GMUD:';
+    const applyGmudChk = document.createElement('input');
+    applyGmudChk.type = 'checkbox';
+    applyGmudChk.style.marginLeft = '8px';
+    const applyGmudSpan = document.createElement('span');
+    applyGmudSpan.textContent = 'Aplicar';
+    applyGmudSpan.style.marginLeft = '4px';
     const gmudInput = document.createElement('input');
     gmudInput.type = 'text';
     gmudInput.className = 'form-control';
     gmudInput.value = demanda.numero_gmud || ''; // Assumindo que o campo se chama 'numero_gmud'
     gmudGroup.appendChild(gmudLabel);
+    gmudLabel.appendChild(applyGmudChk);
+    gmudLabel.appendChild(applyGmudSpan);
     gmudGroup.appendChild(gmudInput);
-
-    const gmudIcon = makeStatusIcon();
-    gmudLabel.appendChild(gmudIcon);
 
     // Campo de Previsão Etapa (Input de data)
     const previsaoGroup = document.createElement('div');
     previsaoGroup.className = 'form-group';
     const previsaoLabel = document.createElement('label');
     previsaoLabel.textContent = 'Previsão Etapa:';
+    const applyPrevChk = document.createElement('input');
+    applyPrevChk.type = 'checkbox';
+    applyPrevChk.style.marginLeft = '8px';
+    const applyPrevSpan = document.createElement('span');
+    applyPrevSpan.textContent = 'Aplicar';
+    applyPrevSpan.style.marginLeft = '4px';
     const previsaoInput = document.createElement('input');
     previsaoInput.type = 'date';
     previsaoInput.className = 'form-control';
@@ -3871,10 +3891,9 @@ function createUnifiedEditModal(demanda) {
         return '';
     })();
     previsaoGroup.appendChild(previsaoLabel);
+    previsaoLabel.appendChild(applyPrevChk);
+    previsaoLabel.appendChild(applyPrevSpan);
     previsaoGroup.appendChild(previsaoInput);
-
-    const prevIcon = makeStatusIcon();
-    previsaoLabel.appendChild(prevIcon);
 
     // Ícones adicionais para Equipe/Analista/Responsável
 
@@ -3941,7 +3960,7 @@ function createUnifiedEditModal(demanda) {
         autoClose = autoCloseChk.checked; try { localStorage.setItem(prefsKey, autoClose ? '1' : '0'); } catch {}
     });
 
-    // Passo 1.4: Lógica de Salvamento (Implementação Final)
+    // Passo 1.4: Lógica de Salvamento (modelo do massivo: apenas campos com "Aplicar")
     saveBtn.addEventListener('click', async () => {
         try {
             if (isSubmitting) return;
@@ -3964,19 +3983,25 @@ function createUnifiedEditModal(demanda) {
             const newPrevisao = previsaoInput.value;
             const markResolved = resolvedCheckbox.checked;
 
-            // Campo Padrão: Analista Responsável
-            if (newAnalista !== demanda.atribuicao) {
+            // Exibir progresso (igual ao massivo)
+            progressWrap.style.display = 'block';
+            progressText.style.display = 'block';
+            progressText.textContent = 'Salvando...';
+            progressBar.style.width = '15%';
+
+            // Campo Padrão: Analista Responsável (apenas se Aplicar marcado)
+            if (applyAnalistaChk.checked && newAnalista !== demanda.atribuicao) {
                 payload.handler = { name: newAnalista };
             }
 
             // Campos Personalizados: Status, GMUD, Previsão Etapa, Equipe, Responsável Atual
-            if (newStatus !== demanda.status) {
+            if (applyStatusChk.checked && newStatus !== demanda.status) {
                 custom_fields.push({ field: { id: 70 }, value: newStatus }); 
             }
-            if (gmudValue !== (demanda.numero_gmud || '')) {
+            if (applyGmudChk.checked && gmudValue !== (demanda.numero_gmud || '')) {
                 custom_fields.push({ field: { id: 71 }, value: gmudValue }); 
             }
-            if (newPrevisao !== (demanda.previsao_etapa || '')) {
+            if (applyPrevChk.checked && newPrevisao !== (demanda.previsao_etapa || '')) {
                 // Converter yyyy-mm-dd para Unix timestamp (segundos) para Mantis Date CF
                 let previsaoTs = null;
                 if (newPrevisao && /^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
@@ -3989,10 +4014,10 @@ function createUnifiedEditModal(demanda) {
                     custom_fields.push({ field: { id: 72 }, value: previsaoTs });
                 }
             }
-            if (newEquipe !== demanda.squad) {
+            if (applyEquipeChk.checked && newEquipe !== demanda.squad) {
                 custom_fields.push({ field: { id: 49 }, value: newEquipe }); 
             }
-            if (newResponsavel !== demanda.resp_atual) {
+            if (applyRespChk.checked && newResponsavel !== demanda.resp_atual) {
                 custom_fields.push({ field: { id: 69 }, value: newResponsavel }); 
             }
 
@@ -4007,8 +4032,20 @@ function createUnifiedEditModal(demanda) {
             }
 
             // Enviar PATCH apenas se houver alterações nos campos
+            const anyApplyChecked = applyStatusChk.checked || applyGmudChk.checked || applyPrevChk.checked || applyEquipeChk.checked || applyRespChk.checked || applyAnalistaChk.checked || markResolved;
+            if (!anyApplyChecked && !(notaText && notaText.trim())) {
+                mostrarNotificacao('Selecione ao menos um campo para aplicar ou informe uma nota.', 'aviso');
+                isSubmitting = false;
+                saveBtn.disabled = false;
+                progressBar.style.width = '0%';
+                progressWrap.style.display = 'none';
+                progressText.style.display = 'none';
+                return;
+            }
+
             if (Object.keys(payload).length > 0) {
                 console.log('PAYLOAD PATCH ENVIADO PARA A API MANTIS:', JSON.stringify(payload, null, 2));
+                progressBar.style.width = '55%';
                 await mantisRequest(`issues/${demanda.numero}`, {
                     method: 'PATCH',
                     body: JSON.stringify(payload)
@@ -4020,9 +4057,9 @@ function createUnifiedEditModal(demanda) {
             //    - Inclui apenas Status/GMUD que mudaram
             //    - Inclui o comentário opcional do usuário, se houver
             //    - Se Status/GMUD não mudarem, envia somente o comentário do usuário (se houver)
-            const statusChanged = newStatus !== demanda.status;
-            const gmudChanged = gmudValue !== (demanda.numero_gmud || '');
-            const previsaoChanged = newPrevisao !== (demanda.previsao_etapa || '');
+            const statusChanged = applyStatusChk.checked && (newStatus !== demanda.status);
+            const gmudChanged = applyGmudChk.checked && (gmudValue !== (demanda.numero_gmud || ''));
+            const previsaoChanged = applyPrevChk.checked && (newPrevisao !== (demanda.previsao_etapa || ''));
             const lines = [];
             if (statusChanged && newStatus) lines.push(`Status: ${newStatus}`);
             if (gmudChanged && gmudValue) lines.push(`GMUD: ${gmudValue}`);
@@ -4030,6 +4067,7 @@ function createUnifiedEditModal(demanda) {
             if (markResolved) lines.push('Estado: resolved');
             if (notaText && notaText.trim()) lines.push(notaText.trim());
             if (lines.length > 0) {
+                progressBar.style.width = Object.keys(payload).length > 0 ? '80%' : '40%';
                 await mantisRequest(`issues/${demanda.numero}/notes`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -4042,20 +4080,22 @@ function createUnifiedEditModal(demanda) {
 
             // 3. Feedback e atualização da UI
             if (hasChanges) {
+                progressBar.style.width = '100%';
                 // Marcar como atualizado recentemente ANTES de re-renderizar
                 try { markRecentlyUpdated([demanda.numero]); } catch {}
                 mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
 
-                // Atualizar dados locais para reflexo imediato na tabela
+                // Atualizar dados locais apenas para campos aplicados (modelo massivo)
                 const dataIndex = demandasData.findIndex(d => d.numero === demanda.numero);
                 if (dataIndex !== -1) {
-                    demandasData[dataIndex].status = newStatus;
-                    demandasData[dataIndex].numero_gmud = gmudValue;
-                    demandasData[dataIndex].previsao_etapa = newPrevisao;
-                    demandasData[dataIndex].squad = newEquipe;
-                    demandasData[dataIndex].atribuicao = newAnalista;
-                    demandasData[dataIndex].resp_atual = newResponsavel;
-                    if (markResolved) demandasData[dataIndex].estado = 'resolved';
+                    const row = demandasData[dataIndex];
+                    if (applyStatusChk.checked && newStatus !== row.status) row.status = newStatus;
+                    if (applyGmudChk.checked && gmudValue !== (row.numero_gmud || '')) row.numero_gmud = gmudValue;
+                    if (applyPrevChk.checked && newPrevisao !== (row.previsao_etapa || '')) row.previsao_etapa = newPrevisao;
+                    if (applyEquipeChk.checked && newEquipe !== row.squad) row.squad = newEquipe;
+                    if (applyAnalistaChk.checked && newAnalista !== row.atribuicao) row.atribuicao = newAnalista;
+                    if (applyRespChk.checked && newResponsavel !== row.resp_atual) row.resp_atual = newResponsavel;
+                    if (markResolved) row.estado = 'resolved';
                 }
                 filterData(); // Re-renderiza a tabela com os novos dados
                 isDirty = false;
@@ -4072,6 +4112,7 @@ function createUnifiedEditModal(demanda) {
 
             isSubmitting = false;
             saveBtn.disabled = false;
+            setTimeout(() => { progressWrap.style.display = 'none'; progressText.style.display = 'none'; progressBar.style.width = '0%'; }, 400);
 
         } catch (error) {
             console.error('Erro ao salvar as alterações:', error);
@@ -4080,6 +4121,9 @@ function createUnifiedEditModal(demanda) {
             mostrarNotificacao(`Erro: ${errorMessage}`, 'erro');
             isSubmitting = false;
             saveBtn.disabled = false;
+            progressBar.style.width = '0%';
+            progressWrap.style.display = 'none';
+            progressText.style.display = 'none';
         }
     });
 
@@ -4088,6 +4132,12 @@ function createUnifiedEditModal(demanda) {
     equipeGroup.className = 'form-group';
     const equipeLabel = document.createElement('label');
     equipeLabel.textContent = 'Equipe:';
+    const applyEquipeChk = document.createElement('input');
+    applyEquipeChk.type = 'checkbox';
+    applyEquipeChk.style.marginLeft = '8px';
+    const applyEquipeSpan = document.createElement('span');
+    applyEquipeSpan.textContent = 'Aplicar';
+    applyEquipeSpan.style.marginLeft = '4px';
     const equipeIcon = makeStatusIcon();
     equipeLabel.appendChild(equipeIcon);
     const equipeSelect = document.createElement('select');
@@ -4102,6 +4152,8 @@ function createUnifiedEditModal(demanda) {
         equipeSelect.appendChild(opt);
     });
     equipeGroup.appendChild(equipeLabel);
+    equipeLabel.appendChild(applyEquipeChk);
+    equipeLabel.appendChild(applyEquipeSpan);
     equipeGroup.appendChild(equipeSelect);
 
     // Campo de Analista Responsável (Dropdown)
@@ -4109,6 +4161,12 @@ function createUnifiedEditModal(demanda) {
     analistaGroup.className = 'form-group';
     const analistaLabel = document.createElement('label');
     analistaLabel.textContent = 'Analista Responsável:';
+    const applyAnalistaChk = document.createElement('input');
+    applyAnalistaChk.type = 'checkbox';
+    applyAnalistaChk.style.marginLeft = '8px';
+    const applyAnalistaSpan = document.createElement('span');
+    applyAnalistaSpan.textContent = 'Aplicar';
+    applyAnalistaSpan.style.marginLeft = '4px';
     const analistaIcon = makeStatusIcon();
     analistaLabel.appendChild(analistaIcon);
     const analistaSelect = document.createElement('select');
@@ -4123,6 +4181,8 @@ function createUnifiedEditModal(demanda) {
         analistaSelect.appendChild(opt);
     });
     analistaGroup.appendChild(analistaLabel);
+    analistaLabel.appendChild(applyAnalistaChk);
+    analistaLabel.appendChild(applyAnalistaSpan);
     analistaGroup.appendChild(analistaSelect);
 
     // Campo de Responsável Atual (Dropdown)
@@ -4130,6 +4190,12 @@ function createUnifiedEditModal(demanda) {
     responsavelGroup.className = 'form-group';
     const responsavelLabel = document.createElement('label');
     responsavelLabel.textContent = 'Responsável Atual:';
+    const applyRespChk = document.createElement('input');
+    applyRespChk.type = 'checkbox';
+    applyRespChk.style.marginLeft = '8px';
+    const applyRespSpan = document.createElement('span');
+    applyRespSpan.textContent = 'Aplicar';
+    applyRespSpan.style.marginLeft = '4px';
     const respIcon = makeStatusIcon();
     responsavelLabel.appendChild(respIcon);
     const responsavelSelect = document.createElement('select');
@@ -4144,6 +4210,8 @@ function createUnifiedEditModal(demanda) {
         responsavelSelect.appendChild(opt);
     });
     responsavelGroup.appendChild(responsavelLabel);
+    responsavelLabel.appendChild(applyRespChk);
+    responsavelLabel.appendChild(applyRespSpan);
     responsavelGroup.appendChild(responsavelSelect);
 
     // Montar o modal
@@ -4151,6 +4219,8 @@ function createUnifiedEditModal(demanda) {
     buttonContainer.appendChild(saveBtn);
 
     modal.appendChild(modalTitle);
+    modal.appendChild(progressWrap);
+    modal.appendChild(progressText);
     // Exibir 'Marcar como Resolvido' primeiro
     modal.appendChild(resolvedGroup);
     modal.appendChild(statusGroup);
@@ -4164,18 +4234,6 @@ function createUnifiedEditModal(demanda) {
 
     overlay.appendChild(modal);
     
-    // Focar inicialmente no campo de Status para melhor UX
-    setTimeout(() => {
-        try { statusSelect.focus(); } catch {}
-    }, 100);
-
-    // Conectar salvamento inline e validações
-    attachInlineSave(statusSelect, 'status', statusIcon);
-    attachInlineSave(gmudInput, 'gmud', gmudIcon);
-    attachInlineSave(previsaoInput, 'previsao', prevIcon);
-    attachInlineSave(equipeSelect, 'equipe', equipeIcon);
-    attachInlineSave(analistaSelect, 'analista', analistaIcon);
-    attachInlineSave(responsavelSelect, 'resp', respIcon);
     validateForm();
 
     console.log('Modal criado e adicionado ao DOM');
