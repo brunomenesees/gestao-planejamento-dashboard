@@ -3366,7 +3366,7 @@ function createUnifiedEditModal(demanda) {
 
     // Checkbox: Marcar como Resolvido (estado nativo)
     const resolvedGroup = document.createElement('div');
-    resolvedGroup.className = 'form-group';
+    resolvedGroup.className = 'form-group inline';
     const resolvedLabel = document.createElement('label');
     const resolvedCheckbox = document.createElement('input');
     resolvedCheckbox.type = 'checkbox';

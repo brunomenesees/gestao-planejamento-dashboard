@@ -477,6 +477,25 @@
     gap: 6px;
 }
 
+/* Para grupos apenas com checkbox + label, alinhar em linha */
+.mass-edit-modal .form-group.inline,
+.simple-update-modal .form-group.inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.mass-edit-modal .form-group.inline input[type="checkbox"],
+.simple-update-modal .form-group.inline input[type="checkbox"] {
+    width: auto;
+    height: auto;
+}
+
+.mass-edit-modal .form-group.inline label,
+.simple-update-modal .form-group.inline label {
+    margin: 0;
+}
+
 .mass-edit-modal label,
 .simple-update-modal label {
     font-weight: 600;
