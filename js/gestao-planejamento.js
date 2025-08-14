@@ -192,7 +192,8 @@ function mapIssueToDemanda(issue) {
         resp_atual: getCustomFieldValue(issue, 69) || '',
         solicitante: issue.reporter?.name || '',
         status: getCustomFieldValue(issue, 70) || '',
-        numero_gmud: getCustomFieldValue(issue, 71) || ''
+        numero_gmud: getCustomFieldValue(issue, 71) || '',
+        previsao_etapa: getCustomFieldValue(issue, 72) || ''
     };
 }
 
@@ -1764,6 +1765,12 @@ function updateTable() {
             row.appendChild(td);
         });
 
+        // Coluna adicional: Previsão Etapa (custom CF 72)
+        const previsaoTd = document.createElement('td');
+        previsaoTd.className = 'col-center';
+        previsaoTd.textContent = demanda.previsao_etapa || '';
+        row.appendChild(previsaoTd);
+
         // Adicionar a nova célula de Ações com o botão Editar
         const actionsTd = document.createElement('td');
         actionsTd.className = 'col-center';
@@ -2509,6 +2516,10 @@ function createMassEditModal(ticketNumbers) {
         <label for=\"applyGmud\">GMUD</label>
         <input id=\"massGmud\" type=\"text\" placeholder=\"Número GMUD\" disabled />
 
+        <input type=\"checkbox\" id=\"applyPrevisao\" />
+        <label for=\"applyPrevisao\">Previsão Etapa</label>
+        <input id=\"massPrevisao\" type=\"text\" placeholder=\"Previsão da etapa\" disabled />
+
         <input type=\"checkbox\" id=\"applyEquipe\" />
         <label for=\"applyEquipe\">Equipe</label>
         <select id=\"massEquipe\" disabled></select>
@@ -2548,7 +2559,12 @@ function createMassEditModal(ticketNumbers) {
 
     // Enable/disable
     const pairs = [
-        ['applyStatus','massStatus'],['applyGmud','massGmud'],['applyEquipe','massEquipe'],['applyRespAtual','massRespAtual'],['applyAnalista','massAnalista']
+        ['applyStatus','massStatus'],
+        ['applyGmud','massGmud'],
+        ['applyPrevisao','massPrevisao'],
+        ['applyEquipe','massEquipe'],
+        ['applyRespAtual','massRespAtual'],
+        ['applyAnalista','massAnalista']
     ];
     pairs.forEach(([chkId, inputId]) => {
         const chk = modal.querySelector('#' + chkId);
@@ -2562,6 +2578,7 @@ function createMassEditModal(ticketNumbers) {
             status: modal.querySelector('#applyStatus').checked,
             resolved: modal.querySelector('#applyResolved').checked,
             gmud: modal.querySelector('#applyGmud').checked,
+            previsao: modal.querySelector('#applyPrevisao').checked,
             equipe: modal.querySelector('#applyEquipe').checked,
             respAtual: modal.querySelector('#applyRespAtual').checked,
             analista: modal.querySelector('#applyAnalista').checked,
@@ -2569,13 +2586,14 @@ function createMassEditModal(ticketNumbers) {
         const values = {
             status: modal.querySelector('#massStatus').value,
             gmud: modal.querySelector('#massGmud').value,
+            previsao: modal.querySelector('#massPrevisao').value,
             equipe: modal.querySelector('#massEquipe').value,
             respAtual: modal.querySelector('#massRespAtual').value,
             analista: modal.querySelector('#massAnalista').value,
             comment: modal.querySelector('#massComment').value?.trim()
         };
 
-        if (!apply.status && !apply.gmud && !apply.equipe && !apply.respAtual && !apply.analista && !values.comment) {
+        if (!apply.status && !apply.gmud && !apply.previsao && !apply.equipe && !apply.respAtual && !apply.analista && !values.comment) {
             mostrarNotificacao('Selecione pelo menos um campo para aplicar ou insira um comentário.', 'aviso');
             return;
         }
@@ -2592,6 +2610,7 @@ function createMassEditModal(ticketNumbers) {
             const custom_fields = [];
             if (apply.status) custom_fields.push({ field: { id: 70 }, value: values.status });
             if (apply.gmud) custom_fields.push({ field: { id: 71 }, value: values.gmud });
+            if (apply.previsao) custom_fields.push({ field: { id: 72 }, value: values.previsao });
             if (apply.equipe) custom_fields.push({ field: { id: 49 }, value: values.equipe });
             if (apply.respAtual) custom_fields.push({ field: { id: 69 }, value: values.respAtual });
             if (custom_fields.length) patchPayload.custom_fields = custom_fields;
@@ -2625,6 +2644,10 @@ function createMassEditModal(ticketNumbers) {
                 const oldGmud = base.numero_gmud || '';
                 if (patchOk && (!oldGmud || oldGmud !== values.gmud)) lines.push(`GMUD: ${values.gmud}`);
             }
+            if (apply.previsao) {
+                const oldPrev = base.previsao_etapa || '';
+                if (patchOk && (!oldPrev || oldPrev !== values.previsao)) lines.push(`Previsão Etapa: ${values.previsao}`);
+            }
             if (values.comment) lines.push(values.comment);
 
             let postOk = true;
@@ -2641,6 +2664,7 @@ function createMassEditModal(ticketNumbers) {
                     if (apply.status) demandasData[idx].status = values.status;
                     if (apply.resolved) demandasData[idx].estado = 'resolved';
                     if (apply.gmud) demandasData[idx].numero_gmud = values.gmud;
+                    if (apply.previsao) demandasData[idx].previsao_etapa = values.previsao;
                     if (apply.equipe) demandasData[idx].squad = values.equipe;
                     if (apply.respAtual) demandasData[idx].resp_atual = values.respAtual;
                     if (apply.analista) demandasData[idx].atribuicao = values.analista;
@@ -2854,7 +2878,8 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
                     const keyMap = {
                         49: 'squad',
                         65: 'atribuicao',
-                        69: 'resp_atual'
+                        69: 'resp_atual',
+                        72: 'previsao_etapa'
                     };
                     const dataKey = keyMap[customFieldId];
                     if(dataKey) {
@@ -2875,7 +2900,8 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
                             const keyMap = {
                                 49: 'squad',
                                 65: 'atribuicao',
-                                69: 'resp_atual'
+                                69: 'resp_atual',
+                                72: 'previsao_etapa'
                             };
                             const dataKey = keyMap[customFieldId];
                             if(dataKey) {
@@ -3407,6 +3433,18 @@ function createUnifiedEditModal(demanda) {
     gmudGroup.appendChild(gmudLabel);
     gmudGroup.appendChild(gmudInput);
 
+    // Campo de Previsão Etapa (Input de texto)
+    const previsaoGroup = document.createElement('div');
+    previsaoGroup.className = 'form-group';
+    const previsaoLabel = document.createElement('label');
+    previsaoLabel.textContent = 'Previsão Etapa:';
+    const previsaoInput = document.createElement('input');
+    previsaoInput.type = 'text';
+    previsaoInput.className = 'form-control';
+    previsaoInput.value = demanda.previsao_etapa || '';
+    previsaoGroup.appendChild(previsaoLabel);
+    previsaoGroup.appendChild(previsaoInput);
+
     // Campo de Nota/Observação (Textarea)
     const notaGroup = document.createElement('div');
     notaGroup.className = 'form-group';
@@ -3460,6 +3498,7 @@ function createUnifiedEditModal(demanda) {
             const newEquipe = equipeSelect.value;
             const newAnalista = analistaSelect.value;
             const newResponsavel = responsavelSelect.value;
+            const newPrevisao = previsaoInput.value;
             const markResolved = resolvedCheckbox.checked;
 
             // Campo Padrão: Analista Responsável
@@ -3467,12 +3506,15 @@ function createUnifiedEditModal(demanda) {
                 payload.handler = { name: newAnalista };
             }
 
-            // Campos Personalizados: Status, GMUD, Equipe, Responsável Atual
+            // Campos Personalizados: Status, GMUD, Previsão Etapa, Equipe, Responsável Atual
             if (newStatus !== demanda.status) {
                 custom_fields.push({ field: { id: 70 }, value: newStatus }); 
             }
             if (gmudValue !== (demanda.numero_gmud || '')) {
                 custom_fields.push({ field: { id: 71 }, value: gmudValue }); 
+            }
+            if (newPrevisao !== (demanda.previsao_etapa || '')) {
+                custom_fields.push({ field: { id: 72 }, value: newPrevisao });
             }
             if (newEquipe !== demanda.squad) {
                 custom_fields.push({ field: { id: 49 }, value: newEquipe }); 
@@ -3507,9 +3549,11 @@ function createUnifiedEditModal(demanda) {
             //    - Se Status/GMUD não mudarem, envia somente o comentário do usuário (se houver)
             const statusChanged = newStatus !== demanda.status;
             const gmudChanged = gmudValue !== (demanda.numero_gmud || '');
+            const previsaoChanged = newPrevisao !== (demanda.previsao_etapa || '');
             const lines = [];
             if (statusChanged && newStatus) lines.push(`Status: ${newStatus}`);
             if (gmudChanged && gmudValue) lines.push(`GMUD: ${gmudValue}`);
+            if (previsaoChanged && newPrevisao) lines.push(`Previsão Etapa: ${newPrevisao}`);
             if (markResolved) lines.push('Estado: resolved');
             if (notaText && notaText.trim()) lines.push(notaText.trim());
             if (lines.length > 0) {
@@ -3534,6 +3578,7 @@ function createUnifiedEditModal(demanda) {
                 if (dataIndex !== -1) {
                     demandasData[dataIndex].status = newStatus;
                     demandasData[dataIndex].numero_gmud = gmudValue;
+                    demandasData[dataIndex].previsao_etapa = newPrevisao;
                     demandasData[dataIndex].squad = newEquipe;
                     demandasData[dataIndex].atribuicao = newAnalista;
                     demandasData[dataIndex].resp_atual = newResponsavel;
