@@ -2458,7 +2458,7 @@ function createMassEditModal(ticketNumbers) {
         <select id=\"massStatus\" disabled></select>
 
         <input type=\"checkbox\" id=\"applyResolved\" />
-        <label for=\"applyResolved\">Marcar como Resolvido (estado nativo)</label>
+        <label for=\"applyResolved\">Marcar como Resolvido</label>
         <div></div>
 
         <input type=\"checkbox\" id=\"applyGmud\" />
