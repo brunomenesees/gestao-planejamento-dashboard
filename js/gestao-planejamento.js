@@ -3364,6 +3364,18 @@ function createUnifiedEditModal(demanda) {
     const modalTitle = document.createElement('h3');
     modalTitle.textContent = `Editar Chamado #${demanda.numero}`;
 
+    // Checkbox: Marcar como Resolvido (estado nativo)
+    const resolvedGroup = document.createElement('div');
+    resolvedGroup.className = 'form-group';
+    const resolvedLabel = document.createElement('label');
+    const resolvedCheckbox = document.createElement('input');
+    resolvedCheckbox.type = 'checkbox';
+    resolvedCheckbox.id = 'resolvedCheckbox';
+    resolvedLabel.setAttribute('for', 'resolvedCheckbox');
+    resolvedLabel.textContent = ' Marcar como Resolvido';
+    resolvedGroup.appendChild(resolvedCheckbox);
+    resolvedGroup.appendChild(resolvedLabel);
+
     // Campo de Status (Dropdown)
     const statusGroup = document.createElement('div');
     statusGroup.className = 'form-group';
@@ -3394,18 +3406,6 @@ function createUnifiedEditModal(demanda) {
     gmudInput.value = demanda.numero_gmud || ''; // Assumindo que o campo se chama 'numero_gmud'
     gmudGroup.appendChild(gmudLabel);
     gmudGroup.appendChild(gmudInput);
-
-    // Checkbox: Marcar como Resolvido (estado nativo)
-    const resolvedGroup = document.createElement('div');
-    resolvedGroup.className = 'form-group';
-    const resolvedLabel = document.createElement('label');
-    const resolvedCheckbox = document.createElement('input');
-    resolvedCheckbox.type = 'checkbox';
-    resolvedCheckbox.id = 'resolvedCheckbox';
-    resolvedLabel.setAttribute('for', 'resolvedCheckbox');
-    resolvedLabel.textContent = ' Marcar como Resolvido';
-    resolvedGroup.appendChild(resolvedCheckbox);
-    resolvedGroup.appendChild(resolvedLabel);
 
     // Campo de Nota/Observação (Textarea)
     const notaGroup = document.createElement('div');
