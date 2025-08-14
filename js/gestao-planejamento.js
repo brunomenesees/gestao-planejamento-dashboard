@@ -11,6 +11,50 @@ let hiddenColumns = new Set();
 // Mantenha como false para desabilitar cliques e forçar uso do modal unificado
 const ENABLE_INLINE_EDIT = false;
 
+// Marcações de itens atualizados recentemente (janela de tempo)
+const RECENT_WINDOW_MS = 60 * 60 * 1000; // 60 minutos
+let recentlyUpdated = {};
+try {
+    recentlyUpdated = JSON.parse(sessionStorage.getItem('recentlyUpdated') || '{}') || {};
+} catch {}
+
+function markRecentlyUpdated(numeros) {
+    const now = Date.now();
+    numeros.forEach(n => { if (n) recentlyUpdated[String(n)] = now; });
+    try { sessionStorage.setItem('recentlyUpdated', JSON.stringify(recentlyUpdated)); } catch {}
+}
+
+function isRecentlyUpdated(numero) {
+    const t = recentlyUpdated[String(numero)];
+    return !!t && (Date.now() - t) <= RECENT_WINDOW_MS;
+}
+
+function cleanupRecentlyUpdated() {
+    const now = Date.now();
+    let changed = false;
+    for (const [n, t] of Object.entries(recentlyUpdated)) {
+        if (!t || (now - t) > RECENT_WINDOW_MS) {
+            delete recentlyUpdated[n];
+            changed = true;
+        }
+    }
+    if (changed) {
+        try { sessionStorage.setItem('recentlyUpdated', JSON.stringify(recentlyUpdated)); } catch {}
+    }
+}
+setInterval(cleanupRecentlyUpdated, 60000);
+
+function ensureRecentStyle() {
+    if (document.getElementById('recent-updated-style')) return;
+    const style = document.createElement('style');
+    style.id = 'recent-updated-style';
+    style.textContent = `
+      tr.recently-updated { background: #fff9e6 !important; box-shadow: inset 3px 0 0 #f1b200; }
+      .badge-updated { display:inline-block; margin-left:6px; padding:2px 6px; font-size:10px; font-weight:600; color:#835400; background:#ffe08a; border-radius:10px; }
+    `;
+    document.head.appendChild(style);
+}
+
 // Colunas que devem ser ocultas por padrão
 const DEFAULT_HIDDEN_COLUMNS = new Set([
     'categoria',      // Categoria
@@ -34,6 +78,7 @@ let selectedSquadFilter = new Set();
 
 // Lista de status disponíveis para o dropdown (lista fixa)
 const STATUS_OPTIONS = [
+    ' ',
     'Aguardando Deploy',
     'Ajuste Especificação',
     'Ajustes',
@@ -60,7 +105,7 @@ const SQUAD_OPTIONS = [
 
 // TODO: Substituir com a lista real de analistas
 const ANALISTA_RESPONSAVEL_OPTIONS = [
-    "bruno.tavares", "daniel.paraizo", "elaine.santos", "gabriel.matos", "gustavo.magalhaes", 
+    " ","bruno.tavares", "daniel.paraizo", "elaine.santos", "gabriel.matos", "gustavo.magalhaes", 
     "thiago.caldeira", "tiago.nogueira", "vinicius.vieira", "viviane.silva"
 ];
 
@@ -1468,6 +1513,9 @@ function updateTable() {
     const tbody = document.querySelector('#chamadosTable tbody');
     if (!tbody) return;
 
+    ensureRecentStyle();
+    cleanupRecentlyUpdated();
+
     tbody.innerHTML = '';
     
     console.log('updateTable - demandasData:', demandasData);
@@ -1635,6 +1683,13 @@ function updateTable() {
                 });
                 
                 td.appendChild(link);
+
+                if (isRecentlyUpdated(demanda.numero)) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge-updated';
+                    badge.textContent = 'Atualizado';
+                    td.appendChild(badge);
+                }
             } else if (index === 3) { // Descrição com tooltip
                 td.textContent = valor;
                 td.setAttribute('title', decodificarTexto(demanda.resumo) || '');
@@ -1689,6 +1744,9 @@ function updateTable() {
         actionsTd.appendChild(editButton);
         row.appendChild(actionsTd);
 
+        if (isRecentlyUpdated(demanda.numero)) {
+            row.classList.add('recently-updated');
+        }
         tbody.appendChild(row);
     });
 
@@ -2399,6 +2457,10 @@ function createMassEditModal(ticketNumbers) {
         <label for=\"applyStatus\">Status (ID 70)</label>
         <select id=\"massStatus\" disabled></select>
 
+        <input type=\"checkbox\" id=\"applyResolved\" />
+        <label for=\"applyResolved\">Marcar como Resolvido (estado nativo)</label>
+        <div></div>
+
         <input type=\"checkbox\" id=\"applyGmud\" />
         <label for=\"applyGmud\">GMUD (ID 71)</label>
         <input id=\"massGmud\" type=\"text\" placeholder=\"Número/Descrição GMUD\" disabled />
@@ -2454,6 +2516,7 @@ function createMassEditModal(ticketNumbers) {
     modal.querySelector('#massSave').addEventListener('click', async () => {
         const apply = {
             status: modal.querySelector('#applyStatus').checked,
+            resolved: modal.querySelector('#applyResolved').checked,
             gmud: modal.querySelector('#applyGmud').checked,
             equipe: modal.querySelector('#applyEquipe').checked,
             respAtual: modal.querySelector('#applyRespAtual').checked,
@@ -2490,6 +2553,12 @@ function createMassEditModal(ticketNumbers) {
             if (custom_fields.length) patchPayload.custom_fields = custom_fields;
             if (apply.analista) patchPayload.handler = { name: values.analista };
 
+            // Estado nativo: resolved
+            if (apply.resolved) {
+                patchPayload.status = { name: 'resolved' };
+                patchPayload.resolution = { name: 'fixed' };
+            }
+
             let patchOk = true;
             if (Object.keys(patchPayload).length > 0) {
                 try {
@@ -2504,6 +2573,9 @@ function createMassEditModal(ticketNumbers) {
             if (apply.status) {
                 const oldStatus = base.status || '';
                 if (patchOk && (!oldStatus || oldStatus !== values.status)) lines.push(`Status: ${values.status}`);
+            }
+            if (apply.resolved) {
+                lines.push('Estado: resolved');
             }
             if (apply.gmud) {
                 const oldGmud = base.numero_gmud || '';
@@ -2523,6 +2595,7 @@ function createMassEditModal(ticketNumbers) {
                 const idx = demandasData.findIndex(d => d.numero === numero);
                 if (idx !== -1) {
                     if (apply.status) demandasData[idx].status = values.status;
+                    if (apply.resolved) demandasData[idx].estado = 'resolved';
                     if (apply.gmud) demandasData[idx].numero_gmud = values.gmud;
                     if (apply.equipe) demandasData[idx].squad = values.equipe;
                     if (apply.respAtual) demandasData[idx].resp_atual = values.respAtual;
@@ -2536,6 +2609,7 @@ function createMassEditModal(ticketNumbers) {
                     await new Promise((resolve) => { getReq.onsuccess = resolve; getReq.onerror = resolve; });
                     const demanda = getReq.result || { numero };
                     if (apply.status) demanda.status = values.status;
+                    if (apply.resolved) demanda.estado = 'resolved';
                     if (apply.gmud) demanda.numero_gmud = values.gmud;
                     if (apply.equipe) demanda.squad = values.equipe;
                     if (apply.respAtual) demanda.resp_atual = values.respAtual;
@@ -2559,6 +2633,10 @@ function createMassEditModal(ticketNumbers) {
         progress.textContent = `Concluído. Sucesso: ${okCount} | Falhas: ${fail.length}`;
 
         filterData();
+        try {
+            const successful = results.filter(r => r && r.patchOk !== false).map(r => r.numero);
+            if (successful.length) markRecentlyUpdated(successful);
+        } catch {}
         selectedTickets.clear();
         syncSelectAllCheckboxForPage();
         const massEditBtn = document.getElementById('massEditBtn');
@@ -3047,6 +3125,8 @@ function showActionButtons(container, newStatus, ticketNumber) {
         let success = await postToMantis(ticketNumber, note, newStatus, gmudValue);
 
         if (success) {
+            // Marcar como atualizado recentemente
+            try { markRecentlyUpdated([ticketNumber]); } catch {}
             // Atualizar o texto do botão na interface
             container.querySelector('.status-dropdown-btn').textContent = newStatus;
             
@@ -3271,6 +3351,18 @@ function createUnifiedEditModal(demanda) {
     gmudGroup.appendChild(gmudLabel);
     gmudGroup.appendChild(gmudInput);
 
+    // Checkbox: Marcar como Resolvido (estado nativo)
+    const resolvedGroup = document.createElement('div');
+    resolvedGroup.className = 'form-group';
+    const resolvedLabel = document.createElement('label');
+    const resolvedCheckbox = document.createElement('input');
+    resolvedCheckbox.type = 'checkbox';
+    resolvedCheckbox.id = 'resolvedCheckbox';
+    resolvedLabel.setAttribute('for', 'resolvedCheckbox');
+    resolvedLabel.textContent = ' Marcar como Resolvido (estado nativo)';
+    resolvedGroup.appendChild(resolvedCheckbox);
+    resolvedGroup.appendChild(resolvedLabel);
+
     // Campo de Nota/Observação (Textarea)
     const notaGroup = document.createElement('div');
     notaGroup.className = 'form-group';
@@ -3325,6 +3417,7 @@ function createUnifiedEditModal(demanda) {
             const newEquipe = equipeSelect.value;
             const newAnalista = analistaSelect.value;
             const newResponsavel = responsavelSelect.value;
+            const markResolved = resolvedCheckbox.checked;
 
             // Campo Padrão: Analista Responsável
             if (newAnalista !== demanda.atribuicao) {
@@ -3349,6 +3442,12 @@ function createUnifiedEditModal(demanda) {
                 payload.custom_fields = custom_fields;
             }
 
+            // Aplicar estado nativo resolved, se marcado
+            if (markResolved) {
+                payload.status = { name: 'resolved' };
+                payload.resolution = { name: 'fixed' };
+            }
+
             // Enviar PATCH apenas se houver alterações nos campos
             if (Object.keys(payload).length > 0) {
                 console.log('PAYLOAD PATCH ENVIADO PARA A API MANTIS:', JSON.stringify(payload, null, 2));
@@ -3368,6 +3467,7 @@ function createUnifiedEditModal(demanda) {
             const lines = [];
             if (statusChanged && newStatus) lines.push(`Status: ${newStatus}`);
             if (gmudChanged && gmudValue) lines.push(`GMUD: ${gmudValue}`);
+            if (markResolved) lines.push('Estado: resolved');
             if (notaText && notaText.trim()) lines.push(notaText.trim());
             if (lines.length > 0) {
                 await mantisRequest(`issues/${demanda.numero}/notes`, {
@@ -3392,6 +3492,7 @@ function createUnifiedEditModal(demanda) {
                     demandasData[dataIndex].squad = newEquipe;
                     demandasData[dataIndex].atribuicao = newAnalista;
                     demandasData[dataIndex].resp_atual = newResponsavel;
+                    if (markResolved) demandasData[dataIndex].estado = 'resolved';
                 }
                 filterData(); // Re-renderiza a tabela com os novos dados
             }
@@ -3470,6 +3571,7 @@ function createUnifiedEditModal(demanda) {
     modalContent.appendChild(modalTitle);
     modalContent.appendChild(statusGroup);
     modalContent.appendChild(gmudGroup);
+    modalContent.appendChild(resolvedGroup);
     modalContent.appendChild(equipeGroup);
     modalContent.appendChild(analistaGroup);
     modalContent.appendChild(responsavelGroup);
