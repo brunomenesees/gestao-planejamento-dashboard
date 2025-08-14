@@ -1691,6 +1691,7 @@ function updateTable() {
             formatarDataAmigavel(demanda.data_prometida) || '',
             formatarDataAmigavel(demanda.ultima_atualizacao) || '',
             demanda.ordem_plnj || '',
+            demanda.previsao_etapa || '',
             formatarHorasMinutos(calcularTempoTotal(demanda)) || '',
             demanda.status || ''
         ];
@@ -1756,7 +1757,7 @@ function updateTable() {
                         createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
                     });
                 }
-            } else if (index === 14) { // Status (custom CF 70): mostrar traço quando vazio
+            } else if (index === 15) { // Status (custom CF 70): mostrar traço quando vazio (ajustado após inserir Previsão Etapa)
                 const isEmpty = String(valor).trim() === '';
                 td.textContent = isEmpty ? '—' : valor;
             } else {
@@ -1764,12 +1765,6 @@ function updateTable() {
             }
             row.appendChild(td);
         });
-
-        // Coluna adicional: Previsão Etapa (custom CF 72)
-        const previsaoTd = document.createElement('td');
-        previsaoTd.className = 'col-center';
-        previsaoTd.textContent = demanda.previsao_etapa || '';
-        row.appendChild(previsaoTd);
 
         // Adicionar a nova célula de Ações com o botão Editar
         const actionsTd = document.createElement('td');
