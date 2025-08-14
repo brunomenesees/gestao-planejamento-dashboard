@@ -2488,8 +2488,12 @@ function createMassEditModal(ticketNumbers) {
     modal.style.cssText = 'background:#fff;border-radius:8px;width:95%;max-width:720px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25);';
     overlay.appendChild(modal);
 
+    const selectionText = (ticketNumbers.length === 1)
+        ? '1 selecionado'
+        : `${ticketNumbers.length} selecionados`;
+
     modal.innerHTML = `
-      <h3 style="margin:0 0 12px;">Edição Massiva (${ticketNumbers.length} selecionados)</h3>
+      <h3>Edição Massiva (${selectionText})</h3>
       <div style="display:grid; grid-template-columns: 28px 1fr 1fr; gap:10px; align-items:center;">
         <div></div><div style=\"font-weight:600;\">Campo</div><div style=\"font-weight:600;\">Valor</div>
         <input type=\"checkbox\" id=\"applyStatus\" />
@@ -2521,9 +2525,9 @@ function createMassEditModal(ticketNumbers) {
         <textarea id="massComment" rows="4" style="width:100%;"></textarea>
       </div>
       <div id="massProgress" style="margin-top:10px; font-size:12px; color:#555;">Pronto</div>
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
-        <button id="massCancel" class="btn">Cancelar</button>
-        <button id="massSave" class="btn btn-primary">Salvar</button>
+      <div class="modal-footer">
+        <button id="massCancel" class="btn btn-cancel">Cancelar</button>
+        <button id="massSave" class="btn btn-save">Salvar</button>
       </div>
     `;
 
@@ -2773,9 +2777,9 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
         background-color: white;
         padding: 20px;
         border-radius: 8px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        width: 90%;
-        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        width: 95%;
+        max-width: 720px;
         z-index: 10001;
         position: fixed;
         top: 50%;
@@ -2795,16 +2799,16 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
     `;
 
     modalContent.innerHTML = `
-        <h3 style="margin: 0; font-size: 1.2rem; color: #333; border-bottom: 2px solid #3498db; padding-bottom: 10px;">${modalTitle}</h3>
-        <div class="ticket-info" style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #3498db;">
+        <h3>${modalTitle}</h3>
+        <div class="ticket-info-box">
             <strong>Ticket:</strong> ${ticketNumber}<br>
             <strong>Valor Atual:</strong> ${currentValue || 'N/A'}
         </div>
         <label for="simple-update-select" style="font-weight: 600; color: #555; margin-bottom: 5px; display: block;">Novo Valor:</label>
         <select id="simple-update-select" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem; background-color: #f8f9fa; color: #333;"></select>
-        <div class="simple-update-modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
-            <button class="cancel-btn" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; background-color: #ccc; color: #333;">Cancelar</button>
-            <button class="save-btn" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; background-color: #3498db; color: white;">Salvar</button>
+        <div class="modal-footer">
+            <button class="cancel-btn btn btn-cancel">Cancelar</button>
+            <button class="save-btn btn btn-save">Salvar</button>
         </div>
     `;
 
