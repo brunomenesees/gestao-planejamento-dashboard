@@ -2559,16 +2559,23 @@ function createMassEditModal(ticketNumbers) {
         <label for="massComment" style="font-weight:600; display:block; margin-bottom:6px;">Comentário (opcional)</label>
         <textarea id="massComment" rows="4" style="width:100%;"></textarea>
       </div>
-      <div id="massProgress" style="margin-top:10px; font-size:12px; color:#555;">Pronto</div>
+      <div id="massProgress" role="status" aria-live="polite" style="margin-top:10px; font-size:12px; color:#555;">Pronto</div>
+      <div id="massProgressBar" aria-hidden="true" style="height:6px; background:#e9ecef; border-radius:4px; overflow:hidden; margin-top:6px; display:none;">
+        <div id="massProgressBarFill" style="height:100%; width:0%; background:#3498db; transition:width .2s ease;"></div>
+      </div>
+      <div id="massResults" style="display:none; margin-top:12px; padding:10px; background:#f8f9fa; border-radius:6px; border-left:4px solid #3498db;"></div>
       <div class="modal-footer">
         <button id="massCancel" class="btn btn-cancel">Cancelar</button>
         <button id="massSave" class="btn btn-save">Salvar</button>
       </div>
     `;
 
-    const close = () => { overlay.remove(); };
+    let isSubmitting = false;
+    const close = () => { if (isSubmitting) return; overlay.remove(); };
     modal.querySelector('#massCancel').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.addEventListener('click', (e) => { if (!isSubmitting && e.target === overlay) close(); });
+    const handleEsc = (e) => { if (e.key === 'Escape' && !isSubmitting) { close(); document.removeEventListener('keydown', handleEsc); } };
+    document.addEventListener('keydown', handleEsc);
 
     // Populate selects
     const statusSel = modal.querySelector('#massStatus');
@@ -2622,10 +2629,64 @@ function createMassEditModal(ticketNumbers) {
         }
 
         const progress = modal.querySelector('#massProgress');
+        const progressBar = modal.querySelector('#massProgressBar');
+        const progressBarFill = modal.querySelector('#massProgressBarFill');
+        const resultsBox = modal.querySelector('#massResults');
+        resultsBox.setAttribute('role', 'status');
+        resultsBox.setAttribute('aria-live', 'polite');
         const total = ticketNumbers.length;
         let done = 0;
         progress.textContent = `Processando 0/${total}...`;
-        modal.querySelector('#massSave').disabled = true;
+        const saveBtnEl = modal.querySelector('#massSave');
+        const cancelBtnEl = modal.querySelector('#massCancel');
+        
+        // Pré-confirmação: mostra resumo do que será aplicado antes de iniciar
+        if (!modal.dataset.massConfirmed) {
+            const fieldsToApply = [];
+            if (apply.status) fieldsToApply.push(`Status → ${values.status || '(vazio)'}`);
+            if (apply.gmud) fieldsToApply.push(`GMUD → ${values.gmud || '(vazio)'}`);
+            if (apply.previsao) fieldsToApply.push(`Previsão → ${values.previsao || '(vazio)'}`);
+            if (apply.equipe) fieldsToApply.push(`Equipe → ${values.equipe || '(vazio)'}`);
+            if (apply.respAtual) fieldsToApply.push(`Resp. Atual → ${values.respAtual || '(vazio)'}`);
+            if (apply.analista) fieldsToApply.push(`Analista → ${values.analista || '(vazio)'}`);
+            if (values.comment) fieldsToApply.push(`Comentário ✓`);
+
+            const summaryHtml = `
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <strong>Confirmação</strong>
+                  <span>${total} itens serão afetados</span>
+                </div>
+                <div style="margin-top:8px; font-size:12px; color:#333;">
+                  ${fieldsToApply.length ? fieldsToApply.map(f => `<div>• ${f}</div>`).join('') : '<div>Nenhum campo selecionado.</div>'}
+                </div>
+                <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                  <button id="mass-confirm" class="btn btn-save">Confirmar</button>
+                  <button id="mass-back" class="btn btn-cancel">Voltar</button>
+                </div>
+            `;
+            resultsBox.innerHTML = summaryHtml;
+            resultsBox.style.display = 'block';
+            progress.textContent = 'Aguardando confirmação...';
+
+            const confirmBtn = resultsBox.querySelector('#mass-confirm');
+            const backBtn = resultsBox.querySelector('#mass-back');
+            confirmBtn?.addEventListener('click', () => {
+                modal.dataset.massConfirmed = '1';
+                resultsBox.style.display = 'none';
+                saveBtnEl.click();
+            });
+            backBtn?.addEventListener('click', () => {
+                resultsBox.style.display = 'none';
+                progress.textContent = 'Pronto';
+            });
+            return;
+        }
+
+        saveBtnEl.disabled = true;
+        cancelBtnEl.disabled = true;
+        isSubmitting = true;
+        progressBar.style.display = 'block';
+        progressBarFill.style.width = '0%';
 
         const worker = async (numero) => {
             const base = getDemandaByNumero(numero) || {};
@@ -2728,22 +2789,150 @@ function createMassEditModal(ticketNumbers) {
             return { numero, patchOk, postOk };
         };
 
-        const results = await runWithConcurrency(ticketNumbers, worker, 3);
-        const okCount = results.filter(r => r && r.patchOk !== false).length;
-        const fail = results.filter(r => r && r.patchOk === false);
-        progress.textContent = `Concluído. Sucesso: ${okCount} | Falhas: ${fail.length}`;
+        const renderResults = (results) => {
+            const okCount = results.filter(r => r && r.patchOk !== false).length;
+            const fail = results.filter(r => r && r.patchOk === false);
+            progress.textContent = `Concluído. Sucesso: ${okCount} | Falhas: ${fail.length}`;
+            // Esconde barra de progresso ao concluir
+            if (progressBar) progressBar.style.display = 'none';
 
-        try {
-            const successful = results.filter(r => r && r.patchOk !== false).map(r => r.numero);
-            if (successful.length) markRecentlyUpdated(successful);
-        } catch {}
-        filterData();
-        selectedTickets.clear();
-        syncSelectAllCheckboxForPage();
-        const massEditBtn = document.getElementById('massEditBtn');
-        if (massEditBtn) massEditBtn.disabled = true;
-        mostrarNotificacao(`Edição massiva concluída. Sucesso: ${okCount} | Falhas: ${fail.length}`, fail.length ? 'aviso' : 'sucesso');
-        setTimeout(() => { close(); }, 1200);
+            try {
+                const successful = results.filter(r => r && r.patchOk !== false).map(r => r.numero);
+                if (successful.length) markRecentlyUpdated(successful);
+            } catch {}
+            filterData();
+            selectedTickets.clear();
+            syncSelectAllCheckboxForPage();
+            const massEditBtn = document.getElementById('massEditBtn');
+            if (massEditBtn) massEditBtn.disabled = true;
+
+            // Mostrar box de resultados com ações
+            const failedIds = fail.map(f => f.numero);
+            // Monta tabela resumida (colapsável)
+            const summarized = results.map(r => ({
+                numero: r?.numero,
+                status: r?.patchOk === false ? 'fail' : 'ok',
+                msg: r?.patchOk === false ? 'patch failed' : 'ok'
+            })).filter(r => r.numero != null);
+            const tableRowsAll = summarized.map(r => `
+                <tr data-status="${r.status}">
+                  <td style="padding:6px 8px; font-family:monospace;">${r.numero}</td>
+                  <td style="padding:6px 8px;">${r.status === 'ok' ? '✅' : '❌'}</td>
+                  <td style="padding:6px 8px; color:#555; font-size:12px;">${r.msg}</td>
+                </tr>
+            `).join('');
+            const summaryHtml = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <strong>Resumo:</strong>
+                  <span style="color:#2ecc71">Sucesso: ${okCount}</span>
+                  <span style="color:#e74c3c">Falhas: ${fail.length}</span>
+                </div>
+                <details style="margin-top:8px;">
+                  <summary style="cursor:pointer; user-select:none;">Ver resultados por item</summary>
+                  <div style="margin-top:8px;">
+                    <div style="display:flex; gap:8px; margin-bottom:8px;">
+                      <button id="mass-view-fail" class="btn">Ver somente falhas</button>
+                      ${fail.length ? '<button id="mass-copy-fail" class="btn">Copiar IDs falhos</button>' : ''}
+                    </div>
+                    <div style="max-height:220px; overflow:auto; border:1px solid #eee; border-radius:6px;">
+                      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                        <thead>
+                          <tr style="background:#f1f3f5; text-align:left;">
+                            <th style="padding:6px 8px;">ID</th>
+                            <th style="padding:6px 8px;">Status</th>
+                            <th style="padding:6px 8px;">Mensagem</th>
+                          </tr>
+                        </thead>
+                        <tbody id="massResultsTable">
+                          ${tableRowsAll}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+                <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                  <button id="mass-close" class="btn btn-cancel">Fechar</button>
+                  ${fail.length ? '<button id="mass-retry" class="btn btn-save">Reprocessar falhas</button>' : ''}
+                  ${fail.length ? '<button id="mass-export" class="btn">Exportar erros (CSV)</button>' : ''}
+                </div>
+            `;
+            resultsBox.innerHTML = summaryHtml;
+            resultsBox.style.display = 'block';
+
+            const closeBtn = resultsBox.querySelector('#mass-close');
+            if (closeBtn) closeBtn.addEventListener('click', () => close());
+
+            // Ação: Copiar IDs falhos
+            const copyFailBtn = resultsBox.querySelector('#mass-copy-fail');
+            if (copyFailBtn) copyFailBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(failedIds.join(', '));
+                    mostrarNotificacao('IDs falhos copiados para a área de transferência.', 'sucesso');
+                } catch {
+                    mostrarNotificacao('Não foi possível copiar. Selecione e copie manualmente.', 'aviso');
+                }
+            });
+
+            // Ação: Ver somente falhas (filtro local na tabela)
+            const viewFailBtn = resultsBox.querySelector('#mass-view-fail');
+            if (viewFailBtn) {
+                let showingOnlyFails = false;
+                const tbody = resultsBox.querySelector('#massResultsTable');
+                viewFailBtn.addEventListener('click', () => {
+                    showingOnlyFails = !showingOnlyFails;
+                    viewFailBtn.textContent = showingOnlyFails ? 'Ver todos' : 'Ver somente falhas';
+                    Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+                        const st = tr.getAttribute('data-status');
+                        tr.style.display = (showingOnlyFails && st !== 'fail') ? 'none' : '';
+                    });
+                });
+            }
+
+            const exportBtn = resultsBox.querySelector('#mass-export');
+            if (exportBtn) exportBtn.addEventListener('click', () => {
+                const rows = [['numero','erro']];
+                fail.forEach(f => rows.push([f.numero, 'patch failed']));
+                const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'edicao_massiva_erros.csv';
+                link.click();
+            });
+
+            const retryBtn = resultsBox.querySelector('#mass-retry');
+            if (retryBtn) retryBtn.addEventListener('click', async () => {
+                // Reprocessar apenas IDs com falha
+                resultsBox.style.display = 'none';
+                done = 0;
+                const retryList = failedIds.slice();
+                progress.textContent = `Reprocessando 0/${retryList.length}...`;
+                isSubmitting = true;
+                saveBtnEl.disabled = true;
+                cancelBtnEl.disabled = true;
+                const retryResults = await runWithConcurrency(retryList, worker, 3);
+                isSubmitting = false;
+                saveBtnEl.disabled = false;
+                cancelBtnEl.disabled = false;
+                renderResults(retryResults);
+            });
+
+            // Habilitar botões novamente e liberar fechamento
+            isSubmitting = false;
+            saveBtnEl.disabled = false;
+            cancelBtnEl.disabled = false;
+            mostrarNotificacao(`Edição massiva concluída. Sucesso: ${okCount} | Falhas: ${fail.length}`, fail.length ? 'aviso' : 'sucesso');
+        };
+
+        const results = await runWithConcurrency(ticketNumbers, async (n) => {
+            const r = await worker(n);
+            done += 1;
+            progress.textContent = `Processando ${done}/${total}...`;
+            const pct = Math.max(0, Math.min(100, Math.round((done/total)*100)));
+            if (progressBarFill) progressBarFill.style.width = pct + '%';
+            return r;
+        }, 3);
+        renderResults(results);
     });
 }
 
