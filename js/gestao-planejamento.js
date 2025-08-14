@@ -3348,19 +3348,19 @@ function createUnifiedEditModal(demanda) {
     console.log('Função createUnifiedEditModal chamada com a demanda:', demanda);
 
     // Remover qualquer modal existente para evitar duplicatas
-    const existingModal = document.querySelector('.modal-container');
-    if (existingModal) {
-        existingModal.remove();
-    }
+    const existingOverlay = document.querySelector('.modal-overlay');
+    if (existingOverlay) existingOverlay.remove();
 
-    // Criar os elementos do modal
-    const modalContainer = document.createElement('div');
-    modalContainer.className = 'modal-container';
+    // Overlay unificado
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    document.body.appendChild(overlay);
 
-    const modalContent = document.createElement('div');
-    modalContent.className = 'modal-content';
+    // Container unificado
+    const modal = document.createElement('div');
+    modal.className = 'simple-update-modal';
 
-    const modalTitle = document.createElement('h2');
+    const modalTitle = document.createElement('h3');
     modalTitle.textContent = `Editar Chamado #${demanda.numero}`;
 
     // Campo de Status (Dropdown)
@@ -3419,26 +3419,25 @@ function createUnifiedEditModal(demanda) {
 
     // Botões de Ação
     const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'button-container';
+    buttonContainer.className = 'modal-footer';
 
     const saveBtn = document.createElement('button');
     saveBtn.textContent = 'Salvar';
-    saveBtn.className = 'save-btn';
+    saveBtn.className = 'btn btn-save';
 
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancelar';
-    cancelBtn.className = 'cancel-btn';
+    cancelBtn.className = 'btn btn-cancel';
 
     // Lógica dos botões
-    cancelBtn.addEventListener('click', () => modalContainer.remove());
-    modalContainer.addEventListener('click', (e) => {
-        if (e.target === modalContainer) {
-            modalContainer.remove();
-        }
+    const closeUnified = () => { try { overlay.remove(); } catch {} };
+    cancelBtn.addEventListener('click', closeUnified);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeUnified();
     });
     document.addEventListener('keydown', function handleEsc(e) {
         if (e.key === 'Escape') {
-            modalContainer.remove();
+            closeUnified();
             document.removeEventListener('keydown', handleEsc);
         }
     });
@@ -3613,18 +3612,17 @@ function createUnifiedEditModal(demanda) {
     buttonContainer.appendChild(cancelBtn);
     buttonContainer.appendChild(saveBtn);
 
-    modalContent.appendChild(modalTitle);
-    modalContent.appendChild(statusGroup);
-    modalContent.appendChild(gmudGroup);
-    modalContent.appendChild(resolvedGroup);
-    modalContent.appendChild(equipeGroup);
-    modalContent.appendChild(analistaGroup);
-    modalContent.appendChild(responsavelGroup);
-    modalContent.appendChild(notaGroup);
-    modalContent.appendChild(buttonContainer);
+    modal.appendChild(modalTitle);
+    modal.appendChild(statusGroup);
+    modal.appendChild(gmudGroup);
+    modal.appendChild(resolvedGroup);
+    modal.appendChild(equipeGroup);
+    modal.appendChild(analistaGroup);
+    modal.appendChild(responsavelGroup);
+    modal.appendChild(notaGroup);
+    modal.appendChild(buttonContainer);
 
-    modalContainer.appendChild(modalContent);
-    document.body.appendChild(modalContainer);
+    overlay.appendChild(modal);
     
     // Focar no campo de observação
     setTimeout(() => {
