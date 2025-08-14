@@ -1758,7 +1758,8 @@ function updateTable() {
                     });
                 }
             } else if (index === 13) { // Previsão Etapa: formatar como dd/mm/yyyy
-                const s = String(valor || '').trim();
+                const raw = valor;
+                const s = (raw === null || raw === undefined) ? '' : String(raw).trim();
                 let out = '';
                 if (s) {
                     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
@@ -1766,6 +1767,11 @@ function updateTable() {
                         out = `${d}/${m}/${y}`;
                     } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
                         out = s;
+                    } else if (/^\d{10}$/.test(s)) { // unix seconds
+                        const d = new Date(parseInt(s, 10) * 1000);
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        out = `${dd}/${mm}/${d.getFullYear()}`;
                     } else {
                         const ts = Date.parse(s);
                         if (!Number.isNaN(ts)) {
@@ -2627,7 +2633,16 @@ function createMassEditModal(ticketNumbers) {
             const custom_fields = [];
             if (apply.status) custom_fields.push({ field: { id: 70 }, value: values.status });
             if (apply.gmud) custom_fields.push({ field: { id: 71 }, value: values.gmud });
-            if (apply.previsao) custom_fields.push({ field: { id: 72 }, value: values.previsao });
+            if (apply.previsao) {
+                let previsaoTs = null;
+                if (values.previsao && /^\d{4}-\d{2}-\d{2}$/.test(values.previsao)) {
+                    previsaoTs = Math.floor(Date.parse(values.previsao + 'T00:00:00') / 1000);
+                } else if (values.previsao) {
+                    const parsed = Date.parse(values.previsao);
+                    if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
+                }
+                if (previsaoTs !== null) custom_fields.push({ field: { id: 72 }, value: previsaoTs });
+            }
             if (apply.equipe) custom_fields.push({ field: { id: 49 }, value: values.equipe });
             if (apply.respAtual) custom_fields.push({ field: { id: 69 }, value: values.respAtual });
             if (custom_fields.length) patchPayload.custom_fields = custom_fields;
@@ -3547,7 +3562,17 @@ function createUnifiedEditModal(demanda) {
                 custom_fields.push({ field: { id: 71 }, value: gmudValue }); 
             }
             if (newPrevisao !== (demanda.previsao_etapa || '')) {
-                custom_fields.push({ field: { id: 72 }, value: newPrevisao });
+                // Converter yyyy-mm-dd para Unix timestamp (segundos) para Mantis Date CF
+                let previsaoTs = null;
+                if (newPrevisao && /^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
+                    previsaoTs = Math.floor(Date.parse(newPrevisao + 'T00:00:00') / 1000);
+                } else if (newPrevisao) {
+                    const parsed = Date.parse(newPrevisao);
+                    if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
+                }
+                if (previsaoTs !== null) {
+                    custom_fields.push({ field: { id: 72 }, value: previsaoTs });
+                }
             }
             if (newEquipe !== demanda.squad) {
                 custom_fields.push({ field: { id: 49 }, value: newEquipe }); 
