@@ -3614,9 +3614,10 @@ function createUnifiedEditModal(demanda) {
     buttonContainer.appendChild(saveBtn);
 
     modal.appendChild(modalTitle);
+    // Exibir 'Marcar como Resolvido' primeiro
+    modal.appendChild(resolvedGroup);
     modal.appendChild(statusGroup);
     modal.appendChild(gmudGroup);
-    modal.appendChild(resolvedGroup);
     modal.appendChild(equipeGroup);
     modal.appendChild(analistaGroup);
     modal.appendChild(responsavelGroup);
@@ -3625,9 +3626,9 @@ function createUnifiedEditModal(demanda) {
 
     overlay.appendChild(modal);
     
-    // Focar no campo de observação
+    // Focar inicialmente no campo de Status para melhor UX
     setTimeout(() => {
-        notaTextarea.focus();
+        try { statusSelect.focus(); } catch {}
     }, 100);
 
     console.log('Modal criado e adicionado ao DOM');
