@@ -22,6 +22,7 @@ function markRecentlyUpdated(numeros) {
     const now = Date.now();
     numeros.forEach(n => { if (n) recentlyUpdated[String(n)] = now; });
     try { sessionStorage.setItem('recentlyUpdated', JSON.stringify(recentlyUpdated)); } catch {}
+    try { numeros.forEach(n => applyRecentStyleToRow(String(n))); } catch {}
 }
 
 function isRecentlyUpdated(numero) {
@@ -53,6 +54,22 @@ function ensureRecentStyle() {
       .badge-updated { display:inline-block; margin-left:6px; padding:2px 6px; font-size:10px; font-weight:600; color:#835400; background:#ffe08a; border-radius:10px; }
     `;
     document.head.appendChild(style);
+}
+
+// Aplica destaque imediatamente na linha já renderizada, se existir
+function applyRecentStyleToRow(numero) {
+    ensureRecentStyle();
+    const row = document.querySelector(`tr[data-demanda="${numero}"]`);
+    if (!row) return;
+    row.classList.add('recently-updated');
+    // Procura o link do número para anexar o badge
+    const link = row.querySelector('a[href*="view.php"], a');
+    if (link && !row.querySelector('.badge-updated')) {
+        const badge = document.createElement('span');
+        badge.className = 'badge-updated';
+        badge.textContent = 'Atualizado';
+        link.parentElement.appendChild(badge);
+    }
 }
 
 // Colunas que devem ser ocultas por padrão
@@ -2632,11 +2649,11 @@ function createMassEditModal(ticketNumbers) {
         const fail = results.filter(r => r && r.patchOk === false);
         progress.textContent = `Concluído. Sucesso: ${okCount} | Falhas: ${fail.length}`;
 
-        filterData();
         try {
             const successful = results.filter(r => r && r.patchOk !== false).map(r => r.numero);
             if (successful.length) markRecentlyUpdated(successful);
         } catch {}
+        filterData();
         selectedTickets.clear();
         syncSelectAllCheckboxForPage();
         const massEditBtn = document.getElementById('massEditBtn');
@@ -3482,6 +3499,8 @@ function createUnifiedEditModal(demanda) {
 
             // 3. Feedback e atualização da UI
             if (hasChanges) {
+                // Marcar como atualizado recentemente ANTES de re-renderizar
+                try { markRecentlyUpdated([demanda.numero]); } catch {}
                 mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
 
                 // Atualizar dados locais para reflexo imediato na tabela
