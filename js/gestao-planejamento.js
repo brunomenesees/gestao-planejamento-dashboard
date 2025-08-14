@@ -3359,7 +3359,7 @@ function createUnifiedEditModal(demanda) {
     resolvedCheckbox.type = 'checkbox';
     resolvedCheckbox.id = 'resolvedCheckbox';
     resolvedLabel.setAttribute('for', 'resolvedCheckbox');
-    resolvedLabel.textContent = ' Marcar como Resolvido (estado nativo)';
+    resolvedLabel.textContent = ' Marcar como Resolvido';
     resolvedGroup.appendChild(resolvedCheckbox);
     resolvedGroup.appendChild(resolvedLabel);
 
