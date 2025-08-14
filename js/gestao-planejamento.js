@@ -26,8 +26,20 @@ function markRecentlyUpdated(numeros) {
 }
 
 function isRecentlyUpdated(numero) {
-    const t = recentlyUpdated[String(numero)];
-    return !!t && (Date.now() - t) <= RECENT_WINDOW_MS;
+    const n = String(numero);
+    // Marcações da sessão (imediatas após ações locais)
+    const tSess = recentlyUpdated[n];
+    const inSession = !!tSess && (Date.now() - tSess) <= RECENT_WINDOW_MS;
+    // Timestamp vindo da API (última atualização do ticket)
+    let inApi = false;
+    try {
+        const d = Array.isArray(demandasData) ? demandasData.find(x => x && x.numero === n) : null;
+        if (d && d.ultima_atualizacao_ts) {
+            const diff = Date.now() - Number(d.ultima_atualizacao_ts);
+            inApi = Number.isFinite(diff) && diff <= RECENT_WINDOW_MS;
+        }
+    } catch {}
+    return inSession || inApi;
 }
 
 function cleanupRecentlyUpdated() {
@@ -167,6 +179,12 @@ function mapIssueToDemanda(issue) {
         estado: (issue.status?.name || '').toLowerCase().trim(),
         data_abertura: issue.created_at || '',
         ultima_atualizacao: issue.updated_at || '',
+        // Timestamp bruto para lógica de destaque recente (híbrido API + sessão)
+        ultima_atualizacao_ts: (function() {
+            const raw = issue.updated_at || issue.last_updated || '';
+            const ts = Date.parse(raw);
+            return Number.isFinite(ts) ? ts : null;
+        })(),
         resumo: issue.summary || '',
         ordem_plnj: getCustomFieldValue(issue, 50) || '', // CF ID 50 informado para Ordem Planejamento
         data_prometida: issue.due_date || '', // se usar custom field, ajustar aqui
@@ -2001,6 +2019,8 @@ async function updateDemandaLastUpdated(ticketNumber) {
                 if (demanda) {
                     // Atualizar o campo ultima_atualizacao
                     demanda.ultima_atualizacao = formattedDate;
+                    // Atualizar timestamp bruto para lógica híbrida
+                    demanda.ultima_atualizacao_ts = now.getTime();
                     
                     // Salvar de volta no banco
                     const putRequest = store.put(demanda);
@@ -2012,6 +2032,8 @@ async function updateDemandaLastUpdated(ticketNumber) {
                         const demandaIndex = demandasData.findIndex(d => d.numero === ticketNumber);
                         if (demandaIndex !== -1) {
                             demandasData[demandaIndex].ultima_atualizacao = formattedDate;
+                            // Garantir que o timestamp também é refletido em memória
+                            demandasData[demandaIndex].ultima_atualizacao_ts = demanda.ultima_atualizacao_ts;
                         }
                         
                         // Atualizar a exibição da última atualização global
