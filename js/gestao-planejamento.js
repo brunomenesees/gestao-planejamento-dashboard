@@ -1692,8 +1692,8 @@ function updateTable() {
             formatarDataAmigavel(demanda.ultima_atualizacao) || '',
             demanda.ordem_plnj || '',
             demanda.previsao_etapa || '',
-            formatarHorasMinutos(calcularTempoTotal(demanda)) || '',
-            demanda.status || ''
+            demanda.status || '',
+            formatarHorasMinutos(calcularTempoTotal(demanda)) || ''
         ];
         colunas.forEach((valor, index) => {
             const td = document.createElement('td');
@@ -1757,7 +1757,7 @@ function updateTable() {
                         createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
                     });
                 }
-            } else if (index === 15) { // Status (custom CF 70): mostrar traço quando vazio (ajustado após inserir Previsão Etapa)
+            } else if (index === 14) { // Status (custom CF 70): mostrar traço quando vazio (ajustado após inserir Previsão Etapa)
                 const isEmpty = String(valor).trim() === '';
                 td.textContent = isEmpty ? '—' : valor;
             } else {
@@ -3658,6 +3658,7 @@ function createUnifiedEditModal(demanda) {
     modal.appendChild(resolvedGroup);
     modal.appendChild(statusGroup);
     modal.appendChild(gmudGroup);
+    modal.appendChild(previsaoGroup);
     modal.appendChild(equipeGroup);
     modal.appendChild(analistaGroup);
     modal.appendChild(responsavelGroup);
