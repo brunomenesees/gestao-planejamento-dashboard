@@ -1757,6 +1757,28 @@ function updateTable() {
                         createSimpleUpdateModal(demanda.numero, valor, 'Atualizar Responsável Atual', RESPONSAVEL_ATUAL_OPTIONS, 69, td);
                     });
                 }
+            } else if (index === 13) { // Previsão Etapa: formatar como dd/mm/yyyy
+                const s = String(valor || '').trim();
+                let out = '';
+                if (s) {
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                        const [y, m, d] = s.split('-');
+                        out = `${d}/${m}/${y}`;
+                    } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+                        out = s;
+                    } else {
+                        const ts = Date.parse(s);
+                        if (!Number.isNaN(ts)) {
+                            const d = new Date(ts);
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            const mm = String(d.getMonth() + 1).padStart(2, '0');
+                            out = `${dd}/${mm}/${d.getFullYear()}`;
+                        } else {
+                            out = s;
+                        }
+                    }
+                }
+                td.textContent = out;
             } else if (index === 14) { // Status (custom CF 70): mostrar traço quando vazio (ajustado após inserir Previsão Etapa)
                 const isEmpty = String(valor).trim() === '';
                 td.textContent = isEmpty ? '—' : valor;
@@ -2513,7 +2535,7 @@ function createMassEditModal(ticketNumbers) {
 
         <input type=\"checkbox\" id=\"applyPrevisao\" />
         <label for=\"applyPrevisao\">Previsão Etapa</label>
-        <input id=\"massPrevisao\" type=\"text\" placeholder=\"Previsão da etapa\" disabled />
+        <input id=\"massPrevisao\" type=\"date\" placeholder=\"Previsão da etapa\" disabled />
 
         <input type=\"checkbox\" id=\"applyEquipe\" />
         <label for=\"applyEquipe\">Equipe</label>
@@ -2674,6 +2696,7 @@ function createMassEditModal(ticketNumbers) {
                     if (apply.status) demanda.status = values.status;
                     if (apply.resolved) demanda.estado = 'resolved';
                     if (apply.gmud) demanda.numero_gmud = values.gmud;
+                    if (apply.previsao) demanda.previsao_etapa = values.previsao;
                     if (apply.equipe) demanda.squad = values.equipe;
                     if (apply.respAtual) demanda.resp_atual = values.respAtual;
                     if (apply.analista) demanda.atribuicao = values.analista;
@@ -3428,15 +3451,30 @@ function createUnifiedEditModal(demanda) {
     gmudGroup.appendChild(gmudLabel);
     gmudGroup.appendChild(gmudInput);
 
-    // Campo de Previsão Etapa (Input de texto)
+    // Campo de Previsão Etapa (Input de data)
     const previsaoGroup = document.createElement('div');
     previsaoGroup.className = 'form-group';
     const previsaoLabel = document.createElement('label');
     previsaoLabel.textContent = 'Previsão Etapa:';
     const previsaoInput = document.createElement('input');
-    previsaoInput.type = 'text';
+    previsaoInput.type = 'date';
     previsaoInput.className = 'form-control';
-    previsaoInput.value = demanda.previsao_etapa || '';
+    previsaoInput.value = (() => {
+        const v = (demanda.previsao_etapa || '').trim();
+        if (!v) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v; // já ISO yyyy-mm-dd
+        const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); // dd/mm/yyyy
+        if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+        // fallback: tentar Date.parse
+        const ts = Date.parse(v);
+        if (!Number.isNaN(ts)) {
+            const d = new Date(ts);
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            const dd = String(d.getDate()).padStart(2,'0');
+            return `${d.getFullYear()}-${mm}-${dd}`;
+        }
+        return '';
+    })();
     previsaoGroup.appendChild(previsaoLabel);
     previsaoGroup.appendChild(previsaoInput);
 
