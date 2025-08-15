@@ -2578,6 +2578,8 @@ function createMassEditModal(ticketNumbers) {
     const statusSel = modal.querySelector('#massStatus');
     // Adiciona placeholder vazio para permitir "não aplicar" quando vazio
     { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; statusSel.appendChild(ph); }
+    // Opção para limpar (em branco)
+    { const clr = document.createElement('option'); clr.value = '__CLEAR__'; clr.textContent = '— limpar (em branco) —'; statusSel.appendChild(clr); }
     STATUS_OPTIONS.forEach(s => {
         const v = (s || '').trim();
         if (!v) return; // evita opção em branco além do placeholder explícito
@@ -2588,6 +2590,8 @@ function createMassEditModal(ticketNumbers) {
     SQUAD_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; equipeSel.appendChild(o); });
     const respSel = modal.querySelector('#massRespAtual');
     { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; respSel.appendChild(ph); }
+    // Opção para limpar (em branco)
+    { const clr = document.createElement('option'); clr.value = '__CLEAR__'; clr.textContent = '— limpar (em branco) —'; respSel.appendChild(clr); }
     RESPONSAVEL_ATUAL_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; respSel.appendChild(o); });
     const analistaSel = modal.querySelector('#massAnalista');
     { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; analistaSel.appendChild(ph); }
@@ -2630,12 +2634,12 @@ function createMassEditModal(ticketNumbers) {
             comment: (raw.comment || '').trim()
         };
         const apply = {
-            status: values.status !== '',
+            status: values.status !== '' || raw.status === '__CLEAR__',
             resolved: modal.querySelector('#applyResolved').checked,
             gmud: values.gmud !== '',
             previsao: values.previsao !== '',
             equipe: values.equipe !== '',
-            respAtual: values.respAtual !== '',
+            respAtual: values.respAtual !== '' || raw.respAtual === '__CLEAR__',
             analista: values.analista !== '',
         };
 
@@ -2659,11 +2663,11 @@ function createMassEditModal(ticketNumbers) {
         // Pré-confirmação: mostra resumo do que será aplicado antes de iniciar
         if (!modal.dataset.massConfirmed) {
             const fieldsToApply = [];
-            if (apply.status) fieldsToApply.push(`Status → ${values.status}`);
+            if (apply.status) fieldsToApply.push(`Status → ${raw.status === '__CLEAR__' ? '(em branco)' : values.status}`);
             if (apply.gmud) fieldsToApply.push(`GMUD → ${values.gmud}`);
             if (apply.previsao) fieldsToApply.push(`Previsão → ${values.previsao}`);
             if (apply.equipe) fieldsToApply.push(`Equipe → ${values.equipe}`);
-            if (apply.respAtual) fieldsToApply.push(`Resp. Atual → ${values.respAtual}`);
+            if (apply.respAtual) fieldsToApply.push(`Resp. Atual → ${raw.respAtual === '__CLEAR__' ? '(em branco)' : values.respAtual}`);
             if (apply.analista) fieldsToApply.push(`Analista → ${values.analista}`);
             if (values.comment) fieldsToApply.push(`Comentário ✓`);
 
@@ -2708,7 +2712,10 @@ function createMassEditModal(ticketNumbers) {
             const base = getDemandaByNumero(numero) || {};
             const patchPayload = {};
             const custom_fields = [];
-            if (apply.status && values.status) custom_fields.push({ field: { id: 70 }, value: values.status });
+            if (apply.status) {
+                const v = (raw.status === '__CLEAR__') ? '' : values.status;
+                custom_fields.push({ field: { id: 70 }, value: v });
+            }
             if (apply.gmud && values.gmud) custom_fields.push({ field: { id: 71 }, value: values.gmud });
             if (apply.previsao) {
                 let previsaoTs = null;
@@ -2721,7 +2728,10 @@ function createMassEditModal(ticketNumbers) {
                 if (previsaoTs !== null) custom_fields.push({ field: { id: 72 }, value: previsaoTs });
             }
             if (apply.equipe && values.equipe) custom_fields.push({ field: { id: 49 }, value: values.equipe });
-            if (apply.respAtual && values.respAtual) custom_fields.push({ field: { id: 69 }, value: values.respAtual });
+            if (apply.respAtual) {
+                const v = (raw.respAtual === '__CLEAR__') ? '' : values.respAtual;
+                custom_fields.push({ field: { id: 69 }, value: v });
+            }
             if (custom_fields.length) patchPayload.custom_fields = custom_fields;
             if (apply.analista && values.analista) patchPayload.handler = { name: values.analista };
 
@@ -2744,7 +2754,8 @@ function createMassEditModal(ticketNumbers) {
             const lines = [];
             if (apply.status) {
                 const oldStatus = base.status || '';
-                if (patchOk && (!oldStatus || oldStatus !== values.status)) lines.push(`Status: ${values.status}`);
+                const display = (raw.status === '__CLEAR__') ? '(em branco)' : values.status;
+                if (patchOk && (oldStatus !== (raw.status === '__CLEAR__' ? '' : values.status))) lines.push(`Status: ${display}`);
             }
             if (apply.resolved) {
                 lines.push('Estado: resolved');
