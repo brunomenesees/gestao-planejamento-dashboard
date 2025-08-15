@@ -2754,8 +2754,13 @@ function createMassEditModal(ticketNumbers) {
             const lines = [];
             if (apply.status) {
                 const oldStatus = base.status || '';
-                const display = (raw.status === '__CLEAR__') ? '(em branco)' : values.status;
-                if (patchOk && (oldStatus !== (raw.status === '__CLEAR__' ? '' : values.status))) lines.push(`Status: ${display}`);
+                if (patchOk && (oldStatus !== (raw.status === '__CLEAR__' ? '' : values.status))) {
+                    if (raw.status === '__CLEAR__') {
+                        lines.push('Status :  ');
+                    } else {
+                        lines.push(`Status: ${values.status}`);
+                    }
+                }
             }
             if (apply.resolved) {
                 lines.push('Estado: resolved');
