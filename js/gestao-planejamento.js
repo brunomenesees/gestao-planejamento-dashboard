@@ -3973,7 +3973,7 @@ function createUnifiedEditModal(demanda) {
         autoClose = autoCloseChk.checked; try { localStorage.setItem(prefsKey, autoClose ? '1' : '0'); } catch {}
     });
 
-    // Passo 1.4: Lógica de Salvamento (apenas resolved e notas; demais campos salvam inline)
+    // Passo 1.4: Lógica de Salvamento (enviar todas as alterações apenas ao clicar em Salvar)
     saveBtn.addEventListener('click', async () => {
         try {
             if (isSubmitting) return;
@@ -3984,20 +3984,62 @@ function createUnifiedEditModal(demanda) {
             // 1. Preparar valores atuais do formulário
             const notaText = notaTextarea.value;
             const markResolved = resolvedCheckbox.checked;
+            const newStatus = statusSelect.value;
+            const gmudValue = gmudInput.value;
+            const newEquipe = equipeSelect.value;
+            const newAnalista = analistaSelect.value;
+            const newResponsavel = responsavelSelect.value;
+            const newPrevisao = previsaoInput.value;
 
             // Exibir progresso
             progressWrap.style.display = 'block';
             progressText.style.display = 'block';
             progressText.textContent = 'Salvando...';
             progressBar.style.width = '15%';
-            // Apenas resolved é tratado aqui; demais campos já salvam inline
+            // Montar payload com apenas campos que mudaram
             const payload = {};
+            const custom_fields = [];
+            if (newStatus !== original.status) {
+                custom_fields.push({ field: { id: 70 }, value: newStatus });
+            }
+            if (gmudValue !== original.gmud) {
+                custom_fields.push({ field: { id: 71 }, value: gmudValue });
+            }
+            if (newPrevisao !== original.previsao) {
+                let previsaoTs = null;
+                if (newPrevisao && /^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
+                    previsaoTs = Math.floor(Date.parse(newPrevisao + 'T00:00:00') / 1000);
+                } else if (newPrevisao) {
+                    const parsed = Date.parse(newPrevisao);
+                    if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
+                }
+                if (previsaoTs !== null) custom_fields.push({ field: { id: 72 }, value: previsaoTs });
+            }
+            if (newEquipe !== original.equipe) {
+                custom_fields.push({ field: { id: 49 }, value: newEquipe });
+            }
+            if (newResponsavel !== original.responsavel) {
+                custom_fields.push({ field: { id: 69 }, value: newResponsavel });
+            }
+            if (custom_fields.length > 0) payload.custom_fields = custom_fields;
+            if (newAnalista !== original.analista) payload.handler = { name: newAnalista };
             if (markResolved) {
                 payload.status = { name: 'resolved' };
                 payload.resolution = { name: 'fixed' };
             }
 
-            if (Object.keys(payload).length > 0) {
+            const willPatch = Object.keys(payload).length > 0;
+            if (!willPatch && !(notaText && notaText.trim())) {
+                mostrarNotificacao('Nenhuma alteração detectada.', 'aviso');
+                isSubmitting = false;
+                saveBtn.disabled = false;
+                progressBar.style.width = '0%';
+                progressWrap.style.display = 'none';
+                progressText.style.display = 'none';
+                return;
+            }
+
+            if (willPatch) {
                 console.log('PAYLOAD PATCH ENVIADO PARA A API MANTIS:', JSON.stringify(payload, null, 2));
                 progressBar.style.width = '55%';
                 await mantisRequest(`issues/${demanda.numero}`, {
@@ -4007,9 +4049,11 @@ function createUnifiedEditModal(demanda) {
                 hasChanges = true;
             }
 
-            // 2. Enviar comentário unificado (após PATCH):
-            //    Inclui o comentário do usuário e marcação de resolved, se houver
+            // 2. Enviar comentário unificado (após PATCH)
             const lines = [];
+            if (newStatus !== original.status && newStatus) lines.push(`Status: ${newStatus}`);
+            if (gmudValue !== original.gmud && gmudValue) lines.push(`GMUD: ${gmudValue}`);
+            if (newPrevisao !== original.previsao && newPrevisao) lines.push(`Previsão Etapa: ${newPrevisao}`);
             if (markResolved) lines.push('Estado: resolved');
             if (notaText && notaText.trim()) lines.push(notaText.trim());
             if (lines.length > 0) {
@@ -4031,16 +4075,16 @@ function createUnifiedEditModal(demanda) {
                 try { markRecentlyUpdated([demanda.numero]); } catch {}
                 mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
 
-                // Atualizar dados locais apenas para campos aplicados (modelo massivo)
+                // Atualizar dados locais e originals
                 const dataIndex = demandasData.findIndex(d => d.numero === demanda.numero);
                 if (dataIndex !== -1) {
                     const row = demandasData[dataIndex];
-                    if (applyStatusChk.checked && newStatus !== row.status) row.status = newStatus;
-                    if (applyGmudChk.checked && gmudValue !== (row.numero_gmud || '')) row.numero_gmud = gmudValue;
-                    if (applyPrevChk.checked && newPrevisao !== (row.previsao_etapa || '')) row.previsao_etapa = newPrevisao;
-                    if (applyEquipeChk.checked && newEquipe !== row.squad) row.squad = newEquipe;
-                    if (applyAnalistaChk.checked && newAnalista !== row.atribuicao) row.atribuicao = newAnalista;
-                    if (applyRespChk.checked && newResponsavel !== row.resp_atual) row.resp_atual = newResponsavel;
+                    if (newStatus !== original.status) { row.status = newStatus; original.status = newStatus; }
+                    if (gmudValue !== original.gmud) { row.numero_gmud = gmudValue; original.gmud = gmudValue; }
+                    if (newPrevisao !== original.previsao) { row.previsao_etapa = newPrevisao; original.previsao = newPrevisao; }
+                    if (newEquipe !== original.equipe) { row.squad = newEquipe; original.equipe = newEquipe; }
+                    if (newAnalista !== original.analista) { row.atribuicao = newAnalista; original.analista = newAnalista; }
+                    if (newResponsavel !== original.responsavel) { row.resp_atual = newResponsavel; original.responsavel = newResponsavel; }
                     if (markResolved) row.estado = 'resolved';
                 }
                 filterData(); // Re-renderiza a tabela com os novos dados
@@ -4180,15 +4224,14 @@ function createUnifiedEditModal(demanda) {
 
     overlay.appendChild(modal);
     
-    // Liga salvamento inline por campo
-    try {
-        attachInlineSave(statusSelect, 'status', statusIcon);
-        attachInlineSave(gmudInput, 'gmud', gmudIcon);
-        attachInlineSave(previsaoInput, 'previsao', prevIcon);
-        attachInlineSave(equipeSelect, 'equipe', equipeIcon);
-        attachInlineSave(analistaSelect, 'analista', analistaIcon);
-        attachInlineSave(responsavelSelect, 'resp', respIcon);
-    } catch {}
+    // Apenas rastreia alterações para habilitar/desabilitar salvar
+    const bindDirty = () => { updateDirty(); validateForm(); };
+    statusSelect.addEventListener('change', bindDirty);
+    gmudInput.addEventListener('input', bindDirty);
+    previsaoInput.addEventListener('change', bindDirty);
+    equipeSelect.addEventListener('change', bindDirty);
+    analistaSelect.addEventListener('change', bindDirty);
+    responsavelSelect.addEventListener('change', bindDirty);
 
     validateForm();
 
