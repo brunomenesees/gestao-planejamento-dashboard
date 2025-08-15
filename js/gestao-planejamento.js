@@ -2578,16 +2578,20 @@ function createMassEditModal(ticketNumbers) {
     const statusSel = modal.querySelector('#massStatus');
     // Adiciona placeholder vazio para permitir "não aplicar" quando vazio
     { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; statusSel.appendChild(ph); }
-    STATUS_OPTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o); });
+    STATUS_OPTIONS.forEach(s => {
+        const v = (s || '').trim();
+        if (!v) return; // evita opção em branco além do placeholder explícito
+        const o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o);
+    });
     const equipeSel = modal.querySelector('#massEquipe');
     { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; equipeSel.appendChild(ph); }
-    SQUAD_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; equipeSel.appendChild(o); });
+    SQUAD_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; equipeSel.appendChild(o); });
     const respSel = modal.querySelector('#massRespAtual');
     { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; respSel.appendChild(ph); }
-    RESPONSAVEL_ATUAL_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; respSel.appendChild(o); });
+    RESPONSAVEL_ATUAL_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; respSel.appendChild(o); });
     const analistaSel = modal.querySelector('#massAnalista');
     { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; analistaSel.appendChild(ph); }
-    ANALISTA_RESPONSAVEL_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; analistaSel.appendChild(o); });
+    ANALISTA_RESPONSAVEL_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; analistaSel.appendChild(o); });
 
     // Habilita todos os campos por padrão e oculta checkboxes de "Aplicar"
     const pairs = [
@@ -2607,23 +2611,32 @@ function createMassEditModal(ticketNumbers) {
 
     // Save handler
     modal.querySelector('#massSave').addEventListener('click', async () => {
-        const apply = {
-            status: !!modal.querySelector('#massStatus').value,
-            resolved: modal.querySelector('#applyResolved').checked,
-            gmud: (modal.querySelector('#massGmud').value || '').trim() !== '',
-            previsao: (modal.querySelector('#massPrevisao').value || '').trim() !== '',
-            equipe: !!modal.querySelector('#massEquipe').value,
-            respAtual: !!modal.querySelector('#massRespAtual').value,
-            analista: !!modal.querySelector('#massAnalista').value,
-        };
-        const values = {
+        const raw = {
             status: modal.querySelector('#massStatus').value,
             gmud: modal.querySelector('#massGmud').value,
             previsao: modal.querySelector('#massPrevisao').value,
             equipe: modal.querySelector('#massEquipe').value,
             respAtual: modal.querySelector('#massRespAtual').value,
             analista: modal.querySelector('#massAnalista').value,
-            comment: modal.querySelector('#massComment').value?.trim()
+            comment: modal.querySelector('#massComment').value
+        };
+        const values = {
+            status: (raw.status || '').trim(),
+            gmud: (raw.gmud || '').trim(),
+            previsao: (raw.previsao || '').trim(),
+            equipe: (raw.equipe || '').trim(),
+            respAtual: (raw.respAtual || '').trim(),
+            analista: (raw.analista || '').trim(),
+            comment: (raw.comment || '').trim()
+        };
+        const apply = {
+            status: values.status !== '',
+            resolved: modal.querySelector('#applyResolved').checked,
+            gmud: values.gmud !== '',
+            previsao: values.previsao !== '',
+            equipe: values.equipe !== '',
+            respAtual: values.respAtual !== '',
+            analista: values.analista !== '',
         };
 
         if (!apply.status && !apply.gmud && !apply.previsao && !apply.equipe && !apply.respAtual && !apply.analista && !values.comment) {
@@ -2695,8 +2708,8 @@ function createMassEditModal(ticketNumbers) {
             const base = getDemandaByNumero(numero) || {};
             const patchPayload = {};
             const custom_fields = [];
-            if (apply.status) custom_fields.push({ field: { id: 70 }, value: values.status });
-            if (apply.gmud) custom_fields.push({ field: { id: 71 }, value: values.gmud });
+            if (apply.status && values.status) custom_fields.push({ field: { id: 70 }, value: values.status });
+            if (apply.gmud && values.gmud) custom_fields.push({ field: { id: 71 }, value: values.gmud });
             if (apply.previsao) {
                 let previsaoTs = null;
                 if (values.previsao && /^\d{4}-\d{2}-\d{2}$/.test(values.previsao)) {
@@ -2707,10 +2720,10 @@ function createMassEditModal(ticketNumbers) {
                 }
                 if (previsaoTs !== null) custom_fields.push({ field: { id: 72 }, value: previsaoTs });
             }
-            if (apply.equipe) custom_fields.push({ field: { id: 49 }, value: values.equipe });
-            if (apply.respAtual) custom_fields.push({ field: { id: 69 }, value: values.respAtual });
+            if (apply.equipe && values.equipe) custom_fields.push({ field: { id: 49 }, value: values.equipe });
+            if (apply.respAtual && values.respAtual) custom_fields.push({ field: { id: 69 }, value: values.respAtual });
             if (custom_fields.length) patchPayload.custom_fields = custom_fields;
-            if (apply.analista) patchPayload.handler = { name: values.analista };
+            if (apply.analista && values.analista) patchPayload.handler = { name: values.analista };
 
             // Estado nativo: resolved
             if (apply.resolved) {
