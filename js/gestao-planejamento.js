@@ -2579,15 +2579,20 @@ function createMassEditModal(ticketNumbers) {
 
     // Populate selects
     const statusSel = modal.querySelector('#massStatus');
+    // Adiciona placeholder vazio para permitir "não aplicar" quando vazio
+    { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; statusSel.appendChild(ph); }
     STATUS_OPTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o); });
     const equipeSel = modal.querySelector('#massEquipe');
+    { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; equipeSel.appendChild(ph); }
     SQUAD_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; equipeSel.appendChild(o); });
     const respSel = modal.querySelector('#massRespAtual');
+    { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; respSel.appendChild(ph); }
     RESPONSAVEL_ATUAL_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; respSel.appendChild(o); });
     const analistaSel = modal.querySelector('#massAnalista');
+    { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; analistaSel.appendChild(ph); }
     ANALISTA_RESPONSAVEL_OPTIONS.sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; analistaSel.appendChild(o); });
 
-    // Enable/disable
+    // Habilita todos os campos por padrão e oculta checkboxes de "Aplicar"
     const pairs = [
         ['applyStatus','massStatus'],
         ['applyGmud','massGmud'],
@@ -2599,19 +2604,20 @@ function createMassEditModal(ticketNumbers) {
     pairs.forEach(([chkId, inputId]) => {
         const chk = modal.querySelector('#' + chkId);
         const inp = modal.querySelector('#' + inputId);
-        chk.addEventListener('change', () => { inp.disabled = !chk.checked; });
+        if (inp) inp.disabled = false;
+        if (chk) chk.style.display = 'none';
     });
 
     // Save handler
     modal.querySelector('#massSave').addEventListener('click', async () => {
         const apply = {
-            status: modal.querySelector('#applyStatus').checked,
+            status: !!modal.querySelector('#massStatus').value,
             resolved: modal.querySelector('#applyResolved').checked,
-            gmud: modal.querySelector('#applyGmud').checked,
-            previsao: modal.querySelector('#applyPrevisao').checked,
-            equipe: modal.querySelector('#applyEquipe').checked,
-            respAtual: modal.querySelector('#applyRespAtual').checked,
-            analista: modal.querySelector('#applyAnalista').checked,
+            gmud: (modal.querySelector('#massGmud').value || '').trim() !== '',
+            previsao: (modal.querySelector('#massPrevisao').value || '').trim() !== '',
+            equipe: !!modal.querySelector('#massEquipe').value,
+            respAtual: !!modal.querySelector('#massRespAtual').value,
+            analista: !!modal.querySelector('#massAnalista').value,
         };
         const values = {
             status: modal.querySelector('#massStatus').value,
@@ -2643,12 +2649,12 @@ function createMassEditModal(ticketNumbers) {
         // Pré-confirmação: mostra resumo do que será aplicado antes de iniciar
         if (!modal.dataset.massConfirmed) {
             const fieldsToApply = [];
-            if (apply.status) fieldsToApply.push(`Status → ${values.status || '(vazio)'}`);
-            if (apply.gmud) fieldsToApply.push(`GMUD → ${values.gmud || '(vazio)'}`);
-            if (apply.previsao) fieldsToApply.push(`Previsão → ${values.previsao || '(vazio)'}`);
-            if (apply.equipe) fieldsToApply.push(`Equipe → ${values.equipe || '(vazio)'}`);
-            if (apply.respAtual) fieldsToApply.push(`Resp. Atual → ${values.respAtual || '(vazio)'}`);
-            if (apply.analista) fieldsToApply.push(`Analista → ${values.analista || '(vazio)'}`);
+            if (apply.status) fieldsToApply.push(`Status → ${values.status}`);
+            if (apply.gmud) fieldsToApply.push(`GMUD → ${values.gmud}`);
+            if (apply.previsao) fieldsToApply.push(`Previsão → ${values.previsao}`);
+            if (apply.equipe) fieldsToApply.push(`Equipe → ${values.equipe}`);
+            if (apply.respAtual) fieldsToApply.push(`Resp. Atual → ${values.respAtual}`);
+            if (apply.analista) fieldsToApply.push(`Analista → ${values.analista}`);
             if (values.comment) fieldsToApply.push(`Comentário ✓`);
 
             const summaryHtml = `
@@ -3818,12 +3824,15 @@ function createUnifiedEditModal(demanda) {
     statusGroup.className = 'form-group';
     const statusLabel = document.createElement('label');
     statusLabel.textContent = 'Status:';
+    // Oculta controles antigos de "Aplicar" e adiciona ícone de status
     const applyStatusChk = document.createElement('input');
     applyStatusChk.type = 'checkbox';
-    applyStatusChk.style.marginLeft = '8px';
+    applyStatusChk.style.display = 'none';
     const applyStatusSpan = document.createElement('span');
     applyStatusSpan.textContent = 'Aplicar';
-    applyStatusSpan.style.marginLeft = '4px';
+    applyStatusSpan.style.display = 'none';
+    const statusIcon = makeStatusIcon();
+    statusLabel.appendChild(statusIcon);
     const statusSelect = document.createElement('select');
     statusSelect.className = 'form-control';
     STATUS_OPTIONS.forEach(option => {
@@ -3847,10 +3856,12 @@ function createUnifiedEditModal(demanda) {
     gmudLabel.textContent = 'Número da GMUD:';
     const applyGmudChk = document.createElement('input');
     applyGmudChk.type = 'checkbox';
-    applyGmudChk.style.marginLeft = '8px';
+    applyGmudChk.style.display = 'none';
     const applyGmudSpan = document.createElement('span');
     applyGmudSpan.textContent = 'Aplicar';
-    applyGmudSpan.style.marginLeft = '4px';
+    applyGmudSpan.style.display = 'none';
+    const gmudIcon = makeStatusIcon();
+    gmudLabel.appendChild(gmudIcon);
     const gmudInput = document.createElement('input');
     gmudInput.type = 'text';
     gmudInput.className = 'form-control';
@@ -3867,10 +3878,12 @@ function createUnifiedEditModal(demanda) {
     previsaoLabel.textContent = 'Previsão Etapa:';
     const applyPrevChk = document.createElement('input');
     applyPrevChk.type = 'checkbox';
-    applyPrevChk.style.marginLeft = '8px';
+    applyPrevChk.style.display = 'none';
     const applyPrevSpan = document.createElement('span');
     applyPrevSpan.textContent = 'Aplicar';
-    applyPrevSpan.style.marginLeft = '4px';
+    applyPrevSpan.style.display = 'none';
+    const prevIcon = makeStatusIcon();
+    previsaoLabel.appendChild(prevIcon);
     const previsaoInput = document.createElement('input');
     previsaoInput.type = 'date';
     previsaoInput.className = 'form-control';
@@ -3960,7 +3973,7 @@ function createUnifiedEditModal(demanda) {
         autoClose = autoCloseChk.checked; try { localStorage.setItem(prefsKey, autoClose ? '1' : '0'); } catch {}
     });
 
-    // Passo 1.4: Lógica de Salvamento (modelo do massivo: apenas campos com "Aplicar")
+    // Passo 1.4: Lógica de Salvamento (apenas resolved e notas; demais campos salvam inline)
     saveBtn.addEventListener('click', async () => {
         try {
             if (isSubmitting) return;
@@ -3970,77 +3983,18 @@ function createUnifiedEditModal(demanda) {
 
             // 1. Preparar valores atuais do formulário
             const notaText = notaTextarea.value;
-
-            // 2. Montar e enviar payload de atualização de campos (PATCH consolidado)
-            const payload = {};
-            const custom_fields = [];
-
-            const newStatus = statusSelect.value;
-            const gmudValue = gmudInput.value;
-            const newEquipe = equipeSelect.value;
-            const newAnalista = analistaSelect.value;
-            const newResponsavel = responsavelSelect.value;
-            const newPrevisao = previsaoInput.value;
             const markResolved = resolvedCheckbox.checked;
 
-            // Exibir progresso (igual ao massivo)
+            // Exibir progresso
             progressWrap.style.display = 'block';
             progressText.style.display = 'block';
             progressText.textContent = 'Salvando...';
             progressBar.style.width = '15%';
-
-            // Campo Padrão: Analista Responsável (apenas se Aplicar marcado)
-            if (applyAnalistaChk.checked && newAnalista !== demanda.atribuicao) {
-                payload.handler = { name: newAnalista };
-            }
-
-            // Campos Personalizados: Status, GMUD, Previsão Etapa, Equipe, Responsável Atual
-            if (applyStatusChk.checked && newStatus !== demanda.status) {
-                custom_fields.push({ field: { id: 70 }, value: newStatus }); 
-            }
-            if (applyGmudChk.checked && gmudValue !== (demanda.numero_gmud || '')) {
-                custom_fields.push({ field: { id: 71 }, value: gmudValue }); 
-            }
-            if (applyPrevChk.checked && newPrevisao !== (demanda.previsao_etapa || '')) {
-                // Converter yyyy-mm-dd para Unix timestamp (segundos) para Mantis Date CF
-                let previsaoTs = null;
-                if (newPrevisao && /^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
-                    previsaoTs = Math.floor(Date.parse(newPrevisao + 'T00:00:00') / 1000);
-                } else if (newPrevisao) {
-                    const parsed = Date.parse(newPrevisao);
-                    if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
-                }
-                if (previsaoTs !== null) {
-                    custom_fields.push({ field: { id: 72 }, value: previsaoTs });
-                }
-            }
-            if (applyEquipeChk.checked && newEquipe !== demanda.squad) {
-                custom_fields.push({ field: { id: 49 }, value: newEquipe }); 
-            }
-            if (applyRespChk.checked && newResponsavel !== demanda.resp_atual) {
-                custom_fields.push({ field: { id: 69 }, value: newResponsavel }); 
-            }
-
-            if (custom_fields.length > 0) {
-                payload.custom_fields = custom_fields;
-            }
-
-            // Aplicar estado nativo resolved, se marcado
+            // Apenas resolved é tratado aqui; demais campos já salvam inline
+            const payload = {};
             if (markResolved) {
                 payload.status = { name: 'resolved' };
                 payload.resolution = { name: 'fixed' };
-            }
-
-            // Enviar PATCH apenas se houver alterações nos campos
-            const anyApplyChecked = applyStatusChk.checked || applyGmudChk.checked || applyPrevChk.checked || applyEquipeChk.checked || applyRespChk.checked || applyAnalistaChk.checked || markResolved;
-            if (!anyApplyChecked && !(notaText && notaText.trim())) {
-                mostrarNotificacao('Selecione ao menos um campo para aplicar ou informe uma nota.', 'aviso');
-                isSubmitting = false;
-                saveBtn.disabled = false;
-                progressBar.style.width = '0%';
-                progressWrap.style.display = 'none';
-                progressText.style.display = 'none';
-                return;
             }
 
             if (Object.keys(payload).length > 0) {
@@ -4054,16 +4008,8 @@ function createUnifiedEditModal(demanda) {
             }
 
             // 2. Enviar comentário unificado (após PATCH):
-            //    - Inclui apenas Status/GMUD que mudaram
-            //    - Inclui o comentário opcional do usuário, se houver
-            //    - Se Status/GMUD não mudarem, envia somente o comentário do usuário (se houver)
-            const statusChanged = applyStatusChk.checked && (newStatus !== demanda.status);
-            const gmudChanged = applyGmudChk.checked && (gmudValue !== (demanda.numero_gmud || ''));
-            const previsaoChanged = applyPrevChk.checked && (newPrevisao !== (demanda.previsao_etapa || ''));
+            //    Inclui o comentário do usuário e marcação de resolved, se houver
             const lines = [];
-            if (statusChanged && newStatus) lines.push(`Status: ${newStatus}`);
-            if (gmudChanged && gmudValue) lines.push(`GMUD: ${gmudValue}`);
-            if (previsaoChanged && newPrevisao) lines.push(`Previsão Etapa: ${newPrevisao}`);
             if (markResolved) lines.push('Estado: resolved');
             if (notaText && notaText.trim()) lines.push(notaText.trim());
             if (lines.length > 0) {
@@ -4134,10 +4080,10 @@ function createUnifiedEditModal(demanda) {
     equipeLabel.textContent = 'Equipe:';
     const applyEquipeChk = document.createElement('input');
     applyEquipeChk.type = 'checkbox';
-    applyEquipeChk.style.marginLeft = '8px';
+    applyEquipeChk.style.display = 'none';
     const applyEquipeSpan = document.createElement('span');
     applyEquipeSpan.textContent = 'Aplicar';
-    applyEquipeSpan.style.marginLeft = '4px';
+    applyEquipeSpan.style.display = 'none';
     const equipeIcon = makeStatusIcon();
     equipeLabel.appendChild(equipeIcon);
     const equipeSelect = document.createElement('select');
@@ -4163,10 +4109,10 @@ function createUnifiedEditModal(demanda) {
     analistaLabel.textContent = 'Analista Responsável:';
     const applyAnalistaChk = document.createElement('input');
     applyAnalistaChk.type = 'checkbox';
-    applyAnalistaChk.style.marginLeft = '8px';
+    applyAnalistaChk.style.display = 'none';
     const applyAnalistaSpan = document.createElement('span');
     applyAnalistaSpan.textContent = 'Aplicar';
-    applyAnalistaSpan.style.marginLeft = '4px';
+    applyAnalistaSpan.style.display = 'none';
     const analistaIcon = makeStatusIcon();
     analistaLabel.appendChild(analistaIcon);
     const analistaSelect = document.createElement('select');
@@ -4192,10 +4138,10 @@ function createUnifiedEditModal(demanda) {
     responsavelLabel.textContent = 'Responsável Atual:';
     const applyRespChk = document.createElement('input');
     applyRespChk.type = 'checkbox';
-    applyRespChk.style.marginLeft = '8px';
+    applyRespChk.style.display = 'none';
     const applyRespSpan = document.createElement('span');
     applyRespSpan.textContent = 'Aplicar';
-    applyRespSpan.style.marginLeft = '4px';
+    applyRespSpan.style.display = 'none';
     const respIcon = makeStatusIcon();
     responsavelLabel.appendChild(respIcon);
     const responsavelSelect = document.createElement('select');
@@ -4234,6 +4180,16 @@ function createUnifiedEditModal(demanda) {
 
     overlay.appendChild(modal);
     
+    // Liga salvamento inline por campo
+    try {
+        attachInlineSave(statusSelect, 'status', statusIcon);
+        attachInlineSave(gmudInput, 'gmud', gmudIcon);
+        attachInlineSave(previsaoInput, 'previsao', prevIcon);
+        attachInlineSave(equipeSelect, 'equipe', equipeIcon);
+        attachInlineSave(analistaSelect, 'analista', analistaIcon);
+        attachInlineSave(responsavelSelect, 'resp', respIcon);
+    } catch {}
+
     validateForm();
 
     console.log('Modal criado e adicionado ao DOM');
