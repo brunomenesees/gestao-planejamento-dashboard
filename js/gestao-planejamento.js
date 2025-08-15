@@ -2523,43 +2523,40 @@ function createMassEditModal(ticketNumbers) {
         : `${ticketNumbers.length} selecionados`;
 
     modal.innerHTML = `
-      <h3>Edição Massiva (${selectionText})</h3>
-      <div style="display:grid; grid-template-columns: 28px 1fr 1fr; gap:10px; align-items:center;">
-        <div></div><div style=\"font-weight:600;\">Campo</div><div style=\"font-weight:600;\">Valor</div>
-
-        <input type=\"checkbox\" id=\"applyResolved\" />
-        <label for=\"applyResolved\">Marcar como Resolvido</label>
-        <div></div>
-
-        <input type=\"checkbox\" id=\"applyStatus\" />
-        <label for=\"applyStatus\">Status</label>
-        <select id=\"massStatus\" disabled></select>
-
-        <input type=\"checkbox\" id=\"applyGmud\" />
-        <label for=\"applyGmud\">GMUD</label>
-        <input id=\"massGmud\" type=\"text\" placeholder=\"Número GMUD\" disabled />
-
-        <input type=\"checkbox\" id=\"applyPrevisao\" />
-        <label for=\"applyPrevisao\">Previsão Etapa</label>
-        <input id=\"massPrevisao\" type=\"date\" placeholder=\"Previsão da etapa\" disabled />
-
-        <input type=\"checkbox\" id=\"applyEquipe\" />
-        <label for=\"applyEquipe\">Equipe</label>
-        <select id=\"massEquipe\" disabled></select>
-
-        <input type=\"checkbox\" id=\"applyRespAtual\" />
-        <label for=\"applyRespAtual\">Responsável Atual</label>
-        <select id=\"massRespAtual\" disabled></select>
-
-        <input type=\"checkbox\" id=\"applyAnalista\" />
-        <label for=\"applyAnalista\">Analista Responsável</label>
-        <select id=\"massAnalista\" disabled></select>
+      <h3 style="margin-bottom:8px;">Edição Massiva (${selectionText})</h3>
+      <div style="height:1px;background:#e5e7eb;margin:6px 0 12px 0;"></div>
+      <div style="display:grid;grid-template-columns: 1fr 1fr;gap:12px;align-items:center;margin-bottom:4px;">
+        <div style="font-weight:600;color:#374151;">Campo</div>
+        <div style="font-weight:600;color:#374151;">Valor</div>
       </div>
-      <div style="margin-top:12px;">
+      <div style="display:grid;grid-template-columns: 1fr 1fr;gap:12px;align-items:center;">
+        <label for="applyResolved" style="grid-column: 1 / span 2;display:flex;align-items:center;gap:8px;font-weight:600;">
+          <input type="checkbox" id="applyResolved" /> Marcar como Resolvido
+        </label>
+
+        <label for="massStatus" style="font-weight:600;">Status</label>
+        <select id="massStatus" style="width:100%"></select>
+
+        <label for="massGmud" style="font-weight:600;">GMUD</label>
+        <input id="massGmud" type="text" placeholder="Número GMUD" style="width:100%" />
+
+        <label for="massPrevisao" style="font-weight:600;">Previsão Etapa</label>
+        <input id="massPrevisao" type="date" placeholder="Previsão da etapa" style="width:100%" />
+
+        <label for="massEquipe" style="font-weight:600;">Equipe</label>
+        <select id="massEquipe" style="width:100%"></select>
+
+        <label for="massRespAtual" style="font-weight:600;">Responsável Atual</label>
+        <select id="massRespAtual" style="width:100%"></select>
+
+        <label for="massAnalista" style="font-weight:600;">Analista Responsável</label>
+        <select id="massAnalista" style="width:100%"></select>
+      </div>
+      <div style="margin-top:14px;">
         <label for="massComment" style="font-weight:600; display:block; margin-bottom:6px;">Comentário (opcional)</label>
         <textarea id="massComment" rows="4" style="width:100%;"></textarea>
       </div>
-      <div id="massProgress" role="status" aria-live="polite" style="margin-top:10px; font-size:12px; color:#555;">Pronto</div>
+      <div id="massProgress" role="status" aria-live="polite" style="margin-top:10px; font-size:12px; color:#6b7280;">Pronto</div>
       <div id="massProgressBar" aria-hidden="true" style="height:6px; background:#e9ecef; border-radius:4px; overflow:hidden; margin-top:6px; display:none;">
         <div id="massProgressBarFill" style="height:100%; width:0%; background:#3498db; transition:width .2s ease;"></div>
       </div>
