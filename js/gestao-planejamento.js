@@ -2791,7 +2791,7 @@ function createMassEditModal(ticketNumbers) {
                     if (apply.gmud) demandasData[idx].numero_gmud = values.gmud;
                     if (apply.previsao) demandasData[idx].previsao_etapa = values.previsao;
                     if (apply.equipe) demandasData[idx].squad = values.equipe;
-                    if (apply.respAtual) demandasData[idx].resp_atual = values.respAtual;
+                    if (apply.respAtual) demandasData[idx].resp_atual = (raw.respAtual === '__CLEAR__') ? '' : values.respAtual;
                     if (apply.analista) demandasData[idx].atribuicao = values.analista;
                 }
                 try {
@@ -2799,17 +2799,20 @@ function createMassEditModal(ticketNumbers) {
                     const tx = db.transaction([STORE_NAME], 'readwrite');
                     const store = tx.objectStore(STORE_NAME);
                     const getReq = store.get(numero);
-                    await new Promise((resolve) => { getReq.onsuccess = resolve; getReq.onerror = resolve; });
-                    const demanda = getReq.result || { numero };
-                    if (apply.status) demanda.status = values.status;
-                    if (apply.resolved) demanda.estado = 'resolved';
-                    if (apply.gmud) demanda.numero_gmud = values.gmud;
-                    if (apply.previsao) demanda.previsao_etapa = values.previsao;
-                    if (apply.equipe) demanda.squad = values.equipe;
-                    if (apply.respAtual) demanda.resp_atual = values.respAtual;
-                    if (apply.analista) demanda.atribuicao = values.analista;
-                    const putReq = store.put(demanda);
-                    await new Promise((resolve) => { putReq.onsuccess = resolve; putReq.onerror = resolve; });
+                    const demanda = await new Promise((resolve) => { getReq.onsuccess = () => resolve(getReq.result); getReq.onerror = () => resolve(null); });
+                    if (demanda) {
+                        if (apply.status) demanda.status = (raw.status === '__CLEAR__') ? '' : values.status;
+                        if (apply.resolved) demanda.estado = 'resolved';
+                        if (apply.gmud) demanda.numero_gmud = values.gmud;
+                        if (apply.previsao) demanda.previsao_etapa = values.previsao;
+                        if (apply.equipe) demanda.squad = values.equipe;
+                        if (apply.respAtual) demanda.resp_atual = (raw.respAtual === '__CLEAR__') ? '' : values.respAtual;
+                        if (apply.analista) demanda.atribuicao = values.analista;
+                        const putReq = store.put(demanda);
+                        await new Promise((resolve) => { putReq.onsuccess = resolve; putReq.onerror = resolve; });
+                    } else {
+                        console.warn('Demanda não encontrada no IndexedDB para ticket', numero);
+                    }
                 } catch (e) {
                     console.warn('Falha ao atualizar IndexedDB para ticket', numero, e);
                 }
