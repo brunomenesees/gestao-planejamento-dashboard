@@ -744,3 +744,27 @@ tr.status-empty-row:hover td {
 #tabelaGMUD thead th, #tabelaGMUD tbody td { border-bottom: 1px solid #E2E8F0; padding: 10px 12px; }
 #tabelaGMUD tbody tr:nth-child(even) { background-color: #FAFAFA; }
 #tabelaGMUD tbody tr:hover { background:#F1F5F9; transition: background-color 0.15s ease-in-out; }
+
+/* Related rows formatting */
+#tabelaGMUD tr.related-header-row td {
+    padding: 8px 12px;
+    background: #EEF2FF; /* Indigo 50 */
+    color: #3730A3;      /* Indigo 800 */
+    font-weight: 600;
+    border-top: 1px solid #C7D2FE; /* Indigo 200 */
+    border-bottom: 1px solid #C7D2FE;
+}
+#tabelaGMUD tr.related-row td {
+    background: #F8FAFC; /* Slate 50 */
+    border-bottom: 1px solid #E2E8F0;
+    padding: 10px 12px;
+}
+#tabelaGMUD tr.related-row:hover td {
+    background: #F1F5F9;
+}
+#tabelaGMUD td .rel-title {
+    display: inline-block;
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.35;
+}
