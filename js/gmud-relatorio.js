@@ -10,6 +10,89 @@ const SQUAD_CF_ID = 49; // referência existente
 // Filtro fixo: Categoria=Projetos (reutiliza filterId usado no dashboard)
 const FILTER_ID_PROJETOS = 1477;
 
+// IndexedDB (cache local dedicado desta página)
+const GMUD_DB_NAME = 'gp-gmud-cache-v1';
+const GMUD_DB_VERSION = 1;
+const STORE_REPORTS = 'gmudReports';
+
+function openGMUDCacheDB() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) return reject(new Error('IndexedDB não suportado'));
+    const req = indexedDB.open(GMUD_DB_NAME, GMUD_DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE_REPORTS)) {
+        const store = db.createObjectStore(STORE_REPORTS, { keyPath: 'key' });
+        store.createIndex('storedAt', 'meta.storedAt');
+        store.createIndex('expiresAt', 'meta.expiresAt');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('Falha ao abrir IndexedDB'));
+  });
+}
+
+function makeCacheKey({ dataInicialISO, dataFinalISO, version = 2 }) {
+  // Inclui versão do schema de cache para invalidações futuras
+  return `gmud:v${version}:${dataInicialISO || 'null'}:${dataFinalISO || 'null'}`;
+}
+
+async function getReportFromCache(key) {
+  try {
+    const db = await openGMUDCacheDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_REPORTS, 'readonly');
+      const store = tx.objectStore(STORE_REPORTS);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    console.warn('[GMUD][cache] getReportFromCache falhou:', e);
+    return null;
+  }
+}
+
+async function saveReportToCache(key, rows, { filters, ttlHours = 12 } = {}) {
+  try {
+    const now = Date.now();
+    const expiresAt = now + ttlHours * 3600 * 1000;
+    const payload = {
+      key,
+      rows,
+      meta: {
+        storedAt: now,
+        expiresAt,
+        version: 2,
+        filters: filters || {},
+        count: Array.isArray(rows) ? rows.length : 0,
+      },
+    };
+    const db = await openGMUDCacheDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_REPORTS, 'readwrite');
+      const store = tx.objectStore(STORE_REPORTS);
+      const req = store.put(payload);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+    console.log('[GMUD][cache] salvo', { key, count: payload.meta.count });
+    return payload;
+  } catch (e) {
+    console.warn('[GMUD][cache] saveReportToCache falhou:', e);
+    return null;
+  }
+}
+
+function formatCacheTimestamp(ts) {
+  try {
+    const d = new Date(ts);
+    return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+  } catch {
+    return '';
+  }
+}
+
 function getCustomFieldValueFromIssue(issue, fieldId) {
   const cf = (issue.custom_fields || []).find(cf => cf?.field?.id === fieldId);
   return cf ? cf.value : '';
@@ -529,6 +612,15 @@ async function carregarDados() {
     const now = new Date();
     const formatted = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
     if (ultima) ultima.textContent = `Última atualização: ${formatted}`;
+
+    // Salva cache (chave inclui filtros atuais)
+    const dataInicialISO = dataInicial ? new Date(dataInicial.getFullYear(), dataInicial.getMonth(), dataInicial.getDate()).toISOString().slice(0,10) : null;
+    const dataFinalISO = dataFinal ? new Date(dataFinal.getFullYear(), dataFinal.getMonth(), dataFinal.getDate()).toISOString().slice(0,10) : null;
+    const cacheKey = makeCacheKey({ dataInicialISO, dataFinalISO, version: 2 });
+    saveReportToCache(cacheKey, rows, {
+      filters: { dataInicialISO, dataFinalISO },
+      ttlHours: 12,
+    });
     return rows;
   } catch (e) {
     console.error('Erro ao carregar relatório GMUD:', e);
@@ -580,4 +672,28 @@ window.addEventListener('DOMContentLoaded', () => {
     const ro = new ResizeObserver(() => updateStickyOffset());
     ro.observe(tb);
   }
+
+  // Tentativa de carregar do cache automaticamente
+  (async () => {
+    try {
+      const dataInicialInput = document.getElementById('dataInicial');
+      const dataFinalInput = document.getElementById('dataFinal');
+      const dataInicialISO = dataInicialInput.value ? new Date(dataInicialInput.value).toISOString().slice(0,10) : null;
+      const dataFinalISO = dataFinalInput.value ? new Date(dataFinalInput.value).toISOString().slice(0,10) : null;
+      const cacheKey = makeCacheKey({ dataInicialISO, dataFinalISO, version: 2 });
+      const cached = await getReportFromCache(cacheKey);
+      if (cached && (!cached.meta.expiresAt || Date.now() < cached.meta.expiresAt)) {
+        console.log('[GMUD][cache] usando cache', { key: cacheKey, count: cached.meta.count });
+        window.__gmudRows = cached.rows || [];
+        renderTable(window.__gmudRows);
+        if (btnExportar) btnExportar.disabled = window.__gmudRows.length === 0;
+        const ultima = document.getElementById('ultimaAtualizacao');
+        if (ultima && cached.meta?.storedAt) {
+          ultima.textContent = `Carregado do cache: ${formatCacheTimestamp(cached.meta.storedAt)}`;
+        }
+      }
+    } catch (e) {
+      console.warn('[GMUD][cache] falha ao carregar cache inicial', e);
+    }
+  })();
 });
