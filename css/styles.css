@@ -106,10 +106,10 @@
     color: var(--text-color);
 }
 
-/* Cabeçalho da tabela fixo nesta página (opcional) */
+/* Cabeçalho da tabela fixo nesta página (refinado com variável dinâmica) */
 #tabelaGMUD thead th {
     position: sticky;
-    top: 56px; /* altura aproximada do toolbar sticky */
+    top: var(--gmud-sticky-offset, 56px);
     z-index: 5;
 }
 
@@ -118,6 +118,31 @@
     color: #555;
     margin-left: 4px;
     font-size: 0.9em;
+}
+
+/* Badge visual para relações */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef2ff; /* azulado claro */
+    color: #3730a3; /* indigo-800 */
+    border: 1px solid #e0e7ff;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.badge .icon {
+    font-size: 12px;
+}
+
+/* Indicador visual de ordenação */
+#tabelaGMUD thead th .sort-indicator {
+    margin-left: 6px;
+    font-size: 11px;
+    opacity: .7;
 }
 
 /* Tema Escuro */

@@ -280,8 +280,26 @@ function attachSortHandlers() {
         }
         return 0;
       });
+      updateSortIndicators();
       renderTable(rows);
     });
+  });
+}
+
+function updateSortIndicators() {
+  const thead = document.querySelector('#tabelaGMUD thead');
+  if (!thead) return;
+  const sortState = (window.__gmudSortState = window.__gmudSortState || { key: null, dir: 'asc' });
+  thead.querySelectorAll('th[data-sort]')?.forEach(th => {
+    // remove anteriores
+    th.querySelectorAll('.sort-indicator').forEach(el => el.remove());
+    const key = th.getAttribute('data-sort');
+    if (key === sortState.key) {
+      const span = document.createElement('span');
+      span.className = 'sort-indicator';
+      span.textContent = sortState.dir === 'asc' ? '▲' : '▼';
+      th.appendChild(span);
+    }
   });
 }
 
@@ -329,12 +347,18 @@ function renderTable(rows) {
     link.rel = 'noopener noreferrer';
     link.textContent = row.numero;
     tdNumero.appendChild(link);
-    // Indicador compacto de relações: (rel: N) com tooltip listando IDs
+    // Badge visual de relações com tooltip listando IDs
     if (Array.isArray(row.relatedIds) && row.relatedIds.length > 0) {
       const badge = document.createElement('span');
-      badge.textContent = ` (rel: ${row.relatedIds.length})`;
-      badge.style.color = '#555';
-      badge.style.marginLeft = '4px';
+      badge.className = 'badge';
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      icon.textContent = '🔗';
+      const text = document.createElement('span');
+      text.textContent = `Relações: ${row.relatedIds.length}`;
+      badge.appendChild(icon);
+      badge.appendChild(text);
+      badge.style.marginLeft = '6px';
       badge.title = `Relacionadas: ${row.relatedIds.join(', ')}`;
       tdNumero.appendChild(badge);
     }
@@ -452,4 +476,20 @@ window.addEventListener('DOMContentLoaded', () => {
     exportToCSV(window.__gmudRows || []);
   });
   attachSortHandlers();
+  updateSortIndicators();
+
+  // Atualiza offset sticky conforme altura da toolbar
+  function updateStickyOffset() {
+    const toolbar = document.querySelector('.gmud-toolbar.sticky');
+    const h = toolbar ? Math.ceil(toolbar.getBoundingClientRect().height) : 56;
+    document.documentElement.style.setProperty('--gmud-sticky-offset', h + 'px');
+  }
+  updateStickyOffset();
+  window.addEventListener('resize', updateStickyOffset);
+  // Se toolbar alterar de tamanho dinamicamente
+  const tb = document.querySelector('.gmud-toolbar.sticky');
+  if (window.ResizeObserver && tb) {
+    const ro = new ResizeObserver(() => updateStickyOffset());
+    ro.observe(tb);
+  }
 });
