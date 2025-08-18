@@ -400,7 +400,7 @@ function renderTable(rows) {
 async function toggleRelatedRows(parentRow, parentTr) {
   const tbody = document.querySelector('#tabelaGMUD tbody');
   if (!tbody) return;
-  const selector = `tr.related-row[data-parent="${parentRow.numero}"]`;
+  const selector = `tr.related-row[data-parent="${parentRow.numero}"], tr.related-header-row[data-parent="${parentRow.numero}"]`;
   const existing = tbody.querySelectorAll(selector);
   if (existing.length > 0) {
     existing.forEach(el => el.remove());
@@ -425,8 +425,17 @@ async function toggleRelatedRows(parentRow, parentTr) {
     }
   }));
   const relatedRows = details.filter(Boolean);
-  // Insere linhas logo após a linha pai
+  // Insere header mini e linhas logo após a linha pai
   let anchor = parentTr.nextSibling;
+  const headerTr = document.createElement('tr');
+  headerTr.className = 'related-header-row';
+  headerTr.dataset.parent = parentRow.numero;
+  const headerTd = document.createElement('td');
+  headerTd.colSpan = 4; // número, título, data, gmud
+  headerTd.textContent = `Relacionadas de #${parentRow.numero}`;
+  headerTr.appendChild(headerTd);
+  tbody.insertBefore(headerTr, anchor);
+  anchor = headerTr.nextSibling;
   for (const rr of relatedRows) {
     const tr = document.createElement('tr');
     tr.className = 'related-row';
@@ -441,7 +450,10 @@ async function toggleRelatedRows(parentRow, parentTr) {
     tdNumero.appendChild(link);
 
     const tdTitulo = document.createElement('td');
-    tdTitulo.textContent = rr.titulo || '';
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'rel-title';
+    titleSpan.textContent = rr.titulo || '';
+    tdTitulo.appendChild(titleSpan);
 
     const tdData = document.createElement('td');
     tdData.textContent = rr.previsao_etapa ? convertToBrasiliaTimeSafe(rr.previsao_etapa) : '';

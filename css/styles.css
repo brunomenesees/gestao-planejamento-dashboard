@@ -146,9 +146,32 @@
 }
 
 /* Linhas de relacionadas (expand) */
+tr.related-header-row td {
+    background: rgba(99, 102, 241, 0.12); /* indigo 500 ~12% */
+    border-left: 4px solid #6366F1; /* indigo-500 */
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: .2px;
+}
+
 tr.related-row td {
-    background: rgba(59, 130, 246, 0.05); /* leve azul */
+    background: rgba(99, 102, 241, 0.06); /* indigo leve */
     border-top: 1px dashed var(--border-color);
+    border-left: 4px solid #6366F1; /* régua lateral */
+}
+
+/* Hierarquia tipográfica nas relacionadas */
+tr.related-row td:first-child a { /* Número */
+    font-weight: 600;
+}
+tr.related-row td .rel-title { /* Título */
+    color: var(--text-color);
+    opacity: .9;
+}
+tr.related-row td:nth-child(3),
+tr.related-row td:nth-child(4) { /* Meta: Data / GMUD */
+    opacity: .7;
 }
 
 /* Tema Escuro */
