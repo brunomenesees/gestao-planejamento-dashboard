@@ -142,7 +142,30 @@ function inDateRangeBrasilia(dateValue, startDate, endDate) {
 
 function convertToBrasiliaTimeSafe(dateString) {
   try {
-    return convertToBrasiliaTime(dateString);
+    if (dateString == null || String(dateString).trim() === '') return '';
+    // Normaliza vários formatos possíveis
+    let d = null;
+    if (typeof dateString === 'number') {
+      const ms = dateString < 1e12 ? dateString * 1000 : dateString; // segundos -> ms
+      d = new Date(ms);
+    } else {
+      const s = String(dateString).trim();
+      if (/^\d{10}$/.test(s)) {
+        d = new Date(parseInt(s, 10) * 1000);
+      } else if (/^\d{13}$/.test(s)) {
+        d = new Date(parseInt(s, 10));
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        d = new Date(`${s}T00:00:00`);
+      } else if (/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}(?::\d{2})?)$/.test(s)) {
+        const mm = s.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}(?::\d{2})?)$/);
+        d = new Date(`${mm[1]}T${mm[2]}`);
+      } else {
+        // tenta dd/mm/yyyy opcional HH:MM:SS, ou fallback para Date()
+        d = parseDate(s) || new Date(s);
+      }
+    }
+    if (!d || isNaN(d.getTime())) return String(dateString);
+    return convertToBrasiliaTime(d.toISOString());
   } catch {
     return dateString || 'N/A';
   }
