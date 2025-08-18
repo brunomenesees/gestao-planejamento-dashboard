@@ -47,15 +47,15 @@ async function authFetchMantis(endpoint, options = {}) {
   });
 }
 
-async function fetchIssuesPage({ page = 1, pageSize = 250, filterId = FILTER_ID_PROJETOS }) {
+async function fetchIssuesPage({ page = 1, pageSize = 250, filterId } = {}) {
   const params = new URLSearchParams();
   params.set('page', String(page));
   params.set('page_size', String(pageSize));
-  if (filterId) params.set('filter_id', String(filterId));
+  // Removido filter_id para buscar geral (não aplicar filtro do Mantis)
   // Garante que os custom_fields venham no payload (necessário para CF 71/72)
   params.set('include', 'custom_fields');
   const endpoint = `issues?${params.toString()}`;
-  console.log('[GMUD] Fetching page:', page, 'pageSize:', pageSize, 'filterId:', filterId, 'endpoint:', endpoint);
+  console.log('[GMUD] Fetching page:', page, 'pageSize:', pageSize, 'filterId:', filterId || 'none', 'endpoint:', endpoint);
   const resp = await authFetchMantis(endpoint, { method: 'GET' });
   console.log('[GMUD] Page response meta:', resp ? { keys: Object.keys(resp || {}), total_results: resp.total_results, page_count: resp.page_count, received: Array.isArray(resp.issues) ? resp.issues.length : 'N/A' } : 'null');
   return resp || {};
