@@ -52,6 +52,8 @@ async function fetchIssuesPage({ page = 1, pageSize = 250, filterId = FILTER_ID_
   params.set('page', String(page));
   params.set('page_size', String(pageSize));
   if (filterId) params.set('filter_id', String(filterId));
+  // Garante que os custom_fields venham no payload (necessário para CF 71/72)
+  params.set('include', 'custom_fields');
   const endpoint = `issues?${params.toString()}`;
   console.log('[GMUD] Fetching page:', page, 'pageSize:', pageSize, 'filterId:', filterId, 'endpoint:', endpoint);
   const resp = await authFetchMantis(endpoint, { method: 'GET' });
@@ -71,7 +73,7 @@ async function fetchResolvedWithGMUD({ pageSize = 250 } = {}) {
   firstItems.forEach(it => { if (!seenIds.has(it?.id)) { seenIds.add(it.id); all.push(it); } });
 
   const totalPagesRaw = first.page_count || first.total_pages || (first.total_results ? Math.ceil(first.total_results / pageSize) : 1);
-  const totalPages = totalPagesRaw ? Math.min(totalPagesRaw, MAX_PAGES) : 1;
+  const totalPages = totalPagesRaw ? Math.min(totalPagesRaw, MAX_PAGES) : MAX_PAGES; // quando não há meta, buscamos até MAX_PAGES ou até faltar itens
   console.log('[GMUD] Pagination meta:', { totalPagesRaw, totalPages, firstCount: firstItems.length, accumulated: all.length });
 
   for (let p = 2; p <= totalPages && all.length < MAX_ITEMS; p++) {
@@ -81,12 +83,25 @@ async function fetchResolvedWithGMUD({ pageSize = 250 } = {}) {
       if (all.length >= MAX_ITEMS) break;
       if (!seenIds.has(it?.id)) { seenIds.add(it.id); all.push(it); }
     }
-    console.log('[GMUD] Accumulated after page', p, ':', all.length);
+    console.log('[GMUD] Accumulated after page', p, ':', all.length, 'receivedThisPage:', items.length);
+    if (items.length < pageSize) {
+      console.log('[GMUD] Stopping pagination early due to short page');
+      break; // sem mais páginas
+    }
   }
 
   // Client-side filters: somente resolved/resolvido e com GMUD preenchido
+  const resolvedOnly = all.filter(it => isResolved(it));
+  const gmudOnly = all.filter(it => hasGMUD(it));
   const filtered = all.filter(it => isResolved(it) && hasGMUD(it));
-  console.log('[GMUD] Totals:', { fetched: all.length, afterFilter: filtered.length });
+  console.log('[GMUD] Totals:', {
+    fetched: all.length,
+    resolvedOnly: resolvedOnly.length,
+    gmudOnly: gmudOnly.length,
+    bothResolvedAndGMUD: filtered.length,
+  });
+  const gmudSample = gmudOnly.slice(0, 5).map(it => ({ id: it.id, status: (it.status?.name || '').toLowerCase(), gmud: getCustomFieldValueFromIssue(it, GMUD_CF_ID) }));
+  console.log('[GMUD] Sample of GMUD issues (id, status, gmud):', gmudSample);
   // Mapeia para as colunas necessárias
   const mapped = filtered.map(mapIssueToGMUDRow);
   console.log('[GMUD] Mapped sample:', mapped.slice(0, 3));
