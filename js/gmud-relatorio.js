@@ -53,6 +53,14 @@ async function getReportFromCache(key) {
   }
 }
 
+function clearTableAndStatus() {
+  const tbody = document.querySelector('#tabelaGMUD tbody');
+  if (tbody) tbody.innerHTML = '';
+  clearStatus();
+  const alertDiv = document.getElementById('gmud-missing-date-alert');
+  if (alertDiv) alertDiv.style.display = 'none';
+}
+
 async function saveReportToCache(key, rows, { filters, ttlHours = 12 } = {}) {
   try {
     const now = Date.now();
@@ -314,7 +322,7 @@ function convertToBrasiliaTimeSafe(dateString) {
 function renderSkeleton(rows = 8) {
   const tbody = document.querySelector('#tabelaGMUD tbody');
   const status = document.getElementById('gmud-status');
-  if (status) status.innerHTML = '';
+  if (status) { status.innerHTML = ''; status.style.display = 'none'; }
   tbody.innerHTML = '';
   for (let i = 0; i < rows; i++) {
     const tr = document.createElement('tr');
@@ -332,10 +340,24 @@ const styleEl = document.createElement('style');
 styleEl.textContent = '@keyframes gmud-shimmer {0%{background-position:-200px 0}100%{background-position:200px 0}}';
 document.head.appendChild(styleEl);
 
+function showStatus(messageHtml) {
+  const status = document.getElementById('gmud-status');
+  if (!status) return;
+  status.innerHTML = messageHtml;
+  status.style.display = 'flex';
+}
+
+function clearStatus() {
+  const status = document.getElementById('gmud-status');
+  if (!status) return;
+  status.innerHTML = '';
+  status.style.display = 'none';
+}
+
 function setError(message) {
   const status = document.getElementById('gmud-status');
   if (status) {
-    status.innerHTML = `<div style="margin:12px 20px;padding:12px;border:1px solid var(--danger-color);border-left:4px solid var(--danger-color);border-radius:6px;background:#ffebee;color:#b71c1c">${message} <button id="gmud-retry" style="margin-left:8px">Tentar novamente</button></div>`;
+    showStatus(`<span style="font-weight:600">${message}</span> <button id="gmud-retry" class="btn btn-secondary" style="height:28px;padding:0 10px;">Tentar novamente</button>`);
     const btnRetry = document.getElementById('gmud-retry');
     btnRetry?.addEventListener('click', () => document.getElementById('btnCarregar')?.click());
   }
@@ -421,12 +443,10 @@ function renderTable(rows) {
   }
   // Estado vazio
   if (!rows || rows.length === 0) {
-    if (status) {
-      status.innerHTML = '<div style="margin:12px 20px;padding:12px;border:1px dashed var(--border-color);border-radius:8px;background:var(--card-bg);color:var(--secondary-color)">Nenhum resultado encontrado. Ajuste os filtros e clique em Carregar.</div>';
-    }
+    if (status) showStatus('Nenhum resultado encontrado. Ajuste os filtros e clique em Carregar.');
     return;
   } else if (status) {
-    status.innerHTML = '';
+    clearStatus();
   }
   for (const row of rows) {
     const tr = document.createElement('tr');
@@ -616,7 +636,7 @@ async function carregarDados() {
   const btnExport = document.getElementById('btnExportar');
   const ultima = document.getElementById('ultimaAtualizacao');
   btn.disabled = true;
-  btn.textContent = 'Carregando...';
+  if (btn) btn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> Carregando...';
   if (btnExport) btnExport.disabled = true;
   renderSkeleton(8);
   try {
@@ -661,7 +681,7 @@ async function carregarDados() {
     return [];
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Carregar';
+    if (btn) btn.innerHTML = '<i class="fas fa-rotate"></i> Carregar';
   }
 }
 
@@ -679,6 +699,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (!ensureAuth()) return;
   const btnCarregar = document.getElementById('btnCarregar');
   const btnExportar = document.getElementById('btnExportar');
+  const btnLimpar = document.getElementById('btnLimpar');
 
   btnCarregar?.addEventListener('click', async () => {
     console.log('[GMUD] Click on Carregar');
@@ -687,6 +708,18 @@ window.addEventListener('DOMContentLoaded', () => {
   btnExportar?.addEventListener('click', () => {
     console.log('[GMUD] Click on Exportar CSV, rows:', window.__gmudRows ? window.__gmudRows.length : 0);
     exportToCSV(window.__gmudRows || []);
+  });
+
+  btnLimpar?.addEventListener('click', () => {
+    const dataInicialInput = document.getElementById('dataInicial');
+    const dataFinalInput = document.getElementById('dataFinal');
+    const ultima = document.getElementById('ultimaAtualizacao');
+    if (dataInicialInput) dataInicialInput.value = '';
+    if (dataFinalInput) dataFinalInput.value = '';
+    window.__gmudRows = [];
+    if (btnExportar) btnExportar.disabled = true;
+    clearTableAndStatus();
+    if (ultima) ultima.textContent = '';
   });
   attachSortHandlers();
   updateSortIndicators();

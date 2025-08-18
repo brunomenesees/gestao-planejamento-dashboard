@@ -674,3 +674,73 @@ tr.status-empty-row td {
 tr.status-empty-row:hover td {
     background-color: #ffe6e6;
 }
+
+/* ===== GMUD: Modern UI Enhancements ===== */
+/* Card container */
+.card {
+    background: #ffffff;
+    border: 1px solid #E2E8F0; /* slate-200 */
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(16,24,40,.06);
+    padding: 16px;
+}
+
+/* Toolbar layout */
+.gmud-toolbar {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 16px;
+}
+.gmud-toolbar .actions { display: flex; gap: 8px; }
+.gmud-toolbar .filters { display: grid; grid-template-columns: repeat(2, minmax(200px, 1fr)); gap: 12px; }
+.gmud-toolbar .filter-group label { font-weight: 600; color: #475569; font-size: 0.9rem; }
+.gmud-toolbar .filter-group input[type="date"] { height: 36px; padding: 6px 10px; border: 1px solid #CBD5E1; border-radius: 8px; background: #fff; color: #0F172A; }
+/* Place filter actions on the right */
+.gmud-toolbar .filter-actions { display: flex; align-items: end; justify-content: flex-start; }
+@media (min-width: 640px) {
+  .gmud-toolbar .filters { grid-template-columns: repeat(3, minmax(200px, 1fr)); }
+  .gmud-toolbar .filter-actions { justify-content: flex-end; }
+}
+
+/* Alert style for status area */
+.alert {
+    display: none; /* shown dynamically via JS when there is a message */
+    align-items: center;
+    gap: 10px;
+    background: #FFFBEB; /* amber-50 */
+    border: 1px solid #FDE68A; /* amber-300 */
+    color: #854D0E; /* amber-800 */
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+/* Buttons refresh (shared) */
+.btn { border-radius: 10px; height: 36px; padding: 0 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.btn-primary { background:#2563EB; color:#fff; border:0; }
+.btn-primary:hover { background:#1D4ED8; }
+.btn-secondary { background:#fff; border:1px solid #CBD5E1; color:#0F172A; }
+.btn-secondary:hover { background:#F8FAFC; }
+
+/* Badge for last update */
+.badge { background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+
+/* GMUD table polish */
+#tabelaGMUD {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+#tabelaGMUD thead th {
+    position: sticky;
+    top: 0;
+    background: #F8FAFC;
+    color: #0F172A;
+    z-index: 2;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.04);
+}
+#tabelaGMUD thead th, #tabelaGMUD tbody td { border-bottom: 1px solid #E2E8F0; padding: 10px 12px; }
+#tabelaGMUD tbody tr:nth-child(even) { background-color: #FAFAFA; }
+#tabelaGMUD tbody tr:hover { background:#F1F5F9; transition: background-color 0.15s ease-in-out; }

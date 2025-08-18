@@ -55,15 +55,14 @@
         <header class="header">
           <h1>Central de Mudanças</h1>
           <div class="subheader">
-            <span id="ultimaAtualizacao" class="muted"></span>
-            <span class="info-icon-wrapper" aria-label="Ajuda" title="Mostra chamados resolvidos com GMUD. Datas em horário de Brasília.">ⓘ</span>
+            <span id="ultimaAtualizacao" class="badge"></span>
           </div>
         </header>
 
-        <div class="gmud-toolbar sticky">
+        <div class="gmud-toolbar card sticky">
           <div class="actions">
-            <button id="btnCarregar" class="btn btn-primary">Carregar</button>
-            <button id="btnExportar" class="btn btn-secondary" disabled>Exportar CSV</button>
+            <button id="btnCarregar" class="btn btn-primary"><i class="fas fa-rotate"></i> Carregar</button>
+            <button id="btnExportar" class="btn btn-secondary" disabled><i class="fas fa-download"></i> Exportar CSV</button>
           </div>
           <section class="filters">
             <div class="filter-group">
@@ -74,10 +73,13 @@
               <label for="dataFinal">Data final (produção)</label>
               <input type="date" id="dataFinal" placeholder="dd/mm/aaaa" />
             </div>
+            <div class="filter-actions">
+              <button id="btnLimpar" type="button" class="btn btn-secondary">Limpar filtros</button>
+            </div>
           </section>
         </div>
 
-        <div id="gmud-status" aria-live="polite"></div>
+        <div id="gmud-status" class="alert" aria-live="polite"></div>
 
         <section>
           <table id="tabelaGMUD" class="table">
