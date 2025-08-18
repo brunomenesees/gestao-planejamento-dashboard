@@ -20,6 +20,7 @@ function mapIssueToGMUDRow(issue) {
     numero: String(issue.id),
     numero_gmud: getCustomFieldValueFromIssue(issue, GMUD_CF_ID) || '',
     previsao_etapa: getCustomFieldValueFromIssue(issue, PREVISAO_ETAPA_CF_ID) || '',
+    relatedIds: [],
   };
 }
 
@@ -107,6 +108,58 @@ async function fetchResolvedWithGMUD({ pageSize = 250 } = {}) {
   console.log('[GMUD] Mapped sample:', mapped.slice(0, 3));
   console.timeEnd('[GMUD] fetchResolvedWithGMUD');
   return mapped;
+}
+
+// Busca detalhes da issue para obter relationships
+async function fetchIssueDetails(id) {
+  const endpoint = `issues/${encodeURIComponent(String(id))}`;
+  const resp = await authFetchMantis(endpoint, { method: 'GET' });
+  return resp && Array.isArray(resp.issues) ? resp.issues[0] : null;
+}
+
+// Extrai IDs relacionados do payload de detalhe (sem hidratar as relacionadas)
+function extractRelatedIdsFromDetail(detail) {
+  const rels = Array.isArray(detail?.relationships) ? detail.relationships : [];
+  const ids = [];
+  for (const r of rels) {
+    const otherId = r?.issue?.id;
+    if (otherId != null) ids.push(otherId);
+  }
+  return ids;
+}
+
+// Enriquecedor: adiciona relatedIds às linhas, com limite de concorrência
+async function enrichRowsWithRelationships(rows, { concurrency = 8, maxDetails = 1000 } = {}) {
+  console.time('[GMUD] enrichRowsWithRelationships');
+  const limited = rows.slice(0, maxDetails);
+  let index = 0;
+  const results = new Array(rows.length);
+
+  async function worker() {
+    while (true) {
+      const i = index++;
+      if (i >= limited.length) break;
+      const row = limited[i];
+      try {
+        const detail = await fetchIssueDetails(row.numero);
+        const relatedIds = extractRelatedIdsFromDetail(detail);
+        results[i] = { ...row, relatedIds };
+      } catch (e) {
+        console.warn('[GMUD] Failed to fetch relationships for', row.numero, e);
+        results[i] = { ...row, relatedIds: [] };
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, limited.length) }, () => worker());
+  await Promise.all(workers);
+
+  // para rows além de maxDetails, copia sem relationships
+  for (let i = limited.length; i < rows.length; i++) {
+    results[i] = { ...rows[i], relatedIds: [] };
+  }
+  console.timeEnd('[GMUD] enrichRowsWithRelationships');
+  return results;
 }
 
 function parseDate(value) {
@@ -205,6 +258,15 @@ function renderTable(rows) {
     link.rel = 'noopener noreferrer';
     link.textContent = row.numero;
     tdNumero.appendChild(link);
+    // Indicador compacto de relações: (rel: N) com tooltip listando IDs
+    if (Array.isArray(row.relatedIds) && row.relatedIds.length > 0) {
+      const badge = document.createElement('span');
+      badge.textContent = ` (rel: ${row.relatedIds.length})`;
+      badge.style.color = '#555';
+      badge.style.marginLeft = '4px';
+      badge.title = `Relacionadas: ${row.relatedIds.join(', ')}`;
+      tdNumero.appendChild(badge);
+    }
 
     const tdData = document.createElement('td');
     if (!row.previsao_etapa || String(row.previsao_etapa).trim() === '') {
@@ -263,6 +325,8 @@ async function carregarDados() {
     console.log('[GMUD] Date filters:', { dataInicial: dataInicialInput.value, dataFinal: dataFinalInput.value });
 
     let rows = await fetchResolvedWithGMUD();
+    // Enriquecimento com relationships (sem hidratar issues relacionadas)
+    rows = await enrichRowsWithRelationships(rows, { concurrency: 8, maxDetails: 1000 });
     // Filtra por período em previsao_etapa
     if (dataInicial || dataFinal) {
       // Mantém registros sem previsao_etapa, mesmo com filtro de data
