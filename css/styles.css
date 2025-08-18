@@ -19,6 +19,107 @@
     --hover-bg: rgba(37, 99, 235, 0.1); /* Cor de hover com transparência */
 }
 
+/* ---------------- GMUD Relatório (UI específicas) ---------------- */
+.header {
+    padding: 16px 20px 8px 20px;
+}
+
+.header h1 {
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+}
+
+.header .subheader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--secondary-color);
+}
+
+.gmud-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.gmud-toolbar.sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.gmud-toolbar .actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filters .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filters label {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+}
+
+/* Botões genéricos para páginas fora do dashboard principal */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color .2s, color .2s, opacity .2s;
+}
+
+.btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: #fff;
+    border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+    background-color: #1D4ED8;
+}
+
+.btn-secondary {
+    background: var(--table-header-bg);
+    color: var(--text-color);
+}
+
+/* Cabeçalho da tabela fixo nesta página (opcional) */
+#tabelaGMUD thead th {
+    position: sticky;
+    top: 56px; /* altura aproximada do toolbar sticky */
+    z-index: 5;
+}
+
+/* Badge simples (se quisermos aplicar classe no futuro) */
+.badge-muted {
+    color: #555;
+    margin-left: 4px;
+    font-size: 0.9em;
+}
+
 /* Tema Escuro */
 [data-theme="dark"] {
     --primary-color: #0d1333;

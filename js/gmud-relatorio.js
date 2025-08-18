@@ -224,10 +224,72 @@ function convertToBrasiliaTimeSafe(dateString) {
   }
 }
 
+function renderSkeleton(rows = 8) {
+  const tbody = document.querySelector('#tabelaGMUD tbody');
+  const status = document.getElementById('gmud-status');
+  if (status) status.innerHTML = '';
+  tbody.innerHTML = '';
+  for (let i = 0; i < rows; i++) {
+    const tr = document.createElement('tr');
+    for (let c = 0; c < 3; c++) {
+      const td = document.createElement('td');
+      td.innerHTML = '<div style="height:12px;background:linear-gradient(90deg, #eee, #f5f5f5, #eee);border-radius:6px;animation: gmud-shimmer 1.2s infinite;">&nbsp;</div>';
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+// animação de shimmer inline (fallback caso CSS não tenha keyframes)
+const styleEl = document.createElement('style');
+styleEl.textContent = '@keyframes gmud-shimmer {0%{background-position:-200px 0}100%{background-position:200px 0}}';
+document.head.appendChild(styleEl);
+
+function setError(message) {
+  const status = document.getElementById('gmud-status');
+  if (status) {
+    status.innerHTML = `<div style="margin:12px 20px;padding:12px;border:1px solid var(--danger-color);border-left:4px solid var(--danger-color);border-radius:6px;background:#ffebee;color:#b71c1c">${message} <button id="gmud-retry" style="margin-left:8px">Tentar novamente</button></div>`;
+    const btnRetry = document.getElementById('gmud-retry');
+    btnRetry?.addEventListener('click', () => document.getElementById('btnCarregar')?.click());
+  }
+}
+
+function attachSortHandlers() {
+  const thead = document.querySelector('#tabelaGMUD thead');
+  if (!thead) return;
+  const sortState = (window.__gmudSortState = window.__gmudSortState || { key: null, dir: 'asc' });
+  thead.querySelectorAll('th[data-sort]')?.forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+      const key = th.getAttribute('data-sort');
+      if (sortState.key === key) {
+        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.key = key;
+        sortState.dir = 'asc';
+      }
+      const rows = (window.__gmudRows || []).slice();
+      const factor = sortState.dir === 'asc' ? 1 : -1;
+      rows.sort((a, b) => {
+        if (key === 'numero') return (parseInt(a.numero) - parseInt(b.numero)) * factor;
+        if (key === 'gmud') return (parseInt(a.numero_gmud || '0') - parseInt(b.numero_gmud || '0')) * factor;
+        if (key === 'data') {
+          const da = parseDate(a.previsao_etapa)?.getTime() || -Infinity;
+          const db = parseDate(b.previsao_etapa)?.getTime() || -Infinity;
+          return (da - db) * factor;
+        }
+        return 0;
+      });
+      renderTable(rows);
+    });
+  });
+}
+
 function renderTable(rows) {
   console.log('[GMUD] Rendering table with rows:', rows.length);
   const tbody = document.querySelector('#tabelaGMUD tbody');
   tbody.innerHTML = '';
+  const status = document.getElementById('gmud-status');
   // Alerta sobre itens sem previsao_etapa
   const missingCount = rows.filter(r => !r.previsao_etapa || String(r.previsao_etapa).trim() === '').length;
   let alertDiv = document.getElementById('gmud-missing-date-alert');
@@ -247,6 +309,15 @@ function renderTable(rows) {
   alertDiv.style.display = missingCount > 0 ? 'block' : 'none';
   if (missingCount > 0) {
     alertDiv.textContent = `${missingCount} registro(s) sem data de previsão de etapa (CF 72). Será exibido avisos nas linhas correspondentes.`;
+  }
+  // Estado vazio
+  if (!rows || rows.length === 0) {
+    if (status) {
+      status.innerHTML = '<div style="margin:12px 20px;padding:12px;border:1px dashed var(--border-color);border-radius:8px;background:var(--card-bg);color:var(--secondary-color)">Nenhum resultado encontrado. Ajuste os filtros e clique em Carregar.</div>';
+    }
+    return;
+  } else if (status) {
+    status.innerHTML = '';
   }
   for (const row of rows) {
     const tr = document.createElement('tr');
@@ -314,9 +385,12 @@ function exportToCSV(rows) {
 async function carregarDados() {
   console.log('[GMUD] carregarDados() called');
   const btn = document.getElementById('btnCarregar');
+  const btnExport = document.getElementById('btnExportar');
   const ultima = document.getElementById('ultimaAtualizacao');
   btn.disabled = true;
   btn.textContent = 'Carregando...';
+  if (btnExport) btnExport.disabled = true;
+  renderSkeleton(8);
   try {
     const dataInicialInput = document.getElementById('dataInicial');
     const dataFinalInput = document.getElementById('dataFinal');
@@ -338,6 +412,7 @@ async function carregarDados() {
     console.log('[GMUD] Rows after date filter (keeping empty dates):', rows.length);
 
     renderTable(rows);
+    if (btnExport) btnExport.disabled = rows.length === 0;
 
     const now = new Date();
     const formatted = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
@@ -345,7 +420,7 @@ async function carregarDados() {
     return rows;
   } catch (e) {
     console.error('Erro ao carregar relatório GMUD:', e);
-    alert('Erro ao carregar relatório GMUD. Verifique o console.');
+    setError('Erro ao carregar relatório GMUD. Verifique o console.');
     return [];
   } finally {
     btn.disabled = false;
@@ -376,4 +451,5 @@ window.addEventListener('DOMContentLoaded', () => {
     console.log('[GMUD] Click on Exportar CSV, rows:', window.__gmudRows ? window.__gmudRows.length : 0);
     exportToCSV(window.__gmudRows || []);
   });
+  attachSortHandlers();
 });
