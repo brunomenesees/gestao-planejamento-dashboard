@@ -68,6 +68,33 @@ class AuthService {
         return response.json();
     }
 
+    async changePassword(currentPassword, newPassword) {
+        if (!this.token) {
+            throw new Error('Não autenticado');
+        }
+
+        const resp = await fetch(`${this.baseUrl}/change-password`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        if (resp.status === 204) {
+            return { ok: true };
+        }
+        if (resp.status === 401) {
+            this.logout();
+            return { ok: false, error: 'Sessão expirada' };
+        }
+
+        let data = null;
+        try { data = await resp.json(); } catch {}
+        return { ok: false, status: resp.status, error: data?.error || 'Erro na troca de senha', details: data?.details };
+    }
+
     logout() {
         this.token = null;
         localStorage.removeItem('authToken');

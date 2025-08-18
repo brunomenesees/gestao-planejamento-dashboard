@@ -18,6 +18,88 @@ try {
     recentlyUpdated = JSON.parse(sessionStorage.getItem('recentlyUpdated') || '{}') || {};
 } catch {}
 
+// UI: Alterar Senha (modal)
+function setupChangePasswordUI() {
+    const openLink = document.getElementById('openChangePassword');
+    const modal = document.getElementById('changePasswordModal');
+    const cancelBtn = document.getElementById('cp-cancel');
+    const saveBtn = document.getElementById('cp-save');
+    const inputCurrent = document.getElementById('cp-current');
+    const inputNew = document.getElementById('cp-new');
+
+    if (!openLink || !modal || !cancelBtn || !saveBtn || !inputCurrent || !inputNew) return;
+
+    const openModal = () => {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => inputCurrent.focus(), 0);
+    };
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        inputCurrent.value = '';
+        inputNew.value = '';
+    };
+
+    openLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal();
+    });
+    cancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeModal();
+    });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    saveBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const currentPassword = inputCurrent.value || '';
+        const newPassword = inputNew.value || '';
+
+        if (!currentPassword || !newPassword) {
+            try { mostrarNotificacao('Preencha os dois campos.', 'aviso'); } catch {}
+            return;
+        }
+
+        // Validação rápida no front para feedback imediato
+        const policyOk = (
+            newPassword.length >= 8 &&
+            /[a-z]/.test(newPassword) &&
+            /[A-Z]/.test(newPassword) &&
+            /\d/.test(newPassword) &&
+            /[^A-Za-z0-9]/.test(newPassword) &&
+            !/\s/.test(newPassword)
+        );
+        if (!policyOk) {
+            try { mostrarNotificacao('Senha fraca: 8+ chars, maiúscula, minúscula, número e especial, sem espaços.', 'aviso'); } catch {}
+            return;
+        }
+
+        try {
+            const res = await window.authService.changePassword(currentPassword, newPassword);
+            if (res.ok) {
+                try { mostrarNotificacao('Senha alterada com sucesso. Faça login novamente.', 'sucesso'); } catch {}
+                // Força logout por segurança
+                setTimeout(() => { try { window.authService.logout(); } catch {} }, 800);
+            } else {
+                const msg = res.error || 'Erro ao alterar senha';
+                const det = res.details ? `: ${res.details}` : '';
+                try { mostrarNotificacao(msg + det, 'erro'); } catch {}
+                if (res.status === 401) {
+                    // já faz logout dentro do service
+                }
+            }
+        } catch (err) {
+            console.error('Erro na troca de senha:', err);
+            try { mostrarNotificacao('Erro inesperado ao alterar a senha.', 'erro'); } catch {}
+        } finally {
+            closeModal();
+        }
+    });
+}
+
 function markRecentlyUpdated(numeros) {
     const now = Date.now();
     numeros.forEach(n => { if (n) recentlyUpdated[String(n)] = now; });
@@ -388,6 +470,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Configurar tema e navegação SEMPRE (usados em todas as páginas)
     setupTheme();
     setupNavigation();
+    setupChangePasswordUI();
 
     // Só executa a lógica do dashboard se existir o elemento principal
     if (document.getElementById('dashboard') || document.getElementById('chamadosTable')) {
