@@ -36,6 +36,7 @@ function hasGMUD(issue) {
 }
 
 async function authFetchMantis(endpoint, options = {}) {
+  console.log('[GMUD] authFetchMantis called with endpoint:', endpoint, 'options:', { ...options, headers: undefined });
   if (!window.authService || !window.authService.isAuthenticated()) {
     window.location.href = '/login.html';
     return Promise.reject(new Error('Não autenticado'));
@@ -52,11 +53,14 @@ async function fetchIssuesPage({ page = 1, pageSize = 250, filterId = FILTER_ID_
   params.set('page_size', String(pageSize));
   if (filterId) params.set('filter_id', String(filterId));
   const endpoint = `issues?${params.toString()}`;
+  console.log('[GMUD] Fetching page:', page, 'pageSize:', pageSize, 'filterId:', filterId, 'endpoint:', endpoint);
   const resp = await authFetchMantis(endpoint, { method: 'GET' });
+  console.log('[GMUD] Page response meta:', resp ? { keys: Object.keys(resp || {}), total_results: resp.total_results, page_count: resp.page_count, received: Array.isArray(resp.issues) ? resp.issues.length : 'N/A' } : 'null');
   return resp || {};
 }
 
 async function fetchResolvedWithGMUD({ pageSize = 250 } = {}) {
+  console.time('[GMUD] fetchResolvedWithGMUD');
   const MAX_PAGES = 10;
   const MAX_ITEMS = 3000;
   const seenIds = new Set();
@@ -68,6 +72,7 @@ async function fetchResolvedWithGMUD({ pageSize = 250 } = {}) {
 
   const totalPagesRaw = first.page_count || first.total_pages || (first.total_results ? Math.ceil(first.total_results / pageSize) : 1);
   const totalPages = totalPagesRaw ? Math.min(totalPagesRaw, MAX_PAGES) : 1;
+  console.log('[GMUD] Pagination meta:', { totalPagesRaw, totalPages, firstCount: firstItems.length, accumulated: all.length });
 
   for (let p = 2; p <= totalPages && all.length < MAX_ITEMS; p++) {
     const r = await fetchIssuesPage({ page: p, pageSize });
@@ -76,12 +81,17 @@ async function fetchResolvedWithGMUD({ pageSize = 250 } = {}) {
       if (all.length >= MAX_ITEMS) break;
       if (!seenIds.has(it?.id)) { seenIds.add(it.id); all.push(it); }
     }
+    console.log('[GMUD] Accumulated after page', p, ':', all.length);
   }
 
   // Client-side filters: somente resolved/resolvido e com GMUD preenchido
   const filtered = all.filter(it => isResolved(it) && hasGMUD(it));
+  console.log('[GMUD] Totals:', { fetched: all.length, afterFilter: filtered.length });
   // Mapeia para as colunas necessárias
-  return filtered.map(mapIssueToGMUDRow);
+  const mapped = filtered.map(mapIssueToGMUDRow);
+  console.log('[GMUD] Mapped sample:', mapped.slice(0, 3));
+  console.timeEnd('[GMUD] fetchResolvedWithGMUD');
+  return mapped;
 }
 
 function parseDate(value) {
@@ -124,6 +134,7 @@ function convertToBrasiliaTimeSafe(dateString) {
 }
 
 function renderTable(rows) {
+  console.log('[GMUD] Rendering table with rows:', rows.length);
   const tbody = document.querySelector('#tabelaGMUD tbody');
   tbody.innerHTML = '';
   // Alerta sobre itens sem previsao_etapa
@@ -201,6 +212,7 @@ function exportToCSV(rows) {
 }
 
 async function carregarDados() {
+  console.log('[GMUD] carregarDados() called');
   const btn = document.getElementById('btnCarregar');
   const ultima = document.getElementById('ultimaAtualizacao');
   btn.disabled = true;
@@ -210,6 +222,7 @@ async function carregarDados() {
     const dataFinalInput = document.getElementById('dataFinal');
     const dataInicial = dataInicialInput.value ? new Date(dataInicialInput.value) : null;
     const dataFinal = dataFinalInput.value ? new Date(dataFinalInput.value) : null;
+    console.log('[GMUD] Date filters:', { dataInicial: dataInicialInput.value, dataFinal: dataFinalInput.value });
 
     let rows = await fetchResolvedWithGMUD();
     // Filtra por período em previsao_etapa
@@ -220,6 +233,7 @@ async function carregarDados() {
         return !hasDate || inDateRangeBrasilia(r.previsao_etapa, dataInicial, dataFinal);
       });
     }
+    console.log('[GMUD] Rows after date filter (keeping empty dates):', rows.length);
 
     renderTable(rows);
 
@@ -247,14 +261,17 @@ function ensureAuth() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  console.log('[GMUD] DOMContentLoaded on gmud-relatorio');
   if (!ensureAuth()) return;
   const btnCarregar = document.getElementById('btnCarregar');
   const btnExportar = document.getElementById('btnExportar');
 
   btnCarregar?.addEventListener('click', async () => {
+    console.log('[GMUD] Click on Carregar');
     window.__gmudRows = await carregarDados();
   });
   btnExportar?.addEventListener('click', () => {
+    console.log('[GMUD] Click on Exportar CSV, rows:', window.__gmudRows ? window.__gmudRows.length : 0);
     exportToCSV(window.__gmudRows || []);
   });
 });
