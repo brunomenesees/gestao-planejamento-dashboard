@@ -145,6 +145,12 @@
     opacity: .7;
 }
 
+/* Linhas de relacionadas (expand) */
+tr.related-row td {
+    background: rgba(59, 130, 246, 0.05); /* leve azul */
+    border-top: 1px dashed var(--border-color);
+}
+
 /* Tema Escuro */
 [data-theme="dark"] {
     --primary-color: #0d1333;

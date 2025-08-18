@@ -18,6 +18,7 @@ function getCustomFieldValueFromIssue(issue, fieldId) {
 function mapIssueToGMUDRow(issue) {
   return {
     numero: String(issue.id),
+    titulo: issue.summary || '',
     numero_gmud: getCustomFieldValueFromIssue(issue, GMUD_CF_ID) || '',
     previsao_etapa: getCustomFieldValueFromIssue(issue, PREVISAO_ETAPA_CF_ID) || '',
     relatedIds: [],
@@ -231,7 +232,7 @@ function renderSkeleton(rows = 8) {
   tbody.innerHTML = '';
   for (let i = 0; i < rows; i++) {
     const tr = document.createElement('tr');
-    for (let c = 0; c < 3; c++) {
+    for (let c = 0; c < 4; c++) {
       const td = document.createElement('td');
       td.innerHTML = '<div style="height:12px;background:linear-gradient(90deg, #eee, #f5f5f5, #eee);border-radius:6px;animation: gmud-shimmer 1.2s infinite;">&nbsp;</div>';
       tr.appendChild(td);
@@ -272,6 +273,7 @@ function attachSortHandlers() {
       const factor = sortState.dir === 'asc' ? 1 : -1;
       rows.sort((a, b) => {
         if (key === 'numero') return (parseInt(a.numero) - parseInt(b.numero)) * factor;
+        if (key === 'titulo') return (String(a.titulo || '').localeCompare(String(b.titulo || ''))) * factor;
         if (key === 'gmud') return (parseInt(a.numero_gmud || '0') - parseInt(b.numero_gmud || '0')) * factor;
         if (key === 'data') {
           const da = parseDate(a.previsao_etapa)?.getTime() || -Infinity;
@@ -360,8 +362,18 @@ function renderTable(rows) {
       badge.appendChild(text);
       badge.style.marginLeft = '6px';
       badge.title = `Relacionadas: ${row.relatedIds.join(', ')}`;
+      badge.style.cursor = 'pointer';
+      badge.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleRelatedRows(row, tr);
+      });
       tdNumero.appendChild(badge);
     }
+
+    // Coluna Título
+    const tdTitulo = document.createElement('td');
+    tdTitulo.textContent = row.titulo || '';
 
     const tdData = document.createElement('td');
     if (!row.previsao_etapa || String(row.previsao_etapa).trim() === '') {
@@ -377,9 +389,73 @@ function renderTable(rows) {
     tdGMUD.textContent = row.numero_gmud || '';
 
     tr.appendChild(tdNumero);
+    tr.appendChild(tdTitulo);
     tr.appendChild(tdData);
     tr.appendChild(tdGMUD);
     tbody.appendChild(tr);
+  }
+}
+
+// Expansão de linhas relacionadas (consulta on-demand os detalhes das relacionadas)
+async function toggleRelatedRows(parentRow, parentTr) {
+  const tbody = document.querySelector('#tabelaGMUD tbody');
+  if (!tbody) return;
+  const selector = `tr.related-row[data-parent="${parentRow.numero}"]`;
+  const existing = tbody.querySelectorAll(selector);
+  if (existing.length > 0) {
+    existing.forEach(el => el.remove());
+    return;
+  }
+  if (!Array.isArray(parentRow.relatedIds) || parentRow.relatedIds.length === 0) return;
+  // Busca detalhes das relacionadas em paralelo (com limite simples)
+  const ids = parentRow.relatedIds.slice(0, 50);
+  const details = await Promise.all(ids.map(async (id) => {
+    try {
+      const det = await fetchIssueDetails(id);
+      if (!det) return null;
+      return {
+        numero: String(det.id),
+        titulo: det.summary || '',
+        numero_gmud: getCustomFieldValueFromIssue(det, GMUD_CF_ID) || '',
+        previsao_etapa: getCustomFieldValueFromIssue(det, PREVISAO_ETAPA_CF_ID) || '',
+      };
+    } catch (e) {
+      console.warn('[GMUD] Falha ao hidratar relacionada', id, e);
+      return null;
+    }
+  }));
+  const relatedRows = details.filter(Boolean);
+  // Insere linhas logo após a linha pai
+  let anchor = parentTr.nextSibling;
+  for (const rr of relatedRows) {
+    const tr = document.createElement('tr');
+    tr.className = 'related-row';
+    tr.dataset.parent = parentRow.numero;
+
+    const tdNumero = document.createElement('td');
+    const link = document.createElement('a');
+    link.href = window.AppConfig ? window.AppConfig.getMantisViewUrl(rr.numero) : '#';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = rr.numero;
+    tdNumero.appendChild(link);
+
+    const tdTitulo = document.createElement('td');
+    tdTitulo.textContent = rr.titulo || '';
+
+    const tdData = document.createElement('td');
+    tdData.textContent = rr.previsao_etapa ? convertToBrasiliaTimeSafe(rr.previsao_etapa) : '';
+
+    const tdGMUD = document.createElement('td');
+    tdGMUD.textContent = rr.numero_gmud || '';
+
+    tr.appendChild(tdNumero);
+    tr.appendChild(tdTitulo);
+    tr.appendChild(tdData);
+    tr.appendChild(tdGMUD);
+
+    tbody.insertBefore(tr, anchor);
+    anchor = tr.nextSibling;
   }
 }
 
