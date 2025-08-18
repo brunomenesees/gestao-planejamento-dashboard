@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 
 // Coloque a senha que você quer usar aqui
-const password = 'Xcelis@2025'; 
+const password = ''; 
 const saltRounds = 10;
 
 bcrypt.hash(password, saltRounds, (err, hash) => {

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório GMUD - Gestão de Mudanças</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/gestao-planejamento.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Relatório GMUD (Resolvidos)</h1>
+      <div id="ultimaAtualizacao" class="muted"></div>
+      <div class="actions">
+        <button id="btnCarregar" class="btn primary">Carregar</button>
+        <button id="btnExportar" class="btn">Exportar CSV</button>
+      </div>
+    </header>
+
+    <section class="filters">
+      <div class="filter-group">
+        <label for="dataInicial">Data inicial (previsão etapa)</label>
+        <input type="date" id="dataInicial" />
+      </div>
+      <div class="filter-group">
+        <label for="dataFinal">Data final (previsão etapa)</label>
+        <input type="date" id="dataFinal" />
+      </div>
+    </section>
+
+    <section>
+      <table id="tabelaGMUD" class="table">
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Data Produção (previsão_etapa)</th>
+            <th>Número GMUD</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/gmud-relatorio.js"></script>
+</body>
+</html>
