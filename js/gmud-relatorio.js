@@ -585,7 +585,7 @@ async function toggleRelatedRows(parentRow, parentTr) {
 }
 
 function exportToCSV(rows) {
-  const header = ['Numero', 'Categoria', 'Projeto', 'Squad', 'Data_Producao(previsao_etapa)', 'Numero_GMUD'];
+  const header = ['Numero', 'Categoria', 'Projeto', 'Squad', 'Janela de Implantação', 'Numero_GMUD'];
   const lines = [header.join(',')];
   rows.forEach(r => {
     const line = [
