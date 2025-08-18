@@ -32,7 +32,7 @@ function openGMUDCacheDB() {
   });
 }
 
-function makeCacheKey({ dataInicialISO, dataFinalISO, version = 2 }) {
+function makeCacheKey({ dataInicialISO, dataFinalISO, version = 3 }) {
   // Inclui versão do schema de cache para invalidações futuras
   return `gmud:v${version}:${dataInicialISO || 'null'}:${dataFinalISO || 'null'}`;
 }
@@ -63,7 +63,7 @@ async function saveReportToCache(key, rows, { filters, ttlHours = 12 } = {}) {
       meta: {
         storedAt: now,
         expiresAt,
-        version: 2,
+        version: 3,
         filters: filters || {},
         count: Array.isArray(rows) ? rows.length : 0,
       },
@@ -102,6 +102,9 @@ function mapIssueToGMUDRow(issue) {
   return {
     numero: String(issue.id),
     titulo: issue.summary || '',
+    categoria: issue.category?.name || '',
+    projeto: getNomeAmigavelProjeto ? getNomeAmigavelProjeto(issue.project?.name || '') : (issue.project?.name || ''),
+    squad: getCustomFieldValueFromIssue(issue, SQUAD_CF_ID) || '',
     numero_gmud: getCustomFieldValueFromIssue(issue, GMUD_CF_ID) || '',
     previsao_etapa: getCustomFieldValueFromIssue(issue, PREVISAO_ETAPA_CF_ID) || '',
     relatedIds: [],
@@ -315,7 +318,7 @@ function renderSkeleton(rows = 8) {
   tbody.innerHTML = '';
   for (let i = 0; i < rows; i++) {
     const tr = document.createElement('tr');
-    for (let c = 0; c < 4; c++) {
+    for (let c = 0; c < 7; c++) {
       const td = document.createElement('td');
       td.innerHTML = '<div style="height:12px;background:linear-gradient(90deg, #eee, #f5f5f5, #eee);border-radius:6px;animation: gmud-shimmer 1.2s infinite;">&nbsp;</div>';
       tr.appendChild(td);
@@ -357,6 +360,9 @@ function attachSortHandlers() {
       rows.sort((a, b) => {
         if (key === 'numero') return (parseInt(a.numero) - parseInt(b.numero)) * factor;
         if (key === 'titulo') return (String(a.titulo || '').localeCompare(String(b.titulo || ''))) * factor;
+        if (key === 'categoria') return (String(a.categoria || '').localeCompare(String(b.categoria || ''))) * factor;
+        if (key === 'projeto') return (String(a.projeto || '').localeCompare(String(b.projeto || ''))) * factor;
+        if (key === 'squad') return (String(a.squad || '').localeCompare(String(b.squad || ''))) * factor;
         if (key === 'gmud') return (parseInt(a.numero_gmud || '0') - parseInt(b.numero_gmud || '0')) * factor;
         if (key === 'data') {
           const da = parseDate(a.previsao_etapa)?.getTime() || -Infinity;
@@ -458,6 +464,14 @@ function renderTable(rows) {
     const tdTitulo = document.createElement('td');
     tdTitulo.textContent = row.titulo || '';
 
+    // Novas colunas
+    const tdCategoria = document.createElement('td');
+    tdCategoria.textContent = row.categoria || '';
+    const tdProjeto = document.createElement('td');
+    tdProjeto.textContent = row.projeto || '';
+    const tdSquad = document.createElement('td');
+    tdSquad.textContent = row.squad || '';
+
     const tdData = document.createElement('td');
     if (!row.previsao_etapa || String(row.previsao_etapa).trim() === '') {
       tdData.textContent = 'Sem data (preencher previsao_etapa)';
@@ -473,6 +487,9 @@ function renderTable(rows) {
 
     tr.appendChild(tdNumero);
     tr.appendChild(tdTitulo);
+    tr.appendChild(tdCategoria);
+    tr.appendChild(tdProjeto);
+    tr.appendChild(tdSquad);
     tr.appendChild(tdData);
     tr.appendChild(tdGMUD);
     tbody.appendChild(tr);
@@ -499,6 +516,9 @@ async function toggleRelatedRows(parentRow, parentTr) {
       return {
         numero: String(det.id),
         titulo: det.summary || '',
+        categoria: det.category?.name || '',
+        projeto: getNomeAmigavelProjeto ? getNomeAmigavelProjeto(det.project?.name || '') : (det.project?.name || ''),
+        squad: getCustomFieldValueFromIssue(det, SQUAD_CF_ID) || '',
         numero_gmud: getCustomFieldValueFromIssue(det, GMUD_CF_ID) || '',
         previsao_etapa: getCustomFieldValueFromIssue(det, PREVISAO_ETAPA_CF_ID) || '',
       };
@@ -514,7 +534,7 @@ async function toggleRelatedRows(parentRow, parentTr) {
   headerTr.className = 'related-header-row';
   headerTr.dataset.parent = parentRow.numero;
   const headerTd = document.createElement('td');
-  headerTd.colSpan = 4; // número, título, data, gmud
+  headerTd.colSpan = 7; // número, título, categoria, projeto, squad, data, gmud
   headerTd.textContent = `Relacionadas de #${parentRow.numero}`;
   headerTr.appendChild(headerTd);
   tbody.insertBefore(headerTr, anchor);
@@ -538,6 +558,13 @@ async function toggleRelatedRows(parentRow, parentTr) {
     titleSpan.textContent = rr.titulo || '';
     tdTitulo.appendChild(titleSpan);
 
+    const tdCategoria = document.createElement('td');
+    tdCategoria.textContent = rr.categoria || '';
+    const tdProjeto = document.createElement('td');
+    tdProjeto.textContent = rr.projeto || '';
+    const tdSquad = document.createElement('td');
+    tdSquad.textContent = rr.squad || '';
+
     const tdData = document.createElement('td');
     tdData.textContent = rr.previsao_etapa ? convertToBrasiliaTimeSafe(rr.previsao_etapa) : '';
 
@@ -546,6 +573,9 @@ async function toggleRelatedRows(parentRow, parentTr) {
 
     tr.appendChild(tdNumero);
     tr.appendChild(tdTitulo);
+    tr.appendChild(tdCategoria);
+    tr.appendChild(tdProjeto);
+    tr.appendChild(tdSquad);
     tr.appendChild(tdData);
     tr.appendChild(tdGMUD);
 
@@ -555,11 +585,14 @@ async function toggleRelatedRows(parentRow, parentTr) {
 }
 
 function exportToCSV(rows) {
-  const header = ['Numero', 'Data_Producao(previsao_etapa)', 'Numero_GMUD'];
+  const header = ['Numero', 'Categoria', 'Projeto', 'Squad', 'Data_Producao(previsao_etapa)', 'Numero_GMUD'];
   const lines = [header.join(',')];
   rows.forEach(r => {
     const line = [
       `"${r.numero}"`,
+      `"${(r.categoria || '').replaceAll('"', '""')}"`,
+      `"${(r.projeto || '').replaceAll('"', '""')}"`,
+      `"${(r.squad || '').replaceAll('"', '""')}"`,
       `"${convertToBrasiliaTimeSafe(r.previsao_etapa)}"`,
       `"${(r.numero_gmud || '').replaceAll('"', '""')}"`
     ].join(',');
@@ -616,7 +649,7 @@ async function carregarDados() {
     // Salva cache (chave inclui filtros atuais)
     const dataInicialISO = dataInicial ? new Date(dataInicial.getFullYear(), dataInicial.getMonth(), dataInicial.getDate()).toISOString().slice(0,10) : null;
     const dataFinalISO = dataFinal ? new Date(dataFinal.getFullYear(), dataFinal.getMonth(), dataFinal.getDate()).toISOString().slice(0,10) : null;
-    const cacheKey = makeCacheKey({ dataInicialISO, dataFinalISO, version: 2 });
+    const cacheKey = makeCacheKey({ dataInicialISO, dataFinalISO, version: 3 });
     saveReportToCache(cacheKey, rows, {
       filters: { dataInicialISO, dataFinalISO },
       ttlHours: 12,
@@ -680,7 +713,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const dataFinalInput = document.getElementById('dataFinal');
       const dataInicialISO = dataInicialInput.value ? new Date(dataInicialInput.value).toISOString().slice(0,10) : null;
       const dataFinalISO = dataFinalInput.value ? new Date(dataFinalInput.value).toISOString().slice(0,10) : null;
-      const cacheKey = makeCacheKey({ dataInicialISO, dataFinalISO, version: 2 });
+      const cacheKey = makeCacheKey({ dataInicialISO, dataFinalISO, version: 3 });
       const cached = await getReportFromCache(cacheKey);
       if (cached && (!cached.meta.expiresAt || Date.now() < cached.meta.expiresAt)) {
         console.log('[GMUD][cache] usando cache', { key: cacheKey, count: cached.meta.count });
