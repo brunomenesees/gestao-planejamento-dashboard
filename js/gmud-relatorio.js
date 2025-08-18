@@ -126,6 +126,26 @@ function convertToBrasiliaTimeSafe(dateString) {
 function renderTable(rows) {
   const tbody = document.querySelector('#tabelaGMUD tbody');
   tbody.innerHTML = '';
+  // Alerta sobre itens sem previsao_etapa
+  const missingCount = rows.filter(r => !r.previsao_etapa || String(r.previsao_etapa).trim() === '').length;
+  let alertDiv = document.getElementById('gmud-missing-date-alert');
+  if (!alertDiv) {
+    alertDiv = document.createElement('div');
+    alertDiv.id = 'gmud-missing-date-alert';
+    alertDiv.style.margin = '8px 0';
+    alertDiv.style.padding = '8px 12px';
+    alertDiv.style.borderRadius = '6px';
+    alertDiv.style.background = '#fff4e5';
+    alertDiv.style.color = '#8a4b00';
+    const tableEl = document.getElementById('tabelaGMUD');
+    if (tableEl && tableEl.parentElement) {
+      tableEl.parentElement.insertBefore(alertDiv, tableEl);
+    }
+  }
+  alertDiv.style.display = missingCount > 0 ? 'block' : 'none';
+  if (missingCount > 0) {
+    alertDiv.textContent = `${missingCount} registro(s) sem data de previsão de etapa (CF 72). Será exibido avisos nas linhas correspondentes.`;
+  }
   for (const row of rows) {
     const tr = document.createElement('tr');
 
@@ -138,7 +158,14 @@ function renderTable(rows) {
     tdNumero.appendChild(link);
 
     const tdData = document.createElement('td');
-    tdData.textContent = convertToBrasiliaTimeSafe(row.previsao_etapa);
+    if (!row.previsao_etapa || String(row.previsao_etapa).trim() === '') {
+      tdData.textContent = 'Sem data (preencher previsao_etapa)';
+      tdData.style.color = '#8a4b00';
+      tdData.style.fontStyle = 'italic';
+      tdData.title = 'Chamado será exibido mesmo sem data de previsão de etapa, pois possui GMUD.';
+    } else {
+      tdData.textContent = convertToBrasiliaTimeSafe(row.previsao_etapa);
+    }
 
     const tdGMUD = document.createElement('td');
     tdGMUD.textContent = row.numero_gmud || '';
@@ -187,7 +214,11 @@ async function carregarDados() {
     let rows = await fetchResolvedWithGMUD();
     // Filtra por período em previsao_etapa
     if (dataInicial || dataFinal) {
-      rows = rows.filter(r => inDateRangeBrasilia(r.previsao_etapa, dataInicial, dataFinal));
+      // Mantém registros sem previsao_etapa, mesmo com filtro de data
+      rows = rows.filter(r => {
+        const hasDate = !!(r.previsao_etapa && String(r.previsao_etapa).trim());
+        return !hasDate || inDateRangeBrasilia(r.previsao_etapa, dataInicial, dataFinal);
+      });
     }
 
     renderTable(rows);
