@@ -138,7 +138,7 @@ async function authFetchMantis(endpoint, options = {}) {
     return Promise.reject(new Error('Não autenticado'));
   }
   // Usa o método autenticado existente para manter consistência com o proxy /api/mantis
-  return window.authService.makeAuthenticatedRequest(encodeURIComponent(endpoint), {
+  return window.authService.makeAuthenticatedRequest(endpoint, {
     ...options,
   });
 }

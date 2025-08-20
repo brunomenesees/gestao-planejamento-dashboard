@@ -41,8 +41,25 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { endpoint } = req.query;
-        const mantisUrl = `${process.env.MANTIS_BASE_URL}/api/rest/${endpoint}`;
+        const { endpoint, ...restQuery } = req.query;
+        // Suporta duas formas de envio pelo frontend:
+        // 1) endpoint já contendo a própria query string (ex: "issues?page=1&page_size=250")
+        // 2) endpoint apenas com o caminho (ex: "issues") e os demais parâmetros em restQuery (ex: page, page_size, include)
+        // Se endpoint vier com query sem estar codificada, o Vercel/Node dividirá em req.query.
+        // Precisamos recompor a query integral: query presente no endpoint + quaisquer pares extras em restQuery.
+        const endpointStr = String(endpoint || '');
+        const qIdx = endpointStr.indexOf('?');
+        const endpointPath = qIdx >= 0 ? endpointStr.slice(0, qIdx) : endpointStr;
+        const existingQS = qIdx >= 0 ? endpointStr.slice(qIdx + 1) : '';
+        const usp = new URLSearchParams(existingQS);
+        // Anexa parâmetros de restQuery que não existirem ainda
+        for (const k of Object.keys(restQuery || {})) {
+            const v = restQuery[k];
+            if (v != null && !usp.has(k)) usp.set(k, String(v));
+        }
+        let mantisUrl = `${process.env.MANTIS_BASE_URL}/api/rest/${endpointPath}`;
+        const finalQS = usp.toString();
+        if (finalQS) mantisUrl += `?${finalQS}`;
         
         const method = req.method;
         const headers = {
