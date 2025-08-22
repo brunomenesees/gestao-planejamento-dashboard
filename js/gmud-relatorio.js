@@ -143,11 +143,12 @@ async function authFetchMantis(endpoint, options = {}) {
   });
 }
 
-async function fetchIssuesPage({ page = 1, pageSize = 250, filterId } = {}) {
+async function fetchIssuesPage({ page = 1, pageSize = 250, filterId = 1483 } = {}) {
   const params = new URLSearchParams();
   params.set('page', String(page));
   params.set('page_size', String(pageSize));
-  // Removido filter_id para buscar geral (não aplicar filtro do Mantis)
+  // Aplicar filtro do Mantis conforme solicitado
+  if (filterId != null) params.set('filter_id', String(filterId));
   // Garante que os custom_fields venham no payload (necessário para CF 71/72)
   params.set('include', 'custom_fields');
   const endpoint = `issues?${params.toString()}`;
