@@ -481,6 +481,15 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   }
   
   console.log(`[GMUD][Debug] Total calculado para "${targetStatusName}": ${totalMs}ms`);
+  
+  // Debug específico para Aguardando Deploy
+  if (String(targetStatusName || '').toLowerCase() === 'aguardando deploy') {
+    console.log(`[GMUD][Debug] === DEBUG AGUARDANDO DEPLOY ===`);
+    console.log(`[GMUD][Debug] Status timeline para Aguardando Deploy:`, statusTimeline.filter(s => String(s.status || '').toLowerCase() === 'aguardando deploy'));
+    console.log(`[GMUD][Debug] Previsao timeline:`, previsaoTimeline);
+    console.log(`[GMUD][Debug] Detalhes da sobreposição:`, details);
+    console.log(`[GMUD][Debug] ================================`);
+  }
 
   const msToHuman = ms => {
     const days = Math.floor(ms / (1000 * 60 * 60 * 24));
