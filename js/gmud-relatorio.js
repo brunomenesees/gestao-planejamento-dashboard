@@ -366,6 +366,21 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   }
   if (currentStatus != null && currentStart) statusTimeline.push({ status: currentStatus, start: new Date(currentStart), end: new Date(lastKnown) });
 
+  // Lógica especial para "Aguardando Deploy" - período aberto se não resolvido
+  const isResolved = issue.resolution && String(issue.resolution.name || '').toLowerCase() === 'fixed';
+  const aguardandoDeployEntries = statusTimeline.filter(entry => 
+    String(entry.status || '').toLowerCase() === 'aguardando deploy'
+  );
+  
+  // Para cada entrada de "Aguardando Deploy", verifica se deve ser período aberto
+  for (const entry of aguardandoDeployEntries) {
+    if (!isResolved) {
+      // Se não resolvido, estende até o momento atual
+      entry.end = new Date(now);
+    }
+    // Se resolvido, mantém o período fechado original
+  }
+
   // build previsao events from history (custom field changes) and notes
   const previsaoEvents = [];
 
