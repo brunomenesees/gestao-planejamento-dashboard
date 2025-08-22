@@ -344,15 +344,29 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   const issueCreated = toDate(issue.created_at) || toDate(issue.date_submitted) || now;
   const lastKnown = toDate(issue.updated_at) || now;
 
-  // status changes from history
+  // status changes from history - busca mudanças no custom field "Status" (CF 70)
   const statusChanges = (issue.history || [])
     .filter(h => h.field && String(h.field.name || '').toLowerCase() === 'status')
     .map(h => ({
       at: toDate(h.created_at) || toDate(h.date) || now,
-      oldName: h.old_value?.name || (typeof h.old_value === 'string' ? h.old_value : null),
-      newName: h.new_value?.name || (typeof h.new_value === 'string' ? h.new_value : null),
+      oldName: h.old_value || (typeof h.old_value === 'string' ? h.old_value : null),
+      newName: h.new_value || (typeof h.new_value === 'string' ? h.new_value : null),
     }))
     .sort((a, b) => a.at - b.at);
+
+  // Se não há mudanças no custom field, cria uma entrada com o valor atual
+  if (statusChanges.length === 0) {
+    const currentStatusCF = (issue.custom_fields || []).find(cf => 
+      cf?.field?.id === 70 || String(cf?.field?.name || '').toLowerCase() === 'status'
+    );
+    if (currentStatusCF && String(currentStatusCF.value || '').trim()) {
+      statusChanges.push({
+        at: issueCreated,
+        oldName: '',
+        newName: String(currentStatusCF.value).trim()
+      });
+    }
+  }
 
   // build status timeline
   const statusTimeline = [];
@@ -368,17 +382,24 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
 
   // Lógica especial para "Aguardando Deploy" - período aberto se não resolvido
   const isResolved = issue.resolution && String(issue.resolution.name || '').toLowerCase() === 'fixed';
+  console.log(`[GMUD][Debug] Issue ${issue.id}: isResolved = ${isResolved}, resolution = ${issue.resolution?.name}`);
+  
   const aguardandoDeployEntries = statusTimeline.filter(entry => 
     String(entry.status || '').toLowerCase() === 'aguardando deploy'
   );
+  console.log(`[GMUD][Debug] Aguardando Deploy entries encontradas: ${aguardandoDeployEntries.length}`);
+  console.log(`[GMUD][Debug] Status timeline:`, statusTimeline.map(e => ({ status: e.status, start: e.start.toISOString(), end: e.end.toISOString() })));
   
   // Para cada entrada de "Aguardando Deploy", verifica se deve ser período aberto
   for (const entry of aguardandoDeployEntries) {
     if (!isResolved) {
       // Se não resolvido, estende até o momento atual
+      const oldEnd = entry.end;
       entry.end = new Date(now);
+      console.log(`[GMUD][Debug] Aguardando Deploy: período estendido de ${oldEnd.toISOString()} para ${entry.end.toISOString()}`);
+    } else {
+      console.log(`[GMUD][Debug] Aguardando Deploy: período fechado em ${entry.end.toISOString()} (resolvido)`);
     }
-    // Se resolvido, mantém o período fechado original
   }
 
   // build previsao events from history (custom field changes) and notes
