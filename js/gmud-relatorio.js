@@ -846,51 +846,6 @@ function ensureAuth() {
   return true;
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('[GMUD] DOMContentLoaded on gmud-relatorio');
-  if (!ensureAuth()) return;
-  const btnCarregar = document.getElementById('btnCarregar');
-  const btnExportar = document.getElementById('btnExportar');
-  const btnLimpar = document.getElementById('btnLimpar');
-
-  btnCarregar?.addEventListener('click', async () => {
-    console.log('[GMUD] Click on Carregar');
-    window.__gmudRows = await carregarDados();
-  });
-  btnExportar?.addEventListener('click', () => {
-    console.log('[GMUD] Click on Exportar CSV, rows:', window.__gmudRows ? window.__gmudRows.length : 0);
-    exportToCSV(window.__gmudRows || []);
-  });
-
-  btnLimpar?.addEventListener('click', () => {
-    const dataInicialInput = document.getElementById('dataInicial');
-    const dataFinalInput = document.getElementById('dataFinal');
-    const ultima = document.getElementById('ultimaAtualizacao');
-    if (dataInicialInput) dataInicialInput.value = '';
-    if (dataFinalInput) dataFinalInput.value = '';
-    window.__gmudRows = [];
-    if (btnExportar) btnExportar.disabled = true;
-    clearTableAndStatus();
-    if (ultima) ultima.textContent = '';
-  });
-  attachSortHandlers();
-  updateSortIndicators();
-
-  // Atualiza offset sticky conforme altura da toolbar
-  function updateStickyOffset() {
-    const toolbar = document.querySelector('.gmud-toolbar.sticky');
-    const h = toolbar ? Math.ceil(toolbar.getBoundingClientRect().height) : 56;
-    document.documentElement.style.setProperty('--gmud-sticky-offset', h + 'px');
-  }
-  updateStickyOffset();
-  window.addEventListener('resize', updateStickyOffset);
-  // Se toolbar alterar de tamanho dinamicamente
-  const tb = document.querySelector('.gmud-toolbar.sticky');
-  if (window.ResizeObserver && tb) {
-    const ro = new ResizeObserver(() => updateStickyOffset());
-    ro.observe(tb);
-  }
-
 // Função para expandir/contrair resumo de status
 async function toggleStatusSummary(row, tr) {
   const tbody = document.querySelector('#tabelaGMUD tbody');
@@ -963,6 +918,51 @@ async function toggleStatusSummary(row, tr) {
   const nextSibling = tr.nextSibling;
   tbody.insertBefore(summaryTr, nextSibling);
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('[GMUD] DOMContentLoaded on gmud-relatorio');
+  if (!ensureAuth()) return;
+  const btnCarregar = document.getElementById('btnCarregar');
+  const btnExportar = document.getElementById('btnExportar');
+  const btnLimpar = document.getElementById('btnLimpar');
+
+  btnCarregar?.addEventListener('click', async () => {
+    console.log('[GMUD] Click on Carregar');
+    window.__gmudRows = await carregarDados();
+  });
+  btnExportar?.addEventListener('click', () => {
+    console.log('[GMUD] Click on Exportar CSV, rows:', window.__gmudRows ? window.__gmudRows.length : 0);
+    exportToCSV(window.__gmudRows || []);
+  });
+
+  btnLimpar?.addEventListener('click', () => {
+    const dataInicialInput = document.getElementById('dataInicial');
+    const dataFinalInput = document.getElementById('dataFinal');
+    const ultima = document.getElementById('ultimaAtualizacao');
+    if (dataInicialInput) dataInicialInput.value = '';
+    if (dataFinalInput) dataFinalInput.value = '';
+    window.__gmudRows = [];
+    if (btnExportar) btnExportar.disabled = true;
+    clearTableAndStatus();
+    if (ultima) ultima.textContent = '';
+  });
+  attachSortHandlers();
+  updateSortIndicators();
+
+  // Atualiza offset sticky conforme altura da toolbar
+  function updateStickyOffset() {
+    const toolbar = document.querySelector('.gmud-toolbar.sticky');
+    const h = toolbar ? Math.ceil(toolbar.getBoundingClientRect().height) : 56;
+    document.documentElement.style.setProperty('--gmud-sticky-offset', h + 'px');
+  }
+  updateStickyOffset();
+  window.addEventListener('resize', updateStickyOffset);
+  // Se toolbar alterar de tamanho dinamicamente
+  const tb = document.querySelector('.gmud-toolbar.sticky');
+  if (window.ResizeObserver && tb) {
+    const ro = new ResizeObserver(() => updateStickyOffset());
+    ro.observe(tb);
+  }
 
   // Tentativa de carregar do cache automaticamente
   (async () => {
