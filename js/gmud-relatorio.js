@@ -1,5 +1,5 @@
 // gmud-relatorio.js
-// Página dedicada ao relatório de GMUD (somente Resolvidos, com GMUD, Categoria=Projetos)
+// Página dedicada ao relatório de GMUD (com GMUD preenchida em qualquer status, Categoria=Projetos)
 
 // Configurações
 const GMUD_CF_ID = 71; // Numero_GMUD
@@ -187,15 +187,12 @@ async function fetchResolvedWithGMUD({ pageSize = 250 } = {}) {
     }
   }
 
-  // Client-side filters: somente resolved/resolvido e com GMUD preenchido
-  const resolvedOnly = all.filter(it => isResolved(it));
+  // Client-side filters: apenas com GMUD preenchido (qualquer status)
   const gmudOnly = all.filter(it => hasGMUD(it));
-  const filtered = all.filter(it => isResolved(it) && hasGMUD(it));
+  const filtered = gmudOnly;
   console.log('[GMUD] Totals:', {
     fetched: all.length,
-    resolvedOnly: resolvedOnly.length,
     gmudOnly: gmudOnly.length,
-    bothResolvedAndGMUD: filtered.length,
   });
   const gmudSample = gmudOnly.slice(0, 5).map(it => ({ id: it.id, status: (it.status?.name || '').toLowerCase(), gmud: getCustomFieldValueFromIssue(it, GMUD_CF_ID) }));
   console.log('[GMUD] Sample of GMUD issues (id, status, gmud):', gmudSample);
