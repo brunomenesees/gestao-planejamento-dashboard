@@ -388,10 +388,11 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   for (const entry of statusTimeline) {
     if (String(entry.status || '').toLowerCase() === 'aguardando deploy') {
       if (!isResolved) {
-        // Se não resolvido, estende até o momento atual
+        // Se não resolvido, estende até o momento atual em horário de Brasília
         const oldEnd = entry.end;
-        entry.end = new Date(now);
-        console.log(`[GMUD][Debug] Aguardando Deploy: período estendido de ${oldEnd.toISOString()} para ${entry.end.toISOString()}`);
+        const nowBrasilia = new Date(convertToBrasiliaTime(new Date().toISOString()));
+        entry.end = nowBrasilia;
+        console.log(`[GMUD][Debug] Aguardando Deploy: período estendido de ${oldEnd.toISOString()} para ${entry.end.toISOString()} (Brasília: ${nowBrasilia.toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})})`);
       } else {
         console.log(`[GMUD][Debug] Aguardando Deploy: período fechado em ${entry.end.toISOString()} (resolvido)`);
       }
