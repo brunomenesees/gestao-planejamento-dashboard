@@ -387,14 +387,18 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   // Para cada entrada de "Aguardando Deploy", verifica se deve ser período aberto
   for (const entry of statusTimeline) {
     if (String(entry.status || '').toLowerCase() === 'aguardando deploy') {
-      if (!isResolved) {
-        // Se não resolvido, estende até o momento atual
-        const oldEnd = entry.end;
-        entry.end = new Date();
-        console.log(`[GMUD][Debug] Aguardando Deploy: período estendido de ${oldEnd.toISOString()} para ${entry.end.toISOString()} (Agora: ${entry.end.toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})})`);
-      } else {
-        console.log(`[GMUD][Debug] Aguardando Deploy: período fechado em ${entry.end.toISOString()} (resolvido)`);
-      }
+                      if (!isResolved) {
+                  // Se não resolvido, estende até o momento atual em Brasília
+                  const oldEnd = entry.end;
+                  const now = new Date();
+                  // Converte para horário de Brasília
+                  const brasiliaOffset = -3 * 60 * 60 * 1000; // -3 horas em milissegundos
+                  const brasiliaNow = new Date(now.getTime() + brasiliaOffset);
+                  entry.end = brasiliaNow;
+                  console.log(`[GMUD][Debug] Aguardando Deploy: período estendido de ${oldEnd.toISOString()} para ${entry.end.toISOString()} (Agora: ${entry.end.toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})})`);
+                } else {
+                  console.log(`[GMUD][Debug] Aguardando Deploy: período fechado em ${entry.end.toISOString()} (resolvido)`);
+                }
     }
   }
   
