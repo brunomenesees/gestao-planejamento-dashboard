@@ -10,6 +10,27 @@ const SQUAD_CF_ID = 49; // referência existente
 // Filtro fixo: Categoria=Projetos (reutiliza filterId usado no dashboard)
 const FILTER_ID_PROJETOS = 1477;
 
+// Lista de status para cálculo de tempo (definida pelo usuário)
+const STATUS_LIST = [
+  'Aguardando Deploy',
+  'Ajuste Especificação',
+  'Ajustes',
+  'Análise Suporte',
+  'Code Review',
+  'Desenvolvimento',
+  'Despriorizado',
+  'Especificação',
+  'Revisão Especificação',
+  'Fila ABAP',
+  'Fila Analytics',
+  'Fila Especificação',
+  'Fila WEB',
+  'Testes',
+  'Pendência',
+  'Pendência Cliente',
+  'Validação Cliente'
+];
+
 // IndexedDB (cache local dedicado desta página)
 const GMUD_DB_NAME = 'gp-gmud-cache-v1';
 const GMUD_DB_VERSION = 1;
@@ -116,6 +137,7 @@ function mapIssueToGMUDRow(issue) {
     numero_gmud: getCustomFieldValueFromIssue(issue, GMUD_CF_ID) || '',
     previsao_etapa: getCustomFieldValueFromIssue(issue, PREVISAO_ETAPA_CF_ID) || '',
     relatedIds: [],
+    raw: issue, // Adiciona o objeto issue original para referência
   };
 }
 
@@ -614,6 +636,26 @@ function renderTable(rows) {
 
     const tdGMUD = document.createElement('td');
     tdGMUD.textContent = row.numero_gmud || '';
+    
+    // Adiciona botão de expansão de status
+    if (row.raw) {
+      const btnStatus = document.createElement('button');
+      btnStatus.innerHTML = '⏱';
+      btnStatus.className = 'btn-status-expand';
+      btnStatus.title = 'Ver resumo de tempo por status';
+      btnStatus.style.marginLeft = '8px';
+      btnStatus.style.padding = '4px 8px';
+      btnStatus.style.border = '1px solid #ddd';
+      btnStatus.style.borderRadius = '4px';
+      btnStatus.style.background = '#f8f9fa';
+      btnStatus.style.cursor = 'pointer';
+      btnStatus.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleStatusSummary(row, tr);
+      });
+      tdGMUD.appendChild(btnStatus);
+    }
 
     tr.appendChild(tdNumero);
     tr.appendChild(tdTitulo);
@@ -848,6 +890,79 @@ window.addEventListener('DOMContentLoaded', () => {
     const ro = new ResizeObserver(() => updateStickyOffset());
     ro.observe(tb);
   }
+
+// Função para expandir/contrair resumo de status
+async function toggleStatusSummary(row, tr) {
+  const tbody = document.querySelector('#tabelaGMUD tbody');
+  if (!tbody || !row.raw) return;
+  
+  const selector = `tr.status-summary-row[data-parent="${row.numero}"]`;
+  const existing = tbody.querySelector(selector);
+  
+  if (existing) {
+    existing.remove();
+    return;
+  }
+  
+  // Busca detalhes da issue se necessário
+  let issue = row.raw;
+  if (!issue.history && !issue.notes) {
+    try {
+      const detail = await fetchIssueDetails(row.numero);
+      if (detail) {
+        issue = detail;
+        row.raw = detail; // Atualiza o cache
+      }
+    } catch (e) {
+      console.warn('[GMUD] Falha ao buscar detalhes para status summary', e);
+    }
+  }
+  
+  // Calcula tempos por status
+  const statusTimes = computeAllStatusesWithPrevisao(issue, STATUS_LIST);
+  
+  // Cria linha de resumo
+  const summaryTr = document.createElement('tr');
+  summaryTr.className = 'status-summary-row';
+  summaryTr.dataset.parent = row.numero;
+  
+  const summaryTd = document.createElement('td');
+  summaryTd.colSpan = 7;
+  summaryTd.style.backgroundColor = '#f8f9fa';
+  summaryTd.style.padding = '12px';
+  summaryTd.style.borderTop = '2px solid #dee2e6';
+  
+  // HTML do resumo
+  let summaryHtml = '<div style="font-weight: 600; margin-bottom: 12px; color: #495057;">⏱ Resumo de Tempo por Status:</div>';
+  summaryHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">';
+  
+  let hasData = false;
+  for (const [status, data] of Object.entries(statusTimes)) {
+    if (data.totalMs > 0) {
+      hasData = true;
+      const statusName = status;
+      summaryHtml += `
+        <div style="padding: 8px 10px; background: white; border-radius: 6px; border: 1px solid #dee2e6; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div style="font-weight: 600; color: #495057; margin-bottom: 4px;">${statusName}</div>
+          <div style="color: #6c757d; font-size: 14px;">${data.totalMs > 0 ? data.totalHuman : '0d 00h 00m'}</div>
+        </div>
+      `;
+    }
+  }
+  
+  if (!hasData) {
+    summaryHtml += '<div style="grid-column: 1 / -1; text-align: center; color: #6c757d; font-style: italic; padding: 20px;">Nenhum tempo registrado para os status configurados</div>';
+  }
+  
+  summaryHtml += '</div>';
+  summaryTd.innerHTML = summaryHtml;
+  
+  summaryTr.appendChild(summaryTd);
+  
+  // Insere após a linha atual
+  const nextSibling = tr.nextSibling;
+  tbody.insertBefore(summaryTr, nextSibling);
+}
 
   // Tentativa de carregar do cache automaticamente
   (async () => {
