@@ -317,6 +317,118 @@ function convertToBrasiliaTimeSafe(dateString) {
   }
 }
 
+function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date() } = {}) {
+  const toDate = s => (s ? new Date(s) : null);
+  const issueCreated = toDate(issue.created_at) || toDate(issue.date_submitted) || now;
+  const lastKnown = toDate(issue.updated_at) || now;
+
+  // status changes from history
+  const statusChanges = (issue.history || [])
+    .filter(h => h.field && String(h.field.name || '').toLowerCase() === 'status')
+    .map(h => ({
+      at: toDate(h.created_at) || toDate(h.date) || now,
+      oldName: h.old_value?.name || (typeof h.old_value === 'string' ? h.old_value : null),
+      newName: h.new_value?.name || (typeof h.new_value === 'string' ? h.new_value : null),
+    }))
+    .sort((a, b) => a.at - b.at);
+
+  // build status timeline
+  const statusTimeline = [];
+  let currentStatus = (statusChanges[0] && statusChanges[0].oldName) || (issue.status && issue.status.name) || null;
+  let currentStart = issueCreated;
+  for (const ch of statusChanges) {
+    const end = ch.at;
+    if (currentStatus != null && currentStart) statusTimeline.push({ status: currentStatus, start: new Date(currentStart), end: new Date(end) });
+    currentStatus = ch.newName;
+    currentStart = ch.at;
+  }
+  if (currentStatus != null && currentStart) statusTimeline.push({ status: currentStatus, start: new Date(currentStart), end: new Date(lastKnown) });
+
+  // build previsao events from history (custom field changes) and notes
+  const previsaoEvents = [];
+
+  for (const h of (issue.history || [])) {
+    const fname = (h.field && String(h.field.name || '').toLowerCase()) || '';
+    if (fname.includes('previs')) {
+      const val = h.new_value && (typeof h.new_value === 'string' ? h.new_value : (h.new_value.value || '')) || '';
+      previsaoEvents.push({ at: new Date(h.created_at || h.date || now), value: String(val || '').trim() });
+    }
+  }
+
+  const noteDateRegex = /(?:previs(?:ã|a)o(?: de término| de termino| para|:)?|previsto(?: para)?)\s*[:\-]?\s*(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i;
+  for (const n of (issue.notes || [])) {
+    const txt = String(n.text || n.note || '');
+    if (/previs/i.test(txt)) {
+      const m = txt.match(noteDateRegex);
+      const extracted = m ? m[1] : null;
+      previsaoEvents.push({ at: new Date(n.created_at || n.date || now), value: extracted ? extracted.trim() : '__PRESENT__' });
+    }
+  }
+
+  previsaoEvents.sort((a, b) => a.at - b.at);
+
+  // build previsao timeline (intervals where previsao is considered present)
+  const previsaoTimeline = [];
+  for (let i = 0; i < previsaoEvents.length; i++) {
+    const ev = previsaoEvents[i];
+    const start = ev.at;
+    const end = (i + 1 < previsaoEvents.length) ? previsaoEvents[i + 1].at : lastKnown;
+    const val = ev.value;
+    const hasValue = val && String(val).trim() !== '' && val !== '__PRESENT__';
+    const presentFlag = val === '__PRESENT__' || hasValue;
+    previsaoTimeline.push({ start: new Date(start), end: new Date(end), value: val, present: presentFlag });
+  }
+
+  // fallback: if no previsao events but CF current value exists, treat as present for full lifetime
+  const cf = (issue.custom_fields || []).find(cf => cf?.field?.id === PREVISAO_ETAPA_CF_ID || String(cf?.field?.name || '').toLowerCase().includes('previs'));
+  if (previsaoTimeline.length === 0 && cf && String(cf.value || '').trim()) {
+    previsaoTimeline.push({ start: issueCreated, end: lastKnown, value: String(cf.value), present: true });
+  }
+
+  function overlap(aStart, aEnd, bStart, bEnd) {
+    const s = Math.max(+aStart, +bStart);
+    const e = Math.min(+aEnd, +bEnd);
+    return Math.max(0, e - s);
+  }
+
+  const targetLower = String(targetStatusName || '').toLowerCase();
+  let totalMs = 0;
+  const details = [];
+  for (const sInt of statusTimeline) {
+    if (String(sInt.status || '').toLowerCase() !== targetLower) continue;
+    for (const pInt of previsaoTimeline) {
+      if (!pInt.present) continue;
+      const ov = overlap(sInt.start, sInt.end, pInt.start, pInt.end);
+      if (ov > 0) {
+        totalMs += ov;
+        details.push({
+          statusStart: sInt.start,
+          statusEnd: sInt.end,
+          previsaoStart: pInt.start,
+          previsaoEnd: pInt.end,
+          millis: ov,
+          previsaoValue: pInt.value
+        });
+      }
+    }
+  }
+
+  const msToHuman = ms => {
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    return `${days}d ${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m`;
+  };
+
+  return { totalMs, totalHuman: msToHuman(totalMs), details };
+}
+
+function computeAllStatusesWithPrevisao(issue, statusList, opts = {}) {
+  const result = {};
+  for (const s of statusList) result[s] = computeStatusTimeWithPrevisao(issue, s, opts);
+  return result;
+}
+
 function renderSkeleton(rows = 8) {
   const tbody = document.querySelector('#tabelaGMUD tbody');
   const status = document.getElementById('gmud-status');
