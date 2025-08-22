@@ -440,8 +440,16 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   // fallback: if no previsao events but CF current value exists, treat as present for full lifetime
   const cf = (issue.custom_fields || []).find(cf => cf?.field?.id === PREVISAO_ETAPA_CF_ID || String(cf?.field?.name || '').toLowerCase().includes('previs'));
   if (previsaoTimeline.length === 0 && cf && String(cf.value || '').trim()) {
-    previsaoTimeline.push({ start: issueCreated, end: lastKnown, value: String(cf.value), present: true });
+    // Para "Aguardando Deploy" não resolvido, estende a previsão até agora
+    const currentStatusCF = (issue.custom_fields || []).find(cf => 
+      cf?.field?.id === 70 || String(cf?.field?.name || '').toLowerCase() === 'status'
+    );
+    const isAguardandoDeploy = currentStatusCF && String(currentStatusCF.value || '').toLowerCase() === 'aguardando deploy';
+    const previsaoEnd = (!isResolved && isAguardandoDeploy) ? new Date(now) : lastKnown;
+    previsaoTimeline.push({ start: issueCreated, end: previsaoEnd, value: String(cf.value), present: true });
   }
+  
+  console.log(`[GMUD][Debug] Previsao timeline:`, previsaoTimeline.map(p => ({ start: p.start.toISOString(), end: p.end.toISOString(), present: p.present, value: p.value })));
 
   function overlap(aStart, aEnd, bStart, bEnd) {
     const s = Math.max(+aStart, +bStart);
@@ -452,11 +460,20 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   const targetLower = String(targetStatusName || '').toLowerCase();
   let totalMs = 0;
   const details = [];
+  
+  console.log(`[GMUD][Debug] Calculando para status: "${targetStatusName}" (target: "${targetLower}")`);
+  
   for (const sInt of statusTimeline) {
     if (String(sInt.status || '').toLowerCase() !== targetLower) continue;
+    
+    console.log(`[GMUD][Debug] Processando intervalo de status: ${sInt.status} (${sInt.start.toISOString()} - ${sInt.end.toISOString()})`);
+    
     for (const pInt of previsaoTimeline) {
       if (!pInt.present) continue;
       const ov = overlap(sInt.start, sInt.end, pInt.start, pInt.end);
+      
+      console.log(`[GMUD][Debug] Sobreposição com previsão: ${ov}ms (previsão: ${pInt.start.toISOString()} - ${pInt.end.toISOString()})`);
+      
       if (ov > 0) {
         totalMs += ov;
         details.push({
@@ -470,6 +487,8 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
       }
     }
   }
+  
+  console.log(`[GMUD][Debug] Total calculado para "${targetStatusName}": ${totalMs}ms`);
 
   const msToHuman = ms => {
     const days = Math.floor(ms / (1000 * 60 * 60 * 24));
