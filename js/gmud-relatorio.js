@@ -384,23 +384,21 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   const isResolved = issue.resolution && String(issue.resolution.name || '').toLowerCase() === 'fixed';
   console.log(`[GMUD][Debug] Issue ${issue.id}: isResolved = ${isResolved}, resolution = ${issue.resolution?.name}`);
   
-  const aguardandoDeployEntries = statusTimeline.filter(entry => 
-    String(entry.status || '').toLowerCase() === 'aguardando deploy'
-  );
-  console.log(`[GMUD][Debug] Aguardando Deploy entries encontradas: ${aguardandoDeployEntries.length}`);
-  console.log(`[GMUD][Debug] Status timeline:`, statusTimeline.map(e => ({ status: e.status, start: e.start.toISOString(), end: e.end.toISOString() })));
-  
   // Para cada entrada de "Aguardando Deploy", verifica se deve ser período aberto
-  for (const entry of aguardandoDeployEntries) {
-    if (!isResolved) {
-      // Se não resolvido, estende até o momento atual
-      const oldEnd = entry.end;
-      entry.end = new Date(now);
-      console.log(`[GMUD][Debug] Aguardando Deploy: período estendido de ${oldEnd.toISOString()} para ${entry.end.toISOString()}`);
-    } else {
-      console.log(`[GMUD][Debug] Aguardando Deploy: período fechado em ${entry.end.toISOString()} (resolvido)`);
+  for (const entry of statusTimeline) {
+    if (String(entry.status || '').toLowerCase() === 'aguardando deploy') {
+      if (!isResolved) {
+        // Se não resolvido, estende até o momento atual
+        const oldEnd = entry.end;
+        entry.end = new Date(now);
+        console.log(`[GMUD][Debug] Aguardando Deploy: período estendido de ${oldEnd.toISOString()} para ${entry.end.toISOString()}`);
+      } else {
+        console.log(`[GMUD][Debug] Aguardando Deploy: período fechado em ${entry.end.toISOString()} (resolvido)`);
+      }
     }
   }
+  
+  console.log(`[GMUD][Debug] Status timeline após ajuste:`, statusTimeline.map(e => ({ status: e.status, start: e.start.toISOString(), end: e.end.toISOString() })));
 
   // build previsao events from history (custom field changes) and notes
   const previsaoEvents = [];
@@ -440,13 +438,7 @@ function computeStatusTimeWithPrevisao(issue, targetStatusName, { now = new Date
   // fallback: if no previsao events but CF current value exists, treat as present for full lifetime
   const cf = (issue.custom_fields || []).find(cf => cf?.field?.id === PREVISAO_ETAPA_CF_ID || String(cf?.field?.name || '').toLowerCase().includes('previs'));
   if (previsaoTimeline.length === 0 && cf && String(cf.value || '').trim()) {
-    // Para "Aguardando Deploy" não resolvido, estende a previsão até agora
-    const currentStatusCF = (issue.custom_fields || []).find(cf => 
-      cf?.field?.id === 70 || String(cf?.field?.name || '').toLowerCase() === 'status'
-    );
-    const isAguardandoDeploy = currentStatusCF && String(currentStatusCF.value || '').toLowerCase() === 'aguardando deploy';
-    const previsaoEnd = (!isResolved && isAguardandoDeploy) ? new Date(now) : lastKnown;
-    previsaoTimeline.push({ start: issueCreated, end: previsaoEnd, value: String(cf.value), present: true });
+    previsaoTimeline.push({ start: issueCreated, end: lastKnown, value: String(cf.value), present: true });
   }
   
   console.log(`[GMUD][Debug] Previsao timeline:`, previsaoTimeline.map(p => ({ start: p.start.toISOString(), end: p.end.toISOString(), present: p.present, value: p.value })));
