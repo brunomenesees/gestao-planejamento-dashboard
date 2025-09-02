@@ -2331,6 +2331,9 @@ async function atualizarDados() {
 async function atualizarDemandasUnica(issueId) {
     console.debug(`[atualizarDemandasUnica] Atualizando issue #${issueId}`);
     try {
+        // Adiciona um pequeno delay para garantir que o comentário esteja disponível na API
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Buscar apenas a issue específica usando a função mantisRequest para manter consistência
         // Adiciona parâmetro para incluir as notas na resposta
         const response = await mantisRequest(`issues/${issueId}?include=notes`, { method: 'GET' });
@@ -4399,15 +4402,17 @@ function createUnifiedEditModal(demanda) {
             });
 
             if (success) {
-                progressBar.style.width = '100%';
-                mostrarNotificacao('Alterações salvas com sucesso!', 'success');
+                progressBar.style.width = '70%';
                 
                 try {
                     // Atualiza apenas a demanda específica
                     await atualizarDemandasUnica(demanda.numero);
+                    progressBar.style.width = '100%';
+                    mostrarNotificacao('Alterações salvas com sucesso!', 'success');
                 } catch (error) {
                     console.error('Erro ao atualizar demanda, tentando atualização completa:', error);
                     await atualizarDados(); // Fallback para atualização completa em caso de erro
+                    mostrarNotificacao('Alterações salvas, mas foi necessária uma atualização completa.', 'success');
                 }
                 overlay.remove();
             } else {
