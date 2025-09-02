@@ -2803,10 +2803,22 @@ function createMassEditModal(ticketNumbers) {
         }
     }
 
+    // Armazena os valores iniciais dos campos quando o modal é aberto
+    const initialValues = {
+        status: '',
+        gmud: '',
+        previsao: '',
+        equipe: '',
+        respAtual: '',
+        analista: '',
+        comment: '',
+        resolved: false
+    };
+
     // Event handlers para atualização dinâmica do resumo
     const updateSummary = () => {
         const resultsBox = modal.querySelector('#massResults');
-        const values = {
+        const currentValues = {
             status: modal.querySelector('#massStatus').value,
             gmud: modal.querySelector('#massGmud').value.trim(),
             previsao: modal.querySelector('#massPrevisao').value,
@@ -2817,58 +2829,68 @@ function createMassEditModal(ticketNumbers) {
             resolved: modal.querySelector('#applyResolved').checked
         };
 
+        // Só mostra campos que foram realmente alterados
         const changes = [];
 
-        if (values.status) {
+        // Apenas mostra o status se ele foi selecionado explicitamente e não está marcado como resolvido
+        // Verifica se o status foi alterado
+        if (currentValues.status && currentValues.status !== initialValues.status) {
             changes.push(`<div class="summary-item">
                 <span class="summary-label">Status:</span>
-                <span class="summary-value">${values.status === '__CLEAR__' ? '(em branco)' : values.status}</span>
+                <span class="summary-value">${currentValues.status === '__CLEAR__' ? '(em branco)' : currentValues.status}</span>
             </div>`);
         }
 
-        if (values.gmud) {
+        // Verifica se a GMUD foi alterada
+        if (currentValues.gmud && currentValues.gmud !== initialValues.gmud) {
             changes.push(`<div class="summary-item">
                 <span class="summary-label">GMUD:</span>
-                <span class="summary-value">${values.gmud}</span>
+                <span class="summary-value">${currentValues.gmud}</span>
             </div>`);
         }
 
-        if (values.previsao) {
+        // Verifica se a previsão foi alterada
+        if (currentValues.previsao && currentValues.previsao !== initialValues.previsao) {
             changes.push(`<div class="summary-item">
                 <span class="summary-label">Previsão:</span>
-                <span class="summary-value">${values.previsao}</span>
+                <span class="summary-value">${currentValues.previsao}</span>
             </div>`);
         }
 
-        if (values.equipe) {
+        // Verifica se a equipe foi alterada
+        if (currentValues.equipe && currentValues.equipe !== initialValues.equipe) {
             changes.push(`<div class="summary-item">
                 <span class="summary-label">Equipe:</span>
-                <span class="summary-value">${values.equipe}</span>
+                <span class="summary-value">${currentValues.equipe}</span>
             </div>`);
         }
 
-        if (values.respAtual) {
+        // Verifica se o responsável foi alterado
+        if (currentValues.respAtual && currentValues.respAtual !== initialValues.respAtual) {
             changes.push(`<div class="summary-item">
                 <span class="summary-label">Responsável:</span>
-                <span class="summary-value">${values.respAtual === '__CLEAR__' ? '(em branco)' : values.respAtual}</span>
+                <span class="summary-value">${currentValues.respAtual === '__CLEAR__' ? '(em branco)' : currentValues.respAtual}</span>
             </div>`);
         }
 
-        if (values.analista) {
+        // Verifica se o analista foi alterado
+        if (currentValues.analista && currentValues.analista !== initialValues.analista) {
             changes.push(`<div class="summary-item">
                 <span class="summary-label">Analista:</span>
-                <span class="summary-value">${values.analista}</span>
+                <span class="summary-value">${currentValues.analista}</span>
             </div>`);
         }
 
-        if (values.comment) {
+        // Verifica se foi adicionado um comentário
+        if (currentValues.comment && currentValues.comment !== initialValues.comment) {
             changes.push(`<div class="summary-item">
                 <span class="summary-label">Comentário:</span>
                 <span class="summary-value">Será adicionado</span>
             </div>`);
         }
 
-        if (values.resolved) {
+        // Verifica se o checkbox de resolvido foi marcado
+        if (currentValues.resolved && currentValues.resolved !== initialValues.resolved) {
             changes.push(`<div class="summary-item">
                 <span class="summary-label">Status:</span>
                 <span class="summary-value">Será marcado como resolvido</span>
@@ -2882,11 +2904,18 @@ function createMassEditModal(ticketNumbers) {
         modal.querySelector('#massSave').disabled = changes.length === 0 || isSubmitting;
     };
 
-    // Adiciona listeners para todos os campos
+    // Captura os valores iniciais dos campos
     ['Status', 'Analista', 'RespAtual', 'Equipe', 'Previsao', 'Gmud'].forEach(field => {
         const el = modal.querySelector(`#mass${field}`);
-        if (el) el.addEventListener('input', updateSummary);
+        if (el) {
+            const fieldName = field.charAt(0).toLowerCase() + field.slice(1);
+            initialValues[fieldName] = el.value;
+            el.addEventListener('input', updateSummary);
+        }
     });
+
+    initialValues.comment = modal.querySelector('#massComment').value.trim();
+    initialValues.resolved = modal.querySelector('#applyResolved').checked;
 
     modal.querySelector('#massComment').addEventListener('input', updateSummary);
     modal.querySelector('#applyResolved').addEventListener('change', updateSummary);
