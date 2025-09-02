@@ -2334,9 +2334,12 @@ async function atualizarDemandasUnica(issueId) {
         // Adiciona um delay maior para garantir que o comentário esteja disponível na API
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Buscar apenas a issue específica usando a função mantisRequest para manter consistência
-        // Adiciona parâmetro para incluir as notas na resposta
-        const response = await mantisRequest(`issues/${issueId}?include=notes`, { method: 'GET' });
+        // Busca primeiro as notas da issue
+        const notesResponse = await mantisRequest(`issues/${issueId}/notes`, { method: 'GET' });
+        console.debug('[atualizarDemandasUnica] Notas recebidas:', notesResponse);
+        
+        // Depois busca os dados da issue
+        const response = await mantisRequest(`issues/${issueId}`, { method: 'GET' });
         
         console.debug('[atualizarDemandasUnica] Resposta da API:', response);
         
@@ -2344,10 +2347,16 @@ async function atualizarDemandasUnica(issueId) {
             throw new Error('Falha ao buscar dados da issue');
         }
         
+        const issue = response.issues[0];
+        
+        // Adiciona as notas à issue antes de processá-la
+        if (notesResponse && notesResponse.notes) {
+            issue.notes = notesResponse.notes;
+            console.debug('[atualizarDemandasUnica] Notas adicionadas à issue:', issue.notes);
+        }
+        
         // Processar os dados usando a mesma função que processa os dados completos
-        const rawIssue = response.issues[0];
-        console.debug('[atualizarDemandasUnica] Issue bruta:', rawIssue);
-        console.debug('[atualizarDemandasUnica] Notes:', rawIssue.notes);
+        console.debug('[atualizarDemandasUnica] Issue antes do processamento:', issue);
         
         const issueData = processIssueData(rawIssue);
         console.debug('[atualizarDemandasUnica] Issue processada:', issueData);
