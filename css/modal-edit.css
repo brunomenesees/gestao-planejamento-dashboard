@@ -29,6 +29,56 @@
     border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
+/* Seção de Último Comentário */
+.ultimo-comentario-section {
+    margin-top: 15px;
+    padding: 12px;
+    background: var(--bg-subtle, #f8fafc);
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ultimo-comentario-section h4 {
+    margin: 0 0 10px 0;
+    color: var(--text-color, #2c3e50);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.ultimo-comentario-content {
+    font-size: 13px;
+    color: var(--text-color, #2c3e50);
+}
+
+.comentario-info {
+    margin-bottom: 8px;
+    color: var(--text-muted, #64748b);
+    font-size: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.comentario-data {
+    color: var(--text-muted, #64748b);
+}
+
+.comentario-autor {
+    font-weight: 600;
+    color: var(--text-color, #2c3e50);
+}
+
+.comentario-texto {
+    white-space: pre-wrap;
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+/* Ajuste quando há múltipla seleção */
+.multiple-selection .ultimo-comentario-section {
+    display: none;
+}
+
 .unified-modal-title {
     font-size: 1.25rem;
     font-weight: 600;

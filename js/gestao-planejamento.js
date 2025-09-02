@@ -4008,12 +4008,28 @@ function createUnifiedEditModal(demanda) {
     }
 
     // Estrutura do Modal
+    // Verifica se é seleção única
+    const isUniqueSelection = selectedTickets.size === 1;
+
     modal.innerHTML = `
         <div class="unified-modal-header">
             <h3 class="unified-modal-title">Editar Mantis #${demanda.numero}</h3>
             <div class="last-update">
                 Última atualização: ${formatarDataAmigavel(demanda.data_atualizacao) || 'Não disponível'}
             </div>
+            ${isUniqueSelection ? `
+            <div class="ultimo-comentario-section">
+                <h4>Último Comentário</h4>
+                <div class="ultimo-comentario-content">
+                    ${demanda.ultimo_comentario ? `
+                        <div class="comentario-info">
+                            <span class="comentario-data">${formatarDataAmigavel(demanda.ultimo_comentario.data)}</span>
+                            <span class="comentario-autor">${demanda.ultimo_comentario.autor}</span>
+                        </div>
+                        <div class="comentario-texto">${demanda.ultimo_comentario.texto}</div>
+                    ` : 'Nenhum comentário disponível'}
+                </div>
+            </div>` : ''}
         </div>
 
         <div class="unified-modal-content">
