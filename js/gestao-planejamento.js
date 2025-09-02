@@ -3218,12 +3218,20 @@ function createMassEditModal(ticketNumbers) {
             }
 
             if (apply.resolved) {
+                // Se está marcando como resolvido, atualiza tanto o estado quanto o status
                 patchPayload.status = { name: 'resolved' };
                 patchPayload.resolution = { name: 'fixed' };
+                
+                // Adiciona o campo Status como "Resolvido"
+                addCustomField(true, 70, "Resolvido");
+                if (custom_fields.length) {
+                    patchPayload.custom_fields = custom_fields;
+                }
             }
 
             let patchOk = true;
             if (Object.keys(patchPayload).length > 0) {
+                console.log('DEBUG - Enviando payload:', JSON.stringify(patchPayload, null, 2));
                 try {
                     await mantisRequest(`issues/${numero}`, { 
                         method: 'PATCH', 
