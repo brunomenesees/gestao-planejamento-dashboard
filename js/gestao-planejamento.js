@@ -2328,6 +2328,48 @@ async function atualizarDados() {
     }
 }
 
+async function atualizarDemandasUnica(issueId) {
+    console.debug(`[atualizarDemandasUnica] Atualizando issue #${issueId}`);
+    try {
+        // Buscar apenas a issue específica
+        const response = await fetch(`/api/mantis/issue/${issueId}`, {
+            headers: {
+                'Authorization': `Bearer ${window.authService.getToken()}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Falha ao buscar dados da issue');
+        
+        const issueData = await response.json();
+        
+        // Atualizar apenas esta demanda no array global
+        const index = demandasData.findIndex(d => d.numero === issueId);
+        if (index !== -1) {
+            demandasData[index] = issueData;
+            
+            // Atualizar a visualização apenas desta linha
+            filterData(); // Isso vai recriar a tabela, mas usando o cache local
+            
+            // Atualizar timestamp apenas desta atualização
+            const now = new Date();
+            const formattedDate = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+            const el = document.getElementById('ultimaAtualizacao');
+            if (el) el.textContent = `Última atualização: ${formattedDate}`;
+            localStorage.setItem('ultimaAtualizacao', formattedDate);
+            
+            // Atualizar também o IndexedDB para manter consistência
+            await saveChamados(demandasData);
+            
+            console.debug(`[atualizarDemandasUnica] Issue #${issueId} atualizada com sucesso`);
+        }
+        
+    } catch (error) {
+        console.error('Erro ao atualizar demanda específica:', error);
+        mostrarNotificacao('Erro ao atualizar os dados da demanda.', 'erro');
+        throw error; // Propaga o erro para ser tratado pelo chamador
+    }
+}
+
 function setupColumnToggle() {
     const toggleButton = document.getElementById('toggle-columns-btn');
     const panel = document.getElementById('column-selection-panel');
@@ -4352,8 +4394,13 @@ function createUnifiedEditModal(demanda) {
                 progressBar.style.width = '100%';
                 mostrarNotificacao('Alterações salvas com sucesso!', 'success');
                 
-                // Atualiza os dados e fecha o modal
-                await atualizarDados();
+                try {
+                    // Atualiza apenas a demanda específica
+                    await atualizarDemandasUnica(demanda.numero);
+                } catch (error) {
+                    console.error('Erro ao atualizar demanda, tentando atualização completa:', error);
+                    await atualizarDados(); // Fallback para atualização completa em caso de erro
+                }
                 overlay.remove();
             } else {
                 throw new Error('Falha ao salvar alterações');
