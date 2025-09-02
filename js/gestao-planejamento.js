@@ -4478,29 +4478,48 @@ function createUnifiedEditModal(demanda) {
                     data: now,
                     view_state: 'public'
                 };
-                
-                // Atualiza o objeto demanda com os novos dados
-                const index = demandasData.findIndex(d => d.numero === demanda.numero);
-                const demandaAtualizada = {
-                    ...demanda,
+
+                // Atualiza o objeto demanda diretamente
+                Object.assign(demanda, {
                     ultimo_comentario: novoUltimoComentario,
                     status: status,
                     numero_gmud: gmud,
                     previsao_etapa: previsao
-                };
-                demandasData[index] = demandaAtualizada;
-                
+                });
+
+                // Atualiza também no array global
+                const index = demandasData.findIndex(d => d.numero === demanda.numero);
+                if (index !== -1) {
+                    demandasData[index] = demanda;
+                }
+
                 // Atualiza a visualização da tabela
                 filterData();
-                
-                // Remove o modal atual
-                overlay.remove();
-                
-                // Cria um novo modal com os dados atualizados
-                createUnifiedEditModal(demandaAtualizada);
+
+                // Força a atualização do conteúdo do modal
+                const ultimoComentarioSection = overlay.querySelector('.ultimo-comentario-section');
+                if (ultimoComentarioSection) {
+                    ultimoComentarioSection.innerHTML = `
+                        <h4>Último Comentário</h4>
+                        <div class="ultimo-comentario-content">
+                            <div class="comentario-info">
+                                <span class="comentario-data">${formatarDataAmigavel(now)}</span>
+                                <span class="comentario-autor">${novoUltimoComentario.autor}</span>
+                            </div>
+                            <div class="comentario-texto">${comentario}</div>
+                        </div>
+                    `;
+                }
+
+                // Atualiza também o timestamp de última atualização
+                const lastUpdateEl = overlay.querySelector('.last-update');
+                if (lastUpdateEl) {
+                    lastUpdateEl.textContent = `Última atualização: ${formatarDataAmigavel(now)}`;
+                }
                 
                 progressBar.style.width = '100%';
                 mostrarNotificacao('Alterações salvas com sucesso!', 'success');
+                overlay.remove();
             } else {
                 throw new Error('Falha ao salvar alterações');
             }
