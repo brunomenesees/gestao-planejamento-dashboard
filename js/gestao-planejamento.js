@@ -2332,14 +2332,23 @@ async function atualizarDemandasUnica(issueId) {
     console.debug(`[atualizarDemandasUnica] Atualizando issue #${issueId}`);
     try {
         // Buscar apenas a issue específica usando a função mantisRequest para manter consistência
-        const response = await mantisRequest(`issues/${issueId}`, { method: 'GET' });
+        // Adiciona parâmetro para incluir as notas na resposta
+        const response = await mantisRequest(`issues/${issueId}?include=notes`, { method: 'GET' });
+        
+        console.debug('[atualizarDemandasUnica] Resposta da API:', response);
         
         if (!response || !response.issues || !response.issues[0]) {
             throw new Error('Falha ao buscar dados da issue');
         }
         
         // Processar os dados usando a mesma função que processa os dados completos
-        const issueData = processIssueData(response.issues[0]);
+        const rawIssue = response.issues[0];
+        console.debug('[atualizarDemandasUnica] Issue bruta:', rawIssue);
+        console.debug('[atualizarDemandasUnica] Notes:', rawIssue.notes);
+        
+        const issueData = processIssueData(rawIssue);
+        console.debug('[atualizarDemandasUnica] Issue processada:', issueData);
+        console.debug('[atualizarDemandasUnica] Último comentário:', issueData.ultimo_comentario);
         
         // Atualizar apenas esta demanda no array global
         const index = demandasData.findIndex(d => d.numero === issueId);
