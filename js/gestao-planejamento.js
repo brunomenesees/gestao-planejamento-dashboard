@@ -4990,6 +4990,12 @@ function createUnifiedEditModal(demanda) {
             if (markResolved) {
                 payload.status = { name: 'resolved' };
                 payload.resolution = { name: 'fixed' };
+                // Força o campo Status para "Resolvido" quando marcar como resolvido
+                if (!payload.custom_fields) payload.custom_fields = [];
+                // Remove qualquer atualização anterior do campo Status
+                payload.custom_fields = payload.custom_fields.filter(cf => cf.field.id !== 70);
+                // Adiciona o Status como "Resolvido"
+                payload.custom_fields.push({ field: { id: 70, name: "Status" }, value: "Resolvido" });
             }
 
             const willPatch = Object.keys(payload).length > 0;
@@ -5001,6 +5007,11 @@ function createUnifiedEditModal(demanda) {
                 progressWrap.style.display = 'none';
                 progressText.style.display = 'none';
                 return;
+            }
+
+            // Log do payload para debug
+            if (willPatch) {
+                console.log('DEBUG - Payload completo:', JSON.stringify(payload, null, 2));
             }
 
             if (willPatch) {
