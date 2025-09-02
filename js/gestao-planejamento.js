@@ -146,6 +146,8 @@ function ensureRecentStyle() {
     style.textContent = `
       tr.recently-updated { background: #fff9e6 !important; box-shadow: inset 3px 0 0 #f1b200; }
       .badge-updated { display:inline-block; margin-left:6px; padding:2px 6px; font-size:10px; font-weight:600; color:#835400; background:#ffe08a; border-radius:10px; }
+      label.required:after { content: ' *'; color: #dc2626; }
+      input[required], select[required], textarea[required] { border-color: #dc2626; }
     `;
     document.head.appendChild(style);
 }
@@ -186,6 +188,37 @@ let selectedProjetoFilter = new Set();
 
 // Variável global para armazenar os squads selecionados
 let selectedSquadFilter = new Set();
+
+// Status que não exigem previsão de etapa
+const STATUS_FILA = [
+    'Fila ABAP',
+    'Fila Analytics',
+    'Fila Especificação',
+    'Fila WEB'
+];
+
+// Função para validar se um status é de fila
+function isStatusFila(status) {
+    return STATUS_FILA.includes(status);
+}
+
+// Função para validar previsão de etapa baseado no status
+function validarPrevisaoEtapa(status, previsao, ticket = null) {
+    if (!isStatusFila(status) && (!previsao || previsao.trim() === '')) {
+        const msg = 'A Previsão de Etapa é obrigatória para todos os status exceto os de Fila';
+        if (ticket) {
+            return `Ticket #${ticket}: ${msg}`;
+        }
+        return msg;
+    }
+    return null; // null significa que passou na validação
+}
+
+// Função para obter a previsão de etapa atual de um ticket
+function getPrevisaoEtapa(ticketNumber) {
+    const demanda = demandasData.find(d => d.numero === ticketNumber);
+    return demanda?.previsao_etapa || '';
+}
 
 // Lista de status disponíveis para o dropdown (lista fixa)
 const STATUS_OPTIONS = [
@@ -2850,6 +2883,22 @@ function createMassEditModal(ticketNumbers) {
     const handleEsc = (e) => { if (e.key === 'Escape' && !isSubmitting) close(); };
     document.addEventListener('keydown', handleEsc);
 
+    // Função para atualizar a obrigatoriedade do campo Previsão Etapa
+    const updatePrevisaoRequired = (status) => {
+        const previsaoLabel = modal.querySelector('.unified-modal-field:has(#massPrevisao) label');
+        const previsaoInput = modal.querySelector('#massPrevisao');
+        
+        if (previsaoLabel && previsaoInput) {
+            if (!isStatusFila(status)) {
+                previsaoLabel.classList.add('required');
+                previsaoInput.setAttribute('required', 'required');
+            } else {
+                previsaoLabel.classList.remove('required');
+                previsaoInput.removeAttribute('required');
+            }
+        }
+    };
+
     // Preenche os selects
     const populateSelect = (selectId, options, addClear = false, addBlank = true) => {
         const select = modal.querySelector(selectId);
@@ -2884,6 +2933,16 @@ function createMassEditModal(ticketNumbers) {
     populateSelect('#massAnalista', ANALISTA_RESPONSAVEL_OPTIONS);
     populateSelect('#massRespAtual', RESPONSAVEL_ATUAL_OPTIONS, true);
     populateSelect('#massEquipe', SQUAD_OPTIONS);
+
+    // Adiciona listener para atualizar obrigatoriedade da Previsão Etapa
+    const statusSelect = modal.querySelector('#massStatus');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', (e) => {
+            updatePrevisaoRequired(e.target.value);
+        });
+        // Inicializa o estado do campo baseado no status atual
+        updatePrevisaoRequired(statusSelect.value);
+    }
 
     // Se apenas 1 ticket foi passado, pré-preenche os campos com os valores atuais
     if (ticketNumbers.length === 1) {
@@ -3054,6 +3113,16 @@ function createMassEditModal(ticketNumbers) {
             if (!el) return '';
             const raw = el.value;
             return isRaw ? raw : (raw || '').trim();
+        };
+
+        // Validação da previsão de etapa baseada no status
+        const statusValue = (getFieldValue('#massStatus', true) || '').trim();
+        const previsaoValue = getFieldValue('#massPrevisao', true);
+        
+        const validationError = validarPrevisaoEtapa(statusValue, previsaoValue);
+        if (validationError) {
+            mostrarNotificacao(validationError, 'aviso');
+            return;
         };
 
         const raw = {
@@ -4428,6 +4497,28 @@ function createUnifiedEditModal(demanda) {
     // Adiciona o modal ao overlay
     overlay.appendChild(modal);
 
+    // Configura o comportamento do campo de previsão com base no status
+    const updatePrevisaoRequired = () => {
+        const statusEl = document.getElementById('modal-status');
+        const previsaoLabel = document.querySelector('.unified-modal-field:has(#modal-previsao) label');
+        const previsaoInput = document.getElementById('modal-previsao');
+        
+        if (previsaoLabel && previsaoInput && statusEl) {
+            const status = statusEl.value;
+            if (!isStatusFila(status)) {
+                previsaoLabel.classList.add('required');
+                previsaoInput.setAttribute('required', 'required');
+            } else {
+                previsaoLabel.classList.remove('required');
+                previsaoInput.removeAttribute('required');
+            }
+        }
+    };
+
+    // Atualiza inicialmente e adiciona listener para mudanças
+    updatePrevisaoRequired();
+    document.getElementById('modal-status')?.addEventListener('change', updatePrevisaoRequired);
+
     // Progress bar para feedback visual
     const progressWrap = document.createElement('div');
     progressWrap.style.cssText = 'margin:8px 0 12px;background:#f3f4f6;border-radius:6px;height:8px;position:relative;overflow:hidden;display:none;';
@@ -4583,6 +4674,14 @@ function createUnifiedEditModal(demanda) {
         const equipe = document.getElementById('modal-equipe').value;
         const previsao = document.getElementById('modal-previsao').value;
         const gmud = document.getElementById('modal-gmud').value;
+
+        // Validação da previsão de etapa baseada no status
+        const validationError = validarPrevisaoEtapa(status, previsao, demanda.numero);
+        if (validationError) {
+            mostrarNotificacao(validationError, 'aviso');
+            document.getElementById('modal-previsao').focus();
+            return;
+        }
         const observacao = document.getElementById('modal-observacao').value;
         const marcarResolvido = document.getElementById('modal-resolvido').checked;
 
