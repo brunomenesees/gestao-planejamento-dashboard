@@ -2809,10 +2809,45 @@ function createMassEditModal(ticketNumbers) {
     `;
 
     let isSubmitting = false;
-    const close = () => { if (isSubmitting) return; overlay.remove(); };
+    let hasUnsavedChanges = false;
+
+    // Função para confirmar o fechamento do modal
+    const confirmClose = () => {
+        if (hasUnsavedChanges) {
+            return confirm('Existem alterações não salvas. Deseja realmente fechar o modal? As alterações serão perdidas.');
+        }
+        return true;
+    };
+
+    const close = () => { 
+        if (isSubmitting) return; 
+        if (confirmClose()) {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEsc);
+        }
+    };
+
+    // Event listeners para rastrear mudanças em todos os campos
+    const trackChanges = () => {
+        hasUnsavedChanges = true;
+        // Habilita o botão de salvar quando houver alterações
+        modal.querySelector('#massSave').disabled = false;
+    };
+
+    ['massStatus', 'massAnalista', 'massRespAtual', 'massEquipe', 'massPrevisao', 'massGmud', 'massComment', 'applyResolved'].forEach(id => {
+        const element = modal.querySelector('#' + id);
+        if (element) {
+            element.addEventListener('change', trackChanges);
+            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                element.addEventListener('input', trackChanges);
+            }
+        }
+    });
+
     modal.querySelector('#massCancel').addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (!isSubmitting && e.target === overlay) close(); });
-    const handleEsc = (e) => { if (e.key === 'Escape' && !isSubmitting) { close(); document.removeEventListener('keydown', handleEsc); } };
+    
+    const handleEsc = (e) => { if (e.key === 'Escape' && !isSubmitting) close(); };
     document.addEventListener('keydown', handleEsc);
 
     // Preenche os selects
@@ -3005,6 +3040,12 @@ function createMassEditModal(ticketNumbers) {
 
     modal.querySelector('#massComment').addEventListener('input', updateSummary);
     modal.querySelector('#applyResolved').addEventListener('change', updateSummary);
+
+    // Handler para sucesso do salvamento
+    const onSaveSuccess = () => {
+        hasUnsavedChanges = false;
+        close();
+    };
 
     // Save handler
     modal.querySelector('#massSave').addEventListener('click', async () => {
@@ -3457,6 +3498,16 @@ function createMassEditModal(ticketNumbers) {
                     ` : ''}
                 </div>
             `;
+
+            // Se não houver falhas, marca como salvo com sucesso
+            if (!fail.length) {
+                hasUnsavedChanges = false;
+            }
+
+            // Adiciona event listener para o botão de fechar
+            resultsBox.querySelector('#mass-close')?.addEventListener('click', () => {
+                close();
+            });
             
             resultsBox.style.display = 'block';
 
