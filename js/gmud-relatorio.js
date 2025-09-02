@@ -127,89 +127,6 @@ function getCustomFieldValueFromIssue(issue, fieldId) {
   return cf ? cf.value : '';
 }
 
-// --- Detecta se notas contêm link para a wiki (wiki.xcelis.com.br)
-function notesContainWiki(notes) {
-  try {
-    if (!notes) return false;
-    const re = /wiki\.xcelis\.com\.br/i;
-    if (Array.isArray(notes)) {
-      return notes.some(n => re.test(String(n.text || n.note || '')));
-    }
-    // se for string
-    return re.test(String(notes));
-  } catch (e) {
-    console.warn('[GMUD] notesContainWiki error', e);
-    return false;
-  }
-}
-
-// cache simples em sessionStorage para evitar re-fetchs durante a sessão
-function getNotesCache() {
-  try {
-    return JSON.parse(sessionStorage.getItem('gmud_notes_cache_v1') || '{}') || {};
-  } catch { return {}; }
-}
-function setNotesCache(cache) {
-  try { sessionStorage.setItem('gmud_notes_cache_v1', JSON.stringify(cache)); } catch {}
-}
-
-// Enriquecimento seletivo: verifica notas apenas para uma lista de números (concorrência limitada)
-async function checkNotesForTickets(ticketNumbers, { concurrency = 6, maxChecks = 200 } = {}) {
-  const toCheck = Array.isArray(ticketNumbers) ? ticketNumbers.slice(0, maxChecks) : [];
-  const cache = getNotesCache();
-  const results = {};
-
-  // primeiro, preenche com cache quando disponível
-  const pending = [];
-  for (const num of toCheck) {
-    if (cache[num] && (Date.now() - (cache[num].checkedAt || 0)) < (12 * 3600 * 1000)) {
-      results[num] = !!cache[num].hasDocumentation;
-    } else {
-      pending.push(num);
-    }
-  }
-
-  // worker que busca detalhe da issue com include=notes
-  let idx = 0;
-  async function worker() {
-    while (true) {
-      const i = idx++;
-      if (i >= pending.length) break;
-      const numero = pending[i];
-      try {
-        const endpoint = `issues/${encodeURIComponent(String(numero))}?include=notes`;
-        const resp = await authFetchMantis(endpoint, { method: 'GET' });
-        // resp pode ter formato { issues: [ { ... } ] }
-        const issue = resp && Array.isArray(resp.issues) ? resp.issues[0] : (resp && resp.issue) || resp;
-        const hasDoc = notesContainWiki(issue && issue.notes ? issue.notes : issue && issue.notes);
-        results[numero] = !!hasDoc;
-        cache[numero] = { hasDocumentation: !!hasDoc, checkedAt: Date.now() };
-      } catch (e) {
-        console.warn('[GMUD] checkNotesForTickets failed for', numero, e);
-        // marca como desconhecido = false (não encontrado)
-        results[numero] = false;
-        cache[numero] = { hasDocumentation: false, checkedAt: Date.now() };
-      }
-    }
-  }
-
-  const workers = Array.from({ length: Math.min(concurrency, Math.max(1, pending.length)) }, () => worker());
-  await Promise.all(workers);
-  try { setNotesCache(cache); } catch {}
-  return results;
-}
-
-function ensureNoDocStyle() {
-  if (document.getElementById('gmud-no-doc-style')) return;
-  const style = document.createElement('style');
-  style.id = 'gmud-no-doc-style';
-  style.textContent = `
-    tr.no-doc { background: #fff6f6 !important; }
-    .badge-no-doc { display:inline-block; margin-left:6px; padding:2px 6px; font-size:11px; font-weight:600; color:#7a0b0b; background:#ffd6d6; border-radius:6px; }
-  `;
-  document.head.appendChild(style);
-}
-
 function mapIssueToGMUDRow(issue) {
   return {
     numero: String(issue.id),
@@ -809,46 +726,6 @@ function renderTable(rows) {
     tr.appendChild(tdGMUD);
     tbody.appendChild(tr);
   }
-
-  // Após renderizar linhas, realiza enriquecimento seletivo de notas para os tickets visíveis
-  (async () => {
-    try {
-      const visibleNums = rows.map(r => String(r.numero));
-      if (!visibleNums.length) return;
-      const notesMap = await checkNotesForTickets(visibleNums, { concurrency: 6, maxChecks: visibleNums.length });
-      ensureNoDocStyle();
-      // aplica badges/estilos nas linhas que NÃO possuem documentação
-      for (const num of Object.keys(notesMap)) {
-        const hasDoc = !!notesMap[num];
-        const tr = document.querySelector(`#tabelaGMUD tbody tr td a[href*="${num}"]`)?.closest('tr') || document.querySelector(`#tabelaGMUD tbody tr[data-num="${num}"]`);
-        // fallback: procura por link cujo texto seja o número
-        let targetRow = tr;
-        if (!targetRow) {
-          const anchors = Array.from(document.querySelectorAll('#tabelaGMUD tbody tr td a'));
-          const found = anchors.find(a => String(a.textContent || '').trim() === String(num));
-          if (found) targetRow = found.closest('tr');
-        }
-        if (!targetRow) continue;
-        // remove badge antigo se existir
-        const existing = targetRow.querySelector('.badge-no-doc');
-        if (existing) existing.remove();
-        if (!hasDoc) {
-          targetRow.classList.add('no-doc');
-          const numCell = targetRow.querySelector('td');
-          if (numCell) {
-            const badge = document.createElement('span');
-            badge.className = 'badge-no-doc';
-            badge.textContent = 'Sem documentação wiki';
-            numCell.appendChild(badge);
-          }
-        } else {
-          targetRow.classList.remove('no-doc');
-        }
-      }
-    } catch (e) {
-      console.warn('[GMUD] Enriquecimento de notas falhou', e);
-    }
-  })();
 }
 
 // Expansão de linhas relacionadas (consulta on-demand os detalhes das relacionadas)

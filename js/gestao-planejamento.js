@@ -2607,10 +2607,9 @@ function createMassEditModal(ticketNumbers) {
     const selectionText = (ticketNumbers.length === 1)
         ? '1 selecionado'
         : `${ticketNumbers.length} selecionados`;
-    const titleText = (ticketNumbers.length === 1) ? `Editar Chamado #${ticketNumbers[0]}` : `Edição Massiva (${selectionText})`;
 
     modal.innerHTML = `
-      <h3 style="margin-bottom:8px;">${titleText}</h3>
+      <h3 style="margin-bottom:8px;">Edição Massiva (${selectionText})</h3>
       <div style="height:1px;background:#e5e7eb;margin:6px 0 12px 0;"></div>
       <div style="display:grid;grid-template-columns: 1fr 1fr;gap:12px;align-items:center;margin-bottom:4px;">
         <div style="font-weight:600;color:#374151;">Campo</div>
@@ -2655,16 +2654,7 @@ function createMassEditModal(ticketNumbers) {
     `;
 
     let isSubmitting = false;
-    // Track if user modified any field in the modal (unsaved changes)
-    let isDirty = false;
-    const close = () => {
-        if (isSubmitting) return;
-        if (isDirty) {
-            const ok = window.confirm('Há alterações não salvas. Deseja descartar as alterações e fechar?');
-            if (!ok) return;
-        }
-        overlay.remove();
-    };
+    const close = () => { if (isSubmitting) return; overlay.remove(); };
     modal.querySelector('#massCancel').addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (!isSubmitting && e.target === overlay) close(); });
     const handleEsc = (e) => { if (e.key === 'Escape' && !isSubmitting) { close(); document.removeEventListener('keydown', handleEsc); } };
@@ -2754,65 +2744,6 @@ function createMassEditModal(ticketNumbers) {
         if (chk) chk.style.display = 'none';
     });
 
-    // --- Dirty tracking: captura estado inicial e monitora mudanças ---
-    try {
-        const statusEl = modal.querySelector('#massStatus');
-        const gmudEl = modal.querySelector('#massGmud');
-        const prevEl = modal.querySelector('#massPrevisao');
-        const equipeEl = modal.querySelector('#massEquipe');
-        const respEl = modal.querySelector('#massRespAtual');
-        const analistaEl = modal.querySelector('#massAnalista');
-        const resolvedEl = modal.querySelector('#applyResolved');
-        const commentEl = modal.querySelector('#massComment');
-
-        const initialState = {
-            status: (statusEl && statusEl.value) || '',
-            gmud: (gmudEl && gmudEl.value) || '',
-            previsao: (prevEl && prevEl.value) || '',
-            equipe: (equipeEl && equipeEl.value) || '',
-            respAtual: (respEl && respEl.value) || '',
-            analista: (analistaEl && analistaEl.value) || '',
-            resolved: !!(resolvedEl && resolvedEl.checked),
-            comment: (commentEl && commentEl.value) || ''
-        };
-
-        const computeDirty = () => {
-            const cur = {
-                status: (statusEl && statusEl.value) || '',
-                gmud: (gmudEl && gmudEl.value) || '',
-                previsao: (prevEl && prevEl.value) || '',
-                equipe: (equipeEl && equipeEl.value) || '',
-                respAtual: (respEl && respEl.value) || '',
-                analista: (analistaEl && analistaEl.value) || '',
-                resolved: !!(resolvedEl && resolvedEl.checked),
-                comment: (commentEl && commentEl.value) || ''
-            };
-            const dirty = (
-                cur.status !== initialState.status ||
-                cur.gmud !== initialState.gmud ||
-                cur.previsao !== initialState.previsao ||
-                cur.equipe !== initialState.equipe ||
-                cur.respAtual !== initialState.respAtual ||
-                cur.analista !== initialState.analista ||
-                cur.resolved !== initialState.resolved ||
-                cur.comment !== initialState.comment
-            );
-            isDirty = dirty;
-            const progress = modal.querySelector('#massProgress');
-            if (progress) progress.textContent = isDirty ? 'Alterações não salvas' : 'Pronto';
-            return isDirty;
-        };
-
-        // Attach listeners
-        [statusEl, gmudEl, prevEl, equipeEl, respEl, analistaEl, commentEl, resolvedEl].forEach(el => {
-            if (!el) return;
-            const ev = (el.tagName === 'INPUT' && el.type === 'text') || el.tagName === 'TEXTAREA' ? 'input' : 'change';
-            el.addEventListener(ev, computeDirty);
-        });
-    } catch (e) {
-        console.warn('Não foi possível inicializar dirty-tracking da modal massiva:', e);
-    }
-
     // Save handler
     modal.querySelector('#massSave').addEventListener('click', async () => {
     const raw = {
@@ -2872,16 +2803,6 @@ function createMassEditModal(ticketNumbers) {
                 }
             } catch (e) { console.warn('Erro ao comparar valores da demanda:', e); }
         }
-
-        // Validação adicional: se estiver aplicando status e o novo status for Aguardando Deploy,
-        // exige que o GMUD esteja preenchido (para evitar envio inválido em massa).
-        try {
-            const willApplyAguardando = apply.status && String(values.status || '').toLowerCase() === 'aguardando deploy';
-            if (willApplyAguardando && !values.gmud) {
-                mostrarNotificacao('Para marcar como Aguardando Deploy é obrigatório informar o GMUD.', 'aviso');
-                return;
-            }
-        } catch (e) { /* falha na validação não bloqueia por segurança */ }
 
         if (!apply.status && !apply.gmud && !apply.previsao && !apply.equipe && !apply.respAtual && !apply.analista && !values.comment) {
             mostrarNotificacao('Selecione pelo menos um campo para aplicar ou insira um comentário.', 'aviso');
@@ -3136,13 +3057,6 @@ function createMassEditModal(ticketNumbers) {
 
             const closeBtn = resultsBox.querySelector('#mass-close');
             if (closeBtn) closeBtn.addEventListener('click', () => close());
-
-            // Limpa estado dirty após conclusão (operações salvas/terminadas)
-            try {
-                isDirty = false;
-                const progressEl = modal.querySelector('#massProgress');
-                if (progressEl) progressEl.textContent = 'Pronto';
-            } catch (e) { /* ignore */ }
 
             // Ação: Copiar IDs falhos
             const copyFailBtn = resultsBox.querySelector('#mass-copy-fail');
@@ -3637,22 +3551,6 @@ function showActionButtons(container, newStatus, ticketNumber) {
 
     gmudInput.addEventListener('input', updatePreview);
 
-    // Validação: se o status for 'Aguardando Deploy', exige GMUD não vazio para habilitar salvar
-    const validateSaveEnabled = () => {
-        const gmud = gmudInput.value.trim();
-        const isAguardando = String(newStatus || '').toLowerCase() === 'aguardando deploy';
-        if (isAguardando && !gmud) {
-            saveBtn.disabled = true;
-            saveBtn.title = 'Preencha o campo GMUD para marcar como Aguardando Deploy';
-        } else {
-            saveBtn.disabled = false;
-            saveBtn.title = '';
-        }
-    };
-    gmudInput.addEventListener('input', validateSaveEnabled);
-    // Executa validação inicial
-    validateSaveEnabled();
-
     // Botões
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = `
@@ -3711,11 +3609,6 @@ function showActionButtons(container, newStatus, ticketNumber) {
         e.stopPropagation();
         
         const gmudValue = gmudInput.value.trim();
-        // Proteção extra: não prossegue se status é Aguardando Deploy e gmud vazio
-        if (String(newStatus || '').toLowerCase() === 'aguardando deploy' && !gmudValue) {
-            mostrarNotificacao('GMUD é obrigatório para marcar como Aguardando Deploy.', 'aviso');
-            return;
-        }
         const note = previewTextarea.value;
         let success = await postToMantis(ticketNumber, note, newStatus, gmudValue);
 
@@ -3900,251 +3793,637 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 
 // Passo 1.2: Criar o Modal de Edição Unificado
 function createUnifiedEditModal(demanda) {
-    // Função deprecada: redireciona para a modal massiva com 1 ticket.
-    try {
-        console.warn('createUnifiedEditModal está deprecada. Redirecionando para createMassEditModal.');
-        createMassEditModal([demanda.numero]);
-    } catch (e) {
-        console.error('Erro ao redirecionar createUnifiedEditModal:', e);
-    }
-}
+    console.log('Função createUnifiedEditModal chamada com a demanda:', demanda);
 
-// ---------------------- Modal: Edição única + Edição em Massa ----------------------
-// Estado temporário do modal
-let __mp_currentTicket = null; // objeto da demanda atual (string numero ou objeto)
-let __mp_bulkSelection = []; // array de numeros
+    // Remover qualquer modal existente para evitar duplicatas
+    const existingOverlay = document.querySelector('.modal-overlay');
+    if (existingOverlay) existingOverlay.remove();
 
-function populateSelect(selectEl, options, includeEmpty = true) {
-    if (!selectEl) return;
-    selectEl.innerHTML = '';
-    if (includeEmpty) {
-        const opt = document.createElement('option'); opt.value = ''; opt.textContent = includeEmpty === true ? ' ' : includeEmpty; selectEl.appendChild(opt);
-    }
-    options.forEach(o => {
-        const opt = document.createElement('option'); opt.value = o; opt.textContent = o; selectEl.appendChild(opt);
-    });
-}
+    // Overlay unificado
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    document.body.appendChild(overlay);
 
-function initTicketModals() {
-    // Selects single
-    populateSelect(document.getElementById('edit-status'), STATUS_OPTIONS, 'Selecione o status');
-    populateSelect(document.getElementById('edit-analista'), ANALISTA_RESPONSAVEL_OPTIONS, 'Selecione o analista');
-    populateSelect(document.getElementById('edit-responsavel'), RESPONSAVEL_ATUAL_OPTIONS, 'Selecione o responsável');
-    populateSelect(document.getElementById('edit-equipe'), SQUAD_OPTIONS, 'Equipe responsável');
+    // Container unificado
+    const modal = document.createElement('div');
+    modal.className = 'simple-update-modal';
 
-    // Selects mass
-    populateSelect(document.getElementById('mass-status'), STATUS_OPTIONS, 'Selecione o status');
-    populateSelect(document.getElementById('mass-analista'), ANALISTA_RESPONSAVEL_OPTIONS, 'Selecione o analista');
-    populateSelect(document.getElementById('mass-responsavel'), RESPONSAVEL_ATUAL_OPTIONS, 'Selecione o responsável');
-    populateSelect(document.getElementById('mass-equipe'), SQUAD_OPTIONS, 'Equipe responsável');
+    const modalTitle = document.createElement('h3');
+    modalTitle.textContent = `Editar Chamado #${demanda.numero}`;
+    // Barra de progresso (mesmo estilo do massivo)
+    const progressWrap = document.createElement('div');
+    progressWrap.style.cssText = 'margin:8px 0 12px;background:#f3f4f6;border-radius:6px;height:8px;position:relative;overflow:hidden;display:none;';
+    const progressBar = document.createElement('div');
+    progressBar.style.cssText = 'height:100%;width:0%;background:#10b981;transition:width .25s';
+    progressWrap.appendChild(progressBar);
+    const progressText = document.createElement('div');
+    progressText.style.cssText = 'font-size:12px;color:#6b7280;margin:-2px 0 8px 0;display:none;';
+    progressText.textContent = 'Processando...';
 
-    // Bind buttons
-    const editCancel = document.getElementById('edit-cancel');
-    const editSave = document.getElementById('edit-save');
-    const massCancel = document.getElementById('mass-cancel');
-    const massSave = document.getElementById('mass-save');
-    const massEditBtn = document.getElementById('massEditBtn');
+    // Estado interno do modal unificado
+    let isSubmitting = false;
+    let isDirty = false;
+    const original = {
+        status: demanda.status || '',
+        gmud: demanda.numero_gmud || '',
+        previsao: (() => {
+            const v = (demanda.previsao_etapa || '').trim();
+            if (!v) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+            const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+            const ts = Date.parse(v); if (!Number.isNaN(ts)) { const d = new Date(ts); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mm}-${dd}`; }
+            return '';
+        })(),
+        equipe: demanda.squad || '',
+        analista: demanda.atribuicao || '',
+        responsavel: demanda.resp_atual || ''
+    };
+    const undoStack = []; // { field, prev, next }
+    let snackbarTimer = null;
+    let lastUndo = null;
 
-    editCancel && editCancel.addEventListener('click', closeEditModal);
-    massCancel && massCancel.addEventListener('click', closeMassModal);
-    massEditBtn && massEditBtn.addEventListener('click', () => {
-        const ids = Array.from(selectedTickets).map(String);
-        if (!ids.length) return;
-        openMassModal(ids);
-    });
-
-    // Enable save when changes occur
-    const singleInputs = ['edit-status','edit-analista','edit-responsavel','edit-equipe','edit-previsao','edit-note','edit-mark-resolved','edit-gmud'];
-    singleInputs.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('input', () => updateSingleSummaryAndToggle());
-        el.addEventListener('change', () => updateSingleSummaryAndToggle());
-    });
-
-    const massInputs = ['mass-status','mass-analista','mass-responsavel','mass-equipe','mass-previsao','mass-note','mass-mark-resolved','mass-gmud'];
-    massInputs.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('input', () => updateMassSummaryAndToggle());
-        el.addEventListener('change', () => updateMassSummaryAndToggle());
-    });
-
-    editSave && editSave.addEventListener('click', async (e) => {
-        editSave.disabled = true;
-        try {
-            await submitSingleChanges();
-        } catch (err) {
-            console.error('Erro submit single:', err);
-            try { mostrarNotificacao('Erro ao salvar alteração.', 'erro'); } catch {}
-        } finally {
-            editSave.disabled = false;
+    // Helpers de UI
+    const makeStatusIcon = () => {
+        const span = document.createElement('span');
+        span.className = 'inline-status';
+        span.style.cssText = 'margin-left:8px;font-size:12px;vertical-align:middle;display:inline-flex;align-items:center;gap:6px;';
+        return span;
+    };
+    const setIconState = (el, state, msg = '') => {
+        // state: idle|saving|ok|err
+        el.innerHTML = '';
+        if (state === 'saving') {
+            const i = document.createElement('span'); i.textContent = '⏳'; i.setAttribute('aria-label','salvando'); el.appendChild(i);
+        } else if (state === 'ok') {
+            const i = document.createElement('span'); i.textContent = '✅'; i.setAttribute('aria-label','salvo'); el.appendChild(i);
+        } else if (state === 'err') {
+            const i = document.createElement('span'); i.textContent = '⚠️'; i.title = msg || 'Erro'; el.appendChild(i);
         }
-    });
-
-    massSave && massSave.addEventListener('click', async (e) => {
-        massSave.disabled = true;
-        try {
-            await submitMassChanges();
-        } catch (err) {
-            console.error('Erro submit mass:', err);
-            try { mostrarNotificacao('Erro ao salvar alterações em massa.', 'erro'); } catch {}
-        } finally {
-            massSave.disabled = false;
+    };
+    const showSnackbar = (text, onUndo) => {
+        // Cria container se necessário
+        let container = document.getElementById('snackbar-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'snackbar-container';
+            container.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100001;display:flex;flex-direction:column;gap:8px;';
+            document.body.appendChild(container);
         }
-    });
-}
+        const bar = document.createElement('div');
+        bar.style.cssText = 'background:#323232;color:#fff;padding:10px 12px;border-radius:6px;min-width:280px;max-width:480px;display:flex;align-items:center;gap:12px;';
+        bar.setAttribute('role','status');
+        bar.setAttribute('aria-live','polite');
+        const msg = document.createElement('div'); msg.textContent = text; msg.style.flex = '1';
+        const undoBtn = document.createElement('button'); undoBtn.textContent = 'Desfazer'; undoBtn.className = 'btn'; undoBtn.style.cssText = 'background:#555;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+        const closeBtn = document.createElement('button'); closeBtn.textContent = 'Fechar'; closeBtn.className = 'btn'; closeBtn.style.cssText = 'background:#444;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+        bar.appendChild(msg); bar.appendChild(undoBtn); bar.appendChild(closeBtn);
+        container.appendChild(bar);
+        const remove = () => { try { bar.remove(); } catch {} };
+        closeBtn.addEventListener('click', remove);
+        undoBtn.addEventListener('click', async () => { try { await onUndo?.(); } finally { remove(); } });
+        clearTimeout(snackbarTimer); snackbarTimer = setTimeout(remove, 5000);
+    };
 
-function openEditModal(ticket) {
-    __mp_currentTicket = ticket; // pode ser número ou objeto
-    const overlay = document.getElementById('ticketEditModalOverlay');
-    if (!overlay) return;
-    // Preencher campos com dados existentes quando tiver object
-    const t = typeof ticket === 'object' ? ticket : (demandasData.find(d => d.numero === String(ticket)) || { numero: String(ticket) });
-    document.getElementById('edit-status').value = t.status || '';
-    document.getElementById('edit-analista').value = t.atribuicao || '';
-    document.getElementById('edit-responsavel').value = t.resp_atual || '';
-    document.getElementById('edit-equipe').value = t.squad || '';
-    if (t.previsao_etapa) document.getElementById('edit-previsao').value = t.previsao_etapa;
-    document.getElementById('edit-gmud').value = t.numero_gmud || '';
-    // preencher último comentário em textarea readonly
-    const lastCommentEl = document.getElementById('edit-last-comment');
-    if (lastCommentEl) lastCommentEl.value = t.ultima_observacao || '';
-    document.getElementById('edit-note').value = '';
-    document.getElementById('edit-mark-resolved').checked = false;
-    document.getElementById('edit-summary').textContent = '';
-    document.getElementById('edit-save').disabled = true;
-    overlay.classList.remove('hidden'); overlay.setAttribute('aria-hidden','false');
-    setTimeout(()=> document.getElementById('edit-note').focus(),50);
-}
-
-function closeEditModal() {
-    const overlay = document.getElementById('ticketEditModalOverlay');
-    if (!overlay) return;
-    overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden','true');
-    __mp_currentTicket = null;
-}
-
-function openMassModal(ids) {
-    __mp_bulkSelection = Array.isArray(ids) ? ids.map(String) : [];
-    const overlay = document.getElementById('massEditModalOverlay');
-    if (!overlay) return;
-    const chips = document.getElementById('mass-chips'); chips.innerHTML = '';
-    // mostrar até 20 chips e um resumo
-    const max = 20;
-    __mp_bulkSelection.slice(0, max).forEach(id => {
-        const c = document.createElement('div'); c.className = 'mp-chip'; c.textContent = `#${id}`; chips.appendChild(c);
-    });
-    if (__mp_bulkSelection.length > max) { const more = document.createElement('div'); more.className='mp-chip'; more.textContent = `+${__mp_bulkSelection.length - max} mais`; chips.appendChild(more); }
-    // reset fields
-    ['mass-status','mass-analista','mass-responsavel','mass-equipe','mass-previsao','mass-note','mass-gmud'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-    document.getElementById('mass-mark-resolved').checked = false;
-    document.getElementById('mass-summary').textContent = '';
-    document.getElementById('mass-save').disabled = true;
-    overlay.classList.remove('hidden'); overlay.setAttribute('aria-hidden','false');
-    setTimeout(()=> document.getElementById('mass-note').focus(),50);
-}
-
-function closeMassModal() {
-    const overlay = document.getElementById('massEditModalOverlay');
-    if (!overlay) return;
-    overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden','true');
-    __mp_bulkSelection = [];
-}
-
-function buildChangesFromForm(prefix='edit') {
-    const fields = {};
-    const status = document.getElementById(`${prefix}-status`); if (status && status.value) fields.status = status.value;
-    const analista = document.getElementById(`${prefix}-analista`); if (analista && analista.value) fields.analista = analista.value;
-    const responsavel = document.getElementById(`${prefix}-responsavel`); if (responsavel && responsavel.value) fields.responsavel = responsavel.value;
-    const equipe = document.getElementById(`${prefix}-equipe`); if (equipe && equipe.value) fields.equipe = equipe.value;
-    const previsao = document.getElementById(`${prefix}-previsao`); if (previsao && previsao.value) fields.previsao_etapa = previsao.value;
-    const gmud = document.getElementById(`${prefix}-gmud`); if (gmud && gmud.value) fields.gmud = gmud.value;
-    const note = document.getElementById(`${prefix}-note`); if (note && note.value && note.value.trim()) fields.note = note.value.trim();
-    const markResolved = document.getElementById(`${prefix}-mark-resolved`); if (markResolved && markResolved.checked) fields.mark_resolved = true;
-    return fields;
-}
-
-function updateSingleSummaryAndToggle() {
-    const changes = buildChangesFromForm('edit');
-    const summaryEl = document.getElementById('edit-summary');
-    const saveBtn = document.getElementById('edit-save');
-    if (!summaryEl || !saveBtn) return;
-    if (!changes || Object.keys(changes).length === 0) { summaryEl.textContent = ''; saveBtn.disabled = true; return; }
-    // montar texto resumido
-    summaryEl.textContent = Object.entries(changes).map(([k,v]) => `${k.replace('_',' ')}: ${v}`).join(' • ');
-    saveBtn.disabled = false;
-}
-
-function updateMassSummaryAndToggle() {
-    const changes = buildChangesFromForm('mass');
-    const summaryEl = document.getElementById('mass-summary');
-    const saveBtn = document.getElementById('mass-save');
-    if (!summaryEl || !saveBtn) return;
-    if (!changes || Object.keys(changes).length === 0) { summaryEl.textContent = ''; saveBtn.disabled = true; return; }
-    summaryEl.textContent = Object.entries(changes).map(([k,v]) => `${k.replace('_',' ')}: ${v}`).join(' • ');
-    saveBtn.disabled = false;
-}
-
-async function submitSingleChanges() {
-    if (!__mp_currentTicket) return;
-    const id = typeof __mp_currentTicket === 'object' ? __mp_currentTicket.numero : String(__mp_currentTicket);
-    const changes = buildChangesFromForm('edit');
-    if (!changes || Object.keys(changes).length === 0) return;
-    // 1) adiciona nota se houver
-    if (changes.note) {
-        await mantisRequest(`issues/${id}/notes`, { method: 'POST', body: JSON.stringify({ text: changes.note, view_state: { name: 'public' } }) });
-    }
-    // 2) prepara custom_fields para status e GMUD (se aplicável)
-    const custom_fields = [];
-    if (changes.status) custom_fields.push({ field: { id: 70, name: 'Status' }, value: changes.status });
-    if (changes.equipe) custom_fields.push({ field: { id: 49, name: 'Squad' }, value: changes.equipe });
-    if (changes.responsavel) custom_fields.push({ field: { id: 69, name: 'Responsavel Atual' }, value: changes.responsavel });
-    if (changes.previsao_etapa) custom_fields.push({ field: { id: 72, name: 'Previsao Etapa' }, value: changes.previsao_etapa });
-    if (changes.gmud) custom_fields.push({ field: { id: 71, name: 'Numero_GMUD' }, value: changes.gmud });
-    // marcar resolvido: se marcado, atualiza status para 'Resolvido'
-    if (changes.mark_resolved) custom_fields.push({ field: { id: 70, name: 'Status' }, value: 'Resolvido' });
-
-    if (custom_fields.length > 0) {
-        await mantisRequest(`issues/${id}`, { method: 'PATCH', body: JSON.stringify({ custom_fields }) });
-    }
-    // Atualiza UI local e fecha modal
-    markRecentlyUpdated([id]);
-    try { mostrarNotificacao('Alteração salva com sucesso.', 'sucesso'); } catch {}
-    closeEditModal();
-    await atualizarDados();
-}
-
-async function submitMassChanges() {
-    if (!__mp_bulkSelection || __mp_bulkSelection.length === 0) return;
-    const changes = buildChangesFromForm('mass');
-    if (!changes || Object.keys(changes).length === 0) return;
-    // Para cada id, adiciona nota (se existir) e faz PATCH com custom_fields
-    const ids = __mp_bulkSelection.slice(0, 500); // limite preventivo
-    for (const id of ids) {
+    // Validação e detecção de alterações
+    const isValidDate = (v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const updateDirty = () => {
         try {
-            if (changes.note) {
-                await mantisRequest(`issues/${id}/notes`, { method: 'POST', body: JSON.stringify({ text: changes.note, view_state: { name: 'public' } }) });
+            isDirty = (
+                statusSelect?.value !== original.status ||
+                gmudInput?.value !== original.gmud ||
+                previsaoInput?.value !== original.previsao ||
+                equipeSelect?.value !== original.equipe ||
+                analistaSelect?.value !== original.analista ||
+                responsavelSelect?.value !== original.responsavel
+            );
+        } catch {}
+    };
+    const validateForm = () => {
+        const invalid = !isValidDate(previsaoInput?.value || '');
+        saveBtn.disabled = isSubmitting || invalid;
+        return !invalid;
+    };
+
+    // Patch de campo único (inline)
+    const patchField = async (field, nextValue) => {
+        const payload = {};
+        const cfs = [];
+        if (field === 'status') {
+            cfs.push({ field: { id: 70 }, value: nextValue });
+        } else if (field === 'gmud') {
+            cfs.push({ field: { id: 71 }, value: nextValue });
+        } else if (field === 'previsao') {
+            let ts = null;
+            if (nextValue && /^\d{4}-\d{2}-\d{2}$/.test(nextValue)) ts = Math.floor(Date.parse(nextValue + 'T00:00:00') / 1000);
+            if (ts !== null) cfs.push({ field: { id: 72 }, value: ts });
+        } else if (field === 'equipe') {
+            cfs.push({ field: { id: 49 }, value: nextValue });
+        } else if (field === 'resp') {
+            cfs.push({ field: { id: 69 }, value: nextValue });
+        } else if (field === 'analista') {
+            payload.handler = { name: nextValue };
+        }
+        if (cfs.length > 0) payload.custom_fields = cfs;
+        if (!payload.custom_fields && !payload.handler) return false;
+        await mantisRequest(`issues/${demanda.numero}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        try { await updateDemandaLastUpdated(demanda.numero); } catch {}
+        try { markRecentlyUpdated([demanda.numero]); } catch {}
+        return true;
+    };
+
+    // Conector de salvamento inline com UNDO
+    const attachInlineSave = (el, field, icon) => {
+        const getVal = () => (el.tagName === 'SELECT') ? el.value : el.value;
+        const setVal = (v) => { el.value = v ?? ''; };
+        const evt = (el.tagName === 'SELECT') ? 'change' : 'blur';
+        el.addEventListener(evt, async () => {
+            if (field === 'previsao' && !isValidDate(getVal())) {
+                setIconState(icon, 'err', 'Data inválida');
+                validateForm();
+                return;
             }
+            const prev = original[field];
+            const next = getVal();
+            if (String(prev ?? '') === String(next ?? '')) return;
+            setIconState(icon, 'saving');
+            try {
+                const ok = await patchField(field, next);
+                if (!ok) throw new Error('Nada para atualizar');
+                // Atualiza originals e dados locais
+                original[field] = next;
+                const idx = demandasData.findIndex(d => d.numero === demanda.numero);
+                if (idx !== -1) {
+                    if (field === 'status') demandasData[idx].status = next;
+                    if (field === 'gmud') demandasData[idx].numero_gmud = next;
+                    if (field === 'previsao') demandasData[idx].previsao_etapa = next;
+                    if (field === 'equipe') demandasData[idx].squad = next;
+                    if (field === 'resp') demandasData[idx].resp_atual = next;
+                    if (field === 'analista') demandasData[idx].atribuicao = next;
+                }
+                filterData();
+                setIconState(icon, 'ok');
+
+                // Empilha UNDO
+                undoStack.push({ field, prev, next });
+                showSnackbar('Alteração salva. Desfazer?', async () => {
+                    setIconState(icon, 'saving');
+                    await patchField(field, prev);
+                    setVal(prev);
+                    original[field] = prev;
+                    const i2 = demandasData.findIndex(d => d.numero === demanda.numero);
+                    if (i2 !== -1) {
+                        if (field === 'status') demandasData[i2].status = prev;
+                        if (field === 'gmud') demandasData[i2].numero_gmud = prev;
+                        if (field === 'previsao') demandasData[i2].previsao_etapa = prev;
+                        if (field === 'equipe') demandasData[i2].squad = prev;
+                        if (field === 'resp') demandasData[i2].resp_atual = prev;
+                        if (field === 'analista') demandasData[i2].atribuicao = prev;
+                    }
+                    filterData();
+                    setIconState(icon, 'ok');
+                });
+            } catch (e) {
+                console.error('Erro no salvamento inline:', e);
+                setIconState(icon, 'err', e?.message || 'Erro');
+                mostrarNotificacao('Falha ao salvar alteração.', 'erro');
+            } finally {
+                updateDirty();
+                validateForm();
+            }
+        });
+        // Atualiza estado em digitação
+        const changeEvt = (el.tagName === 'SELECT') ? 'change' : 'input';
+        el.addEventListener(changeEvt, () => { updateDirty(); validateForm(); });
+    };
+
+    // Checkbox: Marcar como Resolvido (estado nativo)
+    const resolvedGroup = document.createElement('div');
+    resolvedGroup.className = 'form-group inline';
+    const resolvedLabel = document.createElement('label');
+    const resolvedCheckbox = document.createElement('input');
+    resolvedCheckbox.type = 'checkbox';
+    resolvedCheckbox.id = 'resolvedCheckbox';
+    resolvedLabel.setAttribute('for', 'resolvedCheckbox');
+    resolvedLabel.textContent = ' Marcar como Resolvido';
+    resolvedGroup.appendChild(resolvedCheckbox);
+    resolvedGroup.appendChild(resolvedLabel);
+
+    // Campo de Status (Dropdown)
+    const statusGroup = document.createElement('div');
+    statusGroup.className = 'form-group';
+    const statusLabel = document.createElement('label');
+    statusLabel.textContent = 'Status:';
+    // Oculta controles antigos de "Aplicar" e adiciona ícone de status
+    const applyStatusChk = document.createElement('input');
+    applyStatusChk.type = 'checkbox';
+    applyStatusChk.style.display = 'none';
+    const applyStatusSpan = document.createElement('span');
+    applyStatusSpan.textContent = 'Aplicar';
+    applyStatusSpan.style.display = 'none';
+    const statusIcon = makeStatusIcon();
+    statusLabel.appendChild(statusIcon);
+    const statusSelect = document.createElement('select');
+    statusSelect.className = 'form-control';
+    STATUS_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        if (option === demanda.status) {
+            opt.selected = true;
+        }
+        statusSelect.appendChild(opt);
+    });
+    statusGroup.appendChild(statusLabel);
+    statusLabel.appendChild(applyStatusChk);
+    statusLabel.appendChild(applyStatusSpan);
+    statusGroup.appendChild(statusSelect);
+
+    // Campo de GMUD (Input de texto)
+    const gmudGroup = document.createElement('div');
+    gmudGroup.className = 'form-group';
+    const gmudLabel = document.createElement('label');
+    gmudLabel.textContent = 'Número da GMUD:';
+    const applyGmudChk = document.createElement('input');
+    applyGmudChk.type = 'checkbox';
+    applyGmudChk.style.display = 'none';
+    const applyGmudSpan = document.createElement('span');
+    applyGmudSpan.textContent = 'Aplicar';
+    applyGmudSpan.style.display = 'none';
+    const gmudIcon = makeStatusIcon();
+    gmudLabel.appendChild(gmudIcon);
+    const gmudInput = document.createElement('input');
+    gmudInput.type = 'text';
+    gmudInput.className = 'form-control';
+    gmudInput.value = demanda.numero_gmud || ''; // Assumindo que o campo se chama 'numero_gmud'
+    gmudGroup.appendChild(gmudLabel);
+    gmudLabel.appendChild(applyGmudChk);
+    gmudLabel.appendChild(applyGmudSpan);
+    gmudGroup.appendChild(gmudInput);
+
+    // Campo de Previsão Etapa (Input de data)
+    const previsaoGroup = document.createElement('div');
+    previsaoGroup.className = 'form-group';
+    const previsaoLabel = document.createElement('label');
+    previsaoLabel.textContent = 'Previsão Etapa:';
+    const applyPrevChk = document.createElement('input');
+    applyPrevChk.type = 'checkbox';
+    applyPrevChk.style.display = 'none';
+    const applyPrevSpan = document.createElement('span');
+    applyPrevSpan.textContent = 'Aplicar';
+    applyPrevSpan.style.display = 'none';
+    const prevIcon = makeStatusIcon();
+    previsaoLabel.appendChild(prevIcon);
+    const previsaoInput = document.createElement('input');
+    previsaoInput.type = 'date';
+    previsaoInput.className = 'form-control';
+    previsaoInput.value = (() => {
+        const v = (demanda.previsao_etapa || '').trim();
+        if (!v) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v; // já ISO yyyy-mm-dd
+        const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); // dd/mm/yyyy
+        if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+        // fallback: tentar Date.parse
+        const ts = Date.parse(v);
+        if (!Number.isNaN(ts)) {
+            const d = new Date(ts);
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            const dd = String(d.getDate()).padStart(2,'0');
+            return `${d.getFullYear()}-${mm}-${dd}`;
+        }
+        return '';
+    })();
+    previsaoGroup.appendChild(previsaoLabel);
+    previsaoLabel.appendChild(applyPrevChk);
+    previsaoLabel.appendChild(applyPrevSpan);
+    previsaoGroup.appendChild(previsaoInput);
+
+    // Ícones adicionais para Equipe/Analista/Responsável
+
+    // Campo de Nota/Observação (Textarea)
+    const notaGroup = document.createElement('div');
+    notaGroup.className = 'form-group';
+    const notaLabel = document.createElement('label');
+    notaLabel.textContent = 'Adicionar Nota/Observação:';
+    const notaTextarea = document.createElement('textarea');
+    notaTextarea.className = 'form-control';
+    notaTextarea.rows = 3;
+    notaGroup.appendChild(notaLabel);
+    notaGroup.appendChild(notaTextarea);
+
+    // Botões de Ação
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'modal-footer';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Salvar';
+    saveBtn.className = 'btn btn-save';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancelar';
+    cancelBtn.className = 'btn btn-cancel';
+
+    // Lógica dos botões
+    const confirmCloseIfDirty = () => {
+        if (isSubmitting) return false;
+        if (!isDirty) return true;
+        return window.confirm('Há alterações não salvas. Deseja realmente fechar?');
+    };
+    const closeUnified = () => { try { document.removeEventListener('keydown', handleEsc); } catch {} try { overlay.remove(); } catch {} };
+    cancelBtn.addEventListener('click', () => { if (confirmCloseIfDirty()) closeUnified(); });
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay && confirmCloseIfDirty()) closeUnified();
+    });
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+            if (confirmCloseIfDirty()) closeUnified();
+            document.removeEventListener('keydown', handleEsc);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'enter') {
+            e.preventDefault();
+            if (!saveBtn.disabled) saveBtn.click();
+        }
+    };
+    document.addEventListener('keydown', handleEsc);
+
+    // Preferência: fechar automaticamente após salvar
+    const prefsKey = 'unified_auto_close';
+    let autoClose = false;
+    try { autoClose = localStorage.getItem(prefsKey) === '1'; } catch {}
+    const prefsGroup = document.createElement('div');
+    prefsGroup.className = 'form-group';
+    const autoCloseLabel = document.createElement('label');
+    const autoCloseChk = document.createElement('input');
+    autoCloseChk.type = 'checkbox';
+    autoCloseChk.checked = autoClose;
+    autoCloseLabel.appendChild(autoCloseChk);
+    autoCloseLabel.appendChild(document.createTextNode(' Fechar automaticamente após salvar'));
+    prefsGroup.appendChild(autoCloseLabel);
+    autoCloseChk.addEventListener('change', () => {
+        autoClose = autoCloseChk.checked; try { localStorage.setItem(prefsKey, autoClose ? '1' : '0'); } catch {}
+    });
+
+    // Passo 1.4: Lógica de Salvamento (enviar todas as alterações apenas ao clicar em Salvar)
+    saveBtn.addEventListener('click', async () => {
+        try {
+            if (isSubmitting) return;
+            isSubmitting = true;
+            saveBtn.disabled = true;
+            let hasChanges = false;
+
+            // 1. Preparar valores atuais do formulário
+            const notaText = notaTextarea.value;
+            const markResolved = resolvedCheckbox.checked;
+            const newStatus = statusSelect.value;
+            const gmudValue = gmudInput.value;
+            const newEquipe = equipeSelect.value;
+            const newAnalista = analistaSelect.value;
+            const newResponsavel = responsavelSelect.value;
+            const newPrevisao = previsaoInput.value;
+
+            // Exibir progresso
+            progressWrap.style.display = 'block';
+            progressText.style.display = 'block';
+            progressText.textContent = 'Salvando...';
+            progressBar.style.width = '15%';
+            // Montar payload com apenas campos que mudaram
+            const payload = {};
             const custom_fields = [];
-            if (changes.status) custom_fields.push({ field: { id: 70, name: 'Status' }, value: changes.status });
-            if (changes.equipe) custom_fields.push({ field: { id: 49, name: 'Squad' }, value: changes.equipe });
-            if (changes.responsavel) custom_fields.push({ field: { id: 69, name: 'Responsavel Atual' }, value: changes.responsavel });
-            if (changes.previsao_etapa) custom_fields.push({ field: { id: 72, name: 'Previsao Etapa' }, value: changes.previsao_etapa });
-            if (changes.gmud) custom_fields.push({ field: { id: 71, name: 'Numero_GMUD' }, value: changes.gmud });
-            if (changes.mark_resolved) custom_fields.push({ field: { id: 70, name: 'Status' }, value: 'Resolvido' });
-            if (custom_fields.length > 0) {
-                await mantisRequest(`issues/${id}`, { method: 'PATCH', body: JSON.stringify({ custom_fields }) });
+            if (newStatus !== original.status) {
+                custom_fields.push({ field: { id: 70 }, value: newStatus });
             }
-            markRecentlyUpdated([id]);
-        } catch (err) {
-            console.error('Erro atualizando ticket', id, err);
-        }
-    }
-    try { mostrarNotificacao('Atualizações em massa executadas (verifique o log para erros).', 'sucesso'); } catch {}
-    closeMassModal();
-    await atualizarDados();
-}
+            if (gmudValue !== original.gmud) {
+                custom_fields.push({ field: { id: 71 }, value: gmudValue });
+            }
+            if (newPrevisao !== original.previsao) {
+                let previsaoTs = null;
+                if (newPrevisao && /^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
+                    previsaoTs = Math.floor(Date.parse(newPrevisao + 'T00:00:00') / 1000);
+                } else if (newPrevisao) {
+                    const parsed = Date.parse(newPrevisao);
+                    if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
+                }
+                if (previsaoTs !== null) custom_fields.push({ field: { id: 72 }, value: previsaoTs });
+            }
+            if (newEquipe !== original.equipe) {
+                custom_fields.push({ field: { id: 49 }, value: newEquipe });
+            }
+            if (newResponsavel !== original.responsavel) {
+                custom_fields.push({ field: { id: 69 }, value: newResponsavel });
+            }
+            if (custom_fields.length > 0) payload.custom_fields = custom_fields;
+            if (newAnalista !== original.analista) payload.handler = { name: newAnalista };
+            if (markResolved) {
+                payload.status = { name: 'resolved' };
+                payload.resolution = { name: 'fixed' };
+            }
 
-// Inicializa os modais quando o script carregar
-try { initTicketModals(); } catch (e) { console.warn('Não foi possível inicializar modais:', e); }
+            const willPatch = Object.keys(payload).length > 0;
+            if (!willPatch && !(notaText && notaText.trim())) {
+                mostrarNotificacao('Nenhuma alteração detectada.', 'aviso');
+                isSubmitting = false;
+                saveBtn.disabled = false;
+                progressBar.style.width = '0%';
+                progressWrap.style.display = 'none';
+                progressText.style.display = 'none';
+                return;
+            }
+
+            if (willPatch) {
+                console.log('PAYLOAD PATCH ENVIADO PARA A API MANTIS:', JSON.stringify(payload, null, 2));
+                progressBar.style.width = '55%';
+                await mantisRequest(`issues/${demanda.numero}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(payload)
+                });
+                hasChanges = true;
+            }
+
+            // 2. Enviar comentário unificado (após PATCH)
+            const lines = [];
+            if (newStatus !== original.status && newStatus) lines.push(`Status: ${newStatus}`);
+            if (gmudValue !== original.gmud && gmudValue) lines.push(`GMUD: ${gmudValue}`);
+            if (newPrevisao !== original.previsao && newPrevisao) lines.push(`Previsão Etapa: ${newPrevisao}`);
+            if (markResolved) lines.push('Estado: resolved');
+            if (notaText && notaText.trim()) lines.push(notaText.trim());
+            if (lines.length > 0) {
+                progressBar.style.width = Object.keys(payload).length > 0 ? '80%' : '40%';
+                await mantisRequest(`issues/${demanda.numero}/notes`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        text: lines.join('\n'),
+                        view_state: { name: 'public' }
+                    })
+                });
+                hasChanges = true;
+            }
+
+            // 3. Feedback e atualização da UI
+            if (hasChanges) {
+                progressBar.style.width = '100%';
+                // Marcar como atualizado recentemente ANTES de re-renderizar
+                try { markRecentlyUpdated([demanda.numero]); } catch {}
+                mostrarNotificacao(`Chamado #${demanda.numero} atualizado com sucesso!`, 'sucesso');
+
+                // Atualizar dados locais e originals
+                const dataIndex = demandasData.findIndex(d => d.numero === demanda.numero);
+                if (dataIndex !== -1) {
+                    const row = demandasData[dataIndex];
+                    if (newStatus !== original.status) { row.status = newStatus; original.status = newStatus; }
+                    if (gmudValue !== original.gmud) { row.numero_gmud = gmudValue; original.gmud = gmudValue; }
+                    if (newPrevisao !== original.previsao) { row.previsao_etapa = newPrevisao; original.previsao = newPrevisao; }
+                    if (newEquipe !== original.equipe) { row.squad = newEquipe; original.equipe = newEquipe; }
+                    if (newAnalista !== original.analista) { row.atribuicao = newAnalista; original.analista = newAnalista; }
+                    if (newResponsavel !== original.responsavel) { row.resp_atual = newResponsavel; original.responsavel = newResponsavel; }
+                    if (markResolved) row.estado = 'resolved';
+                }
+                filterData(); // Re-renderiza a tabela com os novos dados
+                isDirty = false;
+                if (autoClose) {
+                    closeUnified();
+                } else {
+                    // Mostrar estado de sucesso dentro do modal
+                    const successBox = document.createElement('div');
+                    successBox.style.cssText = 'margin-top:8px;padding:10px;border-radius:6px;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;display:flex;align-items:center;gap:8px;';
+                    successBox.innerHTML = '<span>✅</span><div>Alterações salvas. Você pode continuar editando ou fechar.</div>';
+                    modal.appendChild(successBox);
+                }
+            }
+
+            isSubmitting = false;
+            saveBtn.disabled = false;
+            setTimeout(() => { progressWrap.style.display = 'none'; progressText.style.display = 'none'; progressBar.style.width = '0%'; }, 400);
+
+        } catch (error) {
+            console.error('Erro ao salvar as alterações:', error);
+            const errorData = await error.response?.json().catch(() => ({}))
+            const errorMessage = errorData.message || error.message || 'Erro desconhecido ao salvar no Mantis.';
+            mostrarNotificacao(`Erro: ${errorMessage}`, 'erro');
+            isSubmitting = false;
+            saveBtn.disabled = false;
+            progressBar.style.width = '0%';
+            progressWrap.style.display = 'none';
+            progressText.style.display = 'none';
+        }
+    });
+
+    // Campo de Equipe (Dropdown)
+    const equipeGroup = document.createElement('div');
+    equipeGroup.className = 'form-group';
+    const equipeLabel = document.createElement('label');
+    equipeLabel.textContent = 'Equipe:';
+    const applyEquipeChk = document.createElement('input');
+    applyEquipeChk.type = 'checkbox';
+    applyEquipeChk.style.display = 'none';
+    const applyEquipeSpan = document.createElement('span');
+    applyEquipeSpan.textContent = 'Aplicar';
+    applyEquipeSpan.style.display = 'none';
+    const equipeIcon = makeStatusIcon();
+    equipeLabel.appendChild(equipeIcon);
+    const equipeSelect = document.createElement('select');
+    equipeSelect.className = 'form-control';
+    SQUAD_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        if (option === demanda.squad) {
+            opt.selected = true;
+        }
+        equipeSelect.appendChild(opt);
+    });
+    equipeGroup.appendChild(equipeLabel);
+    equipeLabel.appendChild(applyEquipeChk);
+    equipeLabel.appendChild(applyEquipeSpan);
+    equipeGroup.appendChild(equipeSelect);
+
+    // Campo de Analista Responsável (Dropdown)
+    const analistaGroup = document.createElement('div');
+    analistaGroup.className = 'form-group';
+    const analistaLabel = document.createElement('label');
+    analistaLabel.textContent = 'Analista Responsável:';
+    const applyAnalistaChk = document.createElement('input');
+    applyAnalistaChk.type = 'checkbox';
+    applyAnalistaChk.style.display = 'none';
+    const applyAnalistaSpan = document.createElement('span');
+    applyAnalistaSpan.textContent = 'Aplicar';
+    applyAnalistaSpan.style.display = 'none';
+    const analistaIcon = makeStatusIcon();
+    analistaLabel.appendChild(analistaIcon);
+    const analistaSelect = document.createElement('select');
+    analistaSelect.className = 'form-control';
+    ANALISTA_RESPONSAVEL_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        if (option === demanda.atribuicao) { // Assumindo que o campo é 'atribuicao'
+            opt.selected = true;
+        }
+        analistaSelect.appendChild(opt);
+    });
+    analistaGroup.appendChild(analistaLabel);
+    analistaLabel.appendChild(applyAnalistaChk);
+    analistaLabel.appendChild(applyAnalistaSpan);
+    analistaGroup.appendChild(analistaSelect);
+
+    // Campo de Responsável Atual (Dropdown)
+    const responsavelGroup = document.createElement('div');
+    responsavelGroup.className = 'form-group';
+    const responsavelLabel = document.createElement('label');
+    responsavelLabel.textContent = 'Responsável Atual:';
+    const applyRespChk = document.createElement('input');
+    applyRespChk.type = 'checkbox';
+    applyRespChk.style.display = 'none';
+    const applyRespSpan = document.createElement('span');
+    applyRespSpan.textContent = 'Aplicar';
+    applyRespSpan.style.display = 'none';
+    const respIcon = makeStatusIcon();
+    responsavelLabel.appendChild(respIcon);
+    const responsavelSelect = document.createElement('select');
+    responsavelSelect.className = 'form-control';
+    RESPONSAVEL_ATUAL_OPTIONS.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        if (option === demanda.resp_atual) { // Assumindo que o campo é 'resp_atual'
+            opt.selected = true;
+        }
+        responsavelSelect.appendChild(opt);
+    });
+    responsavelGroup.appendChild(responsavelLabel);
+    responsavelLabel.appendChild(applyRespChk);
+    responsavelLabel.appendChild(applyRespSpan);
+    responsavelGroup.appendChild(responsavelSelect);
+
+    // Montar o modal
+    buttonContainer.appendChild(cancelBtn);
+    buttonContainer.appendChild(saveBtn);
+
+    modal.appendChild(modalTitle);
+    modal.appendChild(progressWrap);
+    modal.appendChild(progressText);
+    // Exibir 'Marcar como Resolvido' primeiro
+    modal.appendChild(resolvedGroup);
+    modal.appendChild(statusGroup);
+    modal.appendChild(gmudGroup);
+    modal.appendChild(previsaoGroup);
+    modal.appendChild(equipeGroup);
+    modal.appendChild(analistaGroup);
+    modal.appendChild(responsavelGroup);
+    modal.appendChild(notaGroup);
+    modal.appendChild(buttonContainer);
+
+    overlay.appendChild(modal);
+    
+    // Apenas rastreia alterações para habilitar/desabilitar salvar
+    const bindDirty = () => { updateDirty(); validateForm(); };
+    statusSelect.addEventListener('change', bindDirty);
+    gmudInput.addEventListener('input', bindDirty);
+    previsaoInput.addEventListener('change', bindDirty);
+    equipeSelect.addEventListener('change', bindDirty);
+    analistaSelect.addEventListener('change', bindDirty);
+    responsavelSelect.addEventListener('change', bindDirty);
+
+    validateForm();
+
+    console.log('Modal criado e adicionado ao DOM');
+}
