@@ -2592,65 +2592,111 @@ function mostrarNotificacao(mensagem, tipo = 'info', timeoutMs = 3500) {
 
 // ===== Modal de Edição Massiva =====
 function createMassEditModal(ticketNumbers) {
-    // Overlay
+    // Remove qualquer modal existente
+    const existingOverlay = document.querySelector('.unified-modal-overlay');
+    if (existingOverlay) existingOverlay.remove();
+
+    // Cria o overlay e o modal
     const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    overlay.className = 'unified-modal-overlay';
     document.body.appendChild(overlay);
 
-    // Container
     const modal = document.createElement('div');
-    modal.className = 'mass-edit-modal';
-    modal.style.cssText = 'background:#fff;border-radius:8px;width:95%;max-width:720px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25);';
+    modal.className = 'unified-modal';
     overlay.appendChild(modal);
 
-    const selectionText = (ticketNumbers.length === 1)
-        ? '1 selecionado'
-        : `${ticketNumbers.length} selecionados`;
-
     modal.innerHTML = `
-      <h3 style="margin-bottom:8px;">Edição Massiva (${selectionText})</h3>
-      <div style="height:1px;background:#e5e7eb;margin:6px 0 12px 0;"></div>
-      <div style="display:grid;grid-template-columns: 1fr 1fr;gap:12px;align-items:center;margin-bottom:4px;">
-        <div style="font-weight:600;color:#374151;">Campo</div>
-        <div style="font-weight:600;color:#374151;">Valor</div>
-      </div>
-      <div style="display:grid;grid-template-columns: 1fr 1fr;gap:12px;align-items:center;">
-        <label for="applyResolved" style="grid-column: 1 / span 2;display:flex;align-items:center;gap:8px;font-weight:600;">
-          <input type="checkbox" id="applyResolved" /> Marcar como Resolvido
-        </label>
+        <div class="unified-modal-header">
+            <h3 class="unified-modal-title">Edição em Massa</h3>
+            <div class="unified-modal-mass-header">
+                <div>Editando ${ticketNumbers.length} ${ticketNumbers.length === 1 ? 'chamado selecionado' : 'chamados selecionados'}</div>
+                <div class="selected-tickets">
+                    ${ticketNumbers.map(num => `<span class="ticket-tag">#${num}</span>`).join('')}
+                </div>
+            </div>
+        </div>
 
-        <label for="massStatus" style="font-weight:600;">Status</label>
-        <select id="massStatus" style="width:100%"></select>
+        <div class="unified-modal-content">
+            <!-- Coluna de Informações Principais -->
+            <div class="unified-modal-section">
+                <h4 class="unified-modal-section-title">Informações Principais</h4>
+                
+                <div class="unified-modal-field">
+                    <label>Status</label>
+                    <select id="massStatus"></select>
+                </div>
 
-        <label for="massGmud" style="font-weight:600;">GMUD</label>
-        <input id="massGmud" type="text" placeholder="Número GMUD" style="width:100%" />
+                <div class="unified-modal-field">
+                    <label>Analista Responsável</label>
+                    <select id="massAnalista"></select>
+                </div>
 
-        <label for="massPrevisao" style="font-weight:600;">Previsão Etapa</label>
-        <input id="massPrevisao" type="date" placeholder="Previsão da etapa" style="width:100%" />
+                <div class="unified-modal-field">
+                    <label>Responsável Atual</label>
+                    <select id="massRespAtual"></select>
+                </div>
 
-        <label for="massEquipe" style="font-weight:600;">Equipe</label>
-        <select id="massEquipe" style="width:100%"></select>
+                <div class="unified-modal-field">
+                    <label>Equipe</label>
+                    <select id="massEquipe"></select>
+                </div>
 
-        <label for="massRespAtual" style="font-weight:600;">Responsável Atual</label>
-        <select id="massRespAtual" style="width:100%"></select>
+                <div class="unified-modal-field">
+                    <label>Previsão Etapa</label>
+                    <input type="date" id="massPrevisao">
+                </div>
 
-        <label for="massAnalista" style="font-weight:600;">Analista Responsável</label>
-        <select id="massAnalista" style="width:100%"></select>
-      </div>
-      <div style="margin-top:14px;">
-        <label for="massComment" style="font-weight:600; display:block; margin-bottom:6px;">Comentário (opcional)</label>
-        <textarea id="massComment" rows="4" style="width:100%;"></textarea>
-      </div>
-      <div id="massProgress" role="status" aria-live="polite" style="margin-top:10px; font-size:12px; color:#6b7280;">Pronto</div>
-      <div id="massProgressBar" aria-hidden="true" style="height:6px; background:#e9ecef; border-radius:4px; overflow:hidden; margin-top:6px; display:none;">
-        <div id="massProgressBarFill" style="height:100%; width:0%; background:#3498db; transition:width .2s ease;"></div>
-      </div>
-      <div id="massResults" style="display:none; margin-top:12px; padding:10px; background:#f8f9fa; border-radius:6px; border-left:4px solid #3498db;"></div>
-      <div class="modal-footer">
-        <button id="massCancel" class="btn btn-cancel">Cancelar</button>
-        <button id="massSave" class="btn btn-save">Salvar</button>
-      </div>
+                <div class="unified-modal-field">
+                    <label>GMUD</label>
+                    <input type="text" id="massGmud" placeholder="Número GMUD">
+                </div>
+            </div>
+
+            <!-- Coluna de Observações -->
+            <div class="unified-modal-section">
+                <h4 class="unified-modal-section-title">Observações</h4>
+                
+                <div class="unified-modal-field">
+                    <label>Adicionar Nota / Observação</label>
+                    <textarea id="massComment" rows="4" placeholder="Digite sua observação aqui..."></textarea>
+                </div>
+
+                <div class="unified-modal-field">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="applyResolved">
+                        Marcar como Resolvido
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumo das Alterações -->
+        <div class="unified-modal-summary">
+            <h4 class="unified-modal-summary-title">Campos a serem atualizados</h4>
+            <div class="unified-modal-summary-content" id="massResults">
+                <div class="summary-item">
+                    <span class="summary-value">Nenhum campo selecionado para atualização</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="massProgress" class="unified-modal-progress" style="display: none;">
+            <div class="progress-text">Processando...</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+
+        <!-- Footer com botões -->
+        <div class="unified-modal-footer">
+            <button class="unified-modal-btn unified-modal-btn-cancel" id="massCancel">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button class="unified-modal-btn unified-modal-btn-save" id="massSave" disabled>
+                <i class="fas fa-save"></i> Salvar
+            </button>
+        </div>
     `;
 
     let isSubmitting = false;
@@ -2660,101 +2706,187 @@ function createMassEditModal(ticketNumbers) {
     const handleEsc = (e) => { if (e.key === 'Escape' && !isSubmitting) { close(); document.removeEventListener('keydown', handleEsc); } };
     document.addEventListener('keydown', handleEsc);
 
-    // Populate selects
-    const statusSel = modal.querySelector('#massStatus');
-    // Adiciona placeholder vazio para permitir "não aplicar" quando vazio
-    { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; statusSel.appendChild(ph); }
-    // Opção para limpar (em branco)
-    { const clr = document.createElement('option'); clr.value = '__CLEAR__'; clr.textContent = '— limpar (em branco) —'; statusSel.appendChild(clr); }
-    STATUS_OPTIONS.forEach(s => {
-        const v = (s || '').trim();
-        if (!v) return; // evita opção em branco além do placeholder explícito
-        const o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o);
-    });
-    const equipeSel = modal.querySelector('#massEquipe');
-    { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; equipeSel.appendChild(ph); }
-    SQUAD_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; equipeSel.appendChild(o); });
-    const respSel = modal.querySelector('#massRespAtual');
-    { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; respSel.appendChild(ph); }
-    // Opção para limpar (em branco)
-    { const clr = document.createElement('option'); clr.value = '__CLEAR__'; clr.textContent = '— limpar (em branco) —'; respSel.appendChild(clr); }
-    RESPONSAVEL_ATUAL_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; respSel.appendChild(o); });
-    const analistaSel = modal.querySelector('#massAnalista');
-    { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; analistaSel.appendChild(ph); }
-    ANALISTA_RESPONSAVEL_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; analistaSel.appendChild(o); });
+    // Preenche os selects
+    const populateSelect = (selectId, options, addClear = false, addBlank = true) => {
+        const select = modal.querySelector(selectId);
+        if (!select) return;
 
-    // Se apenas 1 ticket foi passado, pré-preencher os campos com os valores atuais
+        if (addBlank) {
+            const blank = document.createElement('option');
+            blank.value = '';
+            blank.textContent = '— selecione —';
+            blank.selected = true;
+            select.appendChild(blank);
+        }
+
+        if (addClear) {
+            const clear = document.createElement('option');
+            clear.value = '__CLEAR__';
+            clear.textContent = '— limpar (em branco) —';
+            select.appendChild(clear);
+        }
+
+        options.sort()
+            .filter(opt => opt && opt.trim())
+            .forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt;
+                option.textContent = opt;
+                select.appendChild(option);
+            });
+    };
+
+    populateSelect('#massStatus', STATUS_OPTIONS, true);
+    populateSelect('#massAnalista', ANALISTA_RESPONSAVEL_OPTIONS);
+    populateSelect('#massRespAtual', RESPONSAVEL_ATUAL_OPTIONS, true);
+    populateSelect('#massEquipe', SQUAD_OPTIONS);
+
+    // Se apenas 1 ticket foi passado, pré-preenche os campos com os valores atuais
     if (ticketNumbers.length === 1) {
         try {
             const ticket = getDemandaByNumero(ticketNumbers[0]) || {};
-            // Preenche inputs com valores existentes
-            const curStatus = ticket.status || '';
-            const curGmud = ticket.numero_gmud || '';
-            const curPrevisao = ticket.previsao_etapa || '';
-            const curEquipe = ticket.squad || '';
-            const curResp = ticket.resp_atual || '';
-            const curAnalista = ticket.atribuicao || '';
+            
+            const setFieldValue = (selector, value, isSelect = false) => {
+                const el = modal.querySelector(selector);
+                if (!el || !value) return;
 
-            if (curStatus) {
-                const opt = Array.from(statusSel.options).find(o => o.value === curStatus);
-                if (opt) opt.selected = true;
-            }
-            const gmudEl = modal.querySelector('#massGmud');
-            if (gmudEl) gmudEl.value = curGmud;
-            const prevEl = modal.querySelector('#massPrevisao');
-            if (prevEl) {
-                // tenta normalizar datas no formato yyyy-mm-dd
-                const v = (curPrevisao || '').trim();
-                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) prevEl.value = v;
-                else {
-                    const m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-                    if (m) prevEl.value = `${m[3]}-${m[2]}-${m[1]}`;
+                if (isSelect) {
+                    const opt = Array.from(el.options).find(o => o.value === value);
+                    if (opt) opt.selected = true;
+                } else {
+                    if (selector === '#massPrevisao') {
+                        // Normaliza datas para o formato yyyy-mm-dd
+                        const v = value.trim();
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                            el.value = v;
+                        } else {
+                            const m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                            if (m) el.value = `${m[3]}-${m[2]}-${m[1]}`;
+                        }
+                    } else {
+                        el.value = value;
+                    }
                 }
-            }
-            if (curEquipe) {
-                const o = Array.from(equipeSel.options).find(x => x.value === curEquipe);
-                if (o) o.selected = true;
-            }
-            if (curResp) {
-                const o = Array.from(respSel.options).find(x => x.value === curResp);
-                if (o) o.selected = true;
-            }
-            if (curAnalista) {
-                const o = Array.from(analistaSel.options).find(x => x.value === curAnalista);
-                if (o) o.selected = true;
-            }
+            };
+
+            setFieldValue('#massStatus', ticket.status, true);
+            setFieldValue('#massGmud', ticket.numero_gmud);
+            setFieldValue('#massPrevisao', ticket.previsao_etapa);
+            setFieldValue('#massEquipe', ticket.squad, true);
+            setFieldValue('#massRespAtual', ticket.resp_atual, true);
+            setFieldValue('#massAnalista', ticket.atribuicao, true);
         } catch (e) {
-            console.warn('Falha ao pré-preencher modal massiva para 1 ticket:', e);
+            console.warn('Falha ao pré-preencher modal para 1 ticket:', e);
         }
     }
 
-    // Habilita todos os campos por padrão e oculta checkboxes de "Aplicar"
-    const pairs = [
-        ['applyStatus','massStatus'],
-        ['applyGmud','massGmud'],
-        ['applyPrevisao','massPrevisao'],
-        ['applyEquipe','massEquipe'],
-        ['applyRespAtual','massRespAtual'],
-        ['applyAnalista','massAnalista']
-    ];
-    pairs.forEach(([chkId, inputId]) => {
-        const chk = modal.querySelector('#' + chkId);
-        const inp = modal.querySelector('#' + inputId);
-        if (inp) inp.disabled = false;
-        if (chk) chk.style.display = 'none';
-    });
-
-    // Save handler
-    modal.querySelector('#massSave').addEventListener('click', async () => {
-    const raw = {
+    // Event handlers para atualização dinâmica do resumo
+    const updateSummary = () => {
+        const resultsBox = modal.querySelector('#massResults');
+        const values = {
             status: modal.querySelector('#massStatus').value,
-            gmud: modal.querySelector('#massGmud').value,
+            gmud: modal.querySelector('#massGmud').value.trim(),
             previsao: modal.querySelector('#massPrevisao').value,
             equipe: modal.querySelector('#massEquipe').value,
             respAtual: modal.querySelector('#massRespAtual').value,
             analista: modal.querySelector('#massAnalista').value,
-            comment: modal.querySelector('#massComment').value
+            comment: modal.querySelector('#massComment').value.trim(),
+            resolved: modal.querySelector('#applyResolved').checked
         };
+
+        const changes = [];
+
+        if (values.status) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">${values.status === '__CLEAR__' ? '(em branco)' : values.status}</span>
+            </div>`);
+        }
+
+        if (values.gmud) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">GMUD:</span>
+                <span class="summary-value">${values.gmud}</span>
+            </div>`);
+        }
+
+        if (values.previsao) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Previsão:</span>
+                <span class="summary-value">${values.previsao}</span>
+            </div>`);
+        }
+
+        if (values.equipe) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Equipe:</span>
+                <span class="summary-value">${values.equipe}</span>
+            </div>`);
+        }
+
+        if (values.respAtual) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Responsável:</span>
+                <span class="summary-value">${values.respAtual === '__CLEAR__' ? '(em branco)' : values.respAtual}</span>
+            </div>`);
+        }
+
+        if (values.analista) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Analista:</span>
+                <span class="summary-value">${values.analista}</span>
+            </div>`);
+        }
+
+        if (values.comment) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Comentário:</span>
+                <span class="summary-value">Será adicionado</span>
+            </div>`);
+        }
+
+        if (values.resolved) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">Será marcado como resolvido</span>
+            </div>`);
+        }
+
+        resultsBox.innerHTML = changes.length > 0 ? 
+            changes.join('') : 
+            '<div class="summary-item"><span class="summary-value">Nenhum campo selecionado para atualização</span></div>';
+
+        modal.querySelector('#massSave').disabled = changes.length === 0 || isSubmitting;
+    };
+
+    // Adiciona listeners para todos os campos
+    ['Status', 'Analista', 'RespAtual', 'Equipe', 'Previsao', 'Gmud'].forEach(field => {
+        const el = modal.querySelector(`#mass${field}`);
+        if (el) el.addEventListener('input', updateSummary);
+    });
+
+    modal.querySelector('#massComment').addEventListener('input', updateSummary);
+    modal.querySelector('#applyResolved').addEventListener('change', updateSummary);
+
+    // Save handler
+    modal.querySelector('#massSave').addEventListener('click', async () => {
+        const getFieldValue = (selector, isRaw = false) => {
+            const el = modal.querySelector(selector);
+            if (!el) return '';
+            const raw = el.value;
+            return isRaw ? raw : (raw || '').trim();
+        };
+
+        const raw = {
+            status: getFieldValue('#massStatus', true),
+            gmud: getFieldValue('#massGmud', true),
+            previsao: getFieldValue('#massPrevisao', true),
+            equipe: getFieldValue('#massEquipe', true),
+            respAtual: getFieldValue('#massRespAtual', true),
+            analista: getFieldValue('#massAnalista', true),
+            comment: getFieldValue('#massComment', true)
+        };
+
         const values = {
             status: (raw.status || '').trim(),
             gmud: (raw.gmud || '').trim(),
@@ -2764,7 +2896,8 @@ function createMassEditModal(ticketNumbers) {
             analista: (raw.analista || '').trim(),
             comment: (raw.comment || '').trim()
         };
-        // Quando houver apenas 1 ticket, só aplicar campos que realmente mudaram em relação ao valor atual
+
+        // Determina quais campos realmente mudaram
         let apply = {
             status: values.status !== '' || raw.status === '__CLEAR__',
             resolved: modal.querySelector('#applyResolved').checked,
@@ -2772,131 +2905,180 @@ function createMassEditModal(ticketNumbers) {
             previsao: values.previsao !== '',
             equipe: values.equipe !== '',
             respAtual: values.respAtual !== '' || raw.respAtual === '__CLEAR__',
-            analista: values.analista !== '',
+            analista: values.analista !== ''
         };
+
+        // Para um único ticket, verifica se os valores realmente mudaram
         if (ticketNumbers.length === 1) {
             try {
                 const base = getDemandaByNumero(ticketNumbers[0]) || {};
-                // Ajusta flags para não aplicar quando o valor é igual ao atual
-                if (apply.status) {
-                    const target = (raw.status === '__CLEAR__') ? '' : values.status;
-                    if ((base.status || '') === (target || '')) apply.status = false;
-                }
-                if (apply.gmud) {
-                    if ((base.numero_gmud || '') === (values.gmud || '')) apply.gmud = false;
-                }
+                
+                // Função helper para comparar valores
+                const compareAndUpdate = (field, baseField, rawValue, baseValue) => {
+                    if (!apply[field]) return;
+                    const target = (rawValue === '__CLEAR__') ? '' : values[baseField];
+                    if ((base[baseValue] || '') === (target || '')) {
+                        apply[field] = false;
+                    }
+                };
+
+                compareAndUpdate('status', 'status', raw.status, 'status');
+                compareAndUpdate('gmud', 'gmud', raw.gmud, 'numero_gmud');
+                compareAndUpdate('equipe', 'equipe', raw.equipe, 'squad');
+                compareAndUpdate('respAtual', 'respAtual', raw.respAtual, 'resp_atual');
+                compareAndUpdate('analista', 'analista', raw.analista, 'atribuicao');
+
+                // Caso especial para previsão (formato de data)
                 if (apply.previsao) {
-                    // normaliza previsões para comparação simples
                     const a = (base.previsao_etapa || '').trim();
-                    const b = (values.previsao || '').trim();
+                    const b = values.previsao || '';
                     if (a === b) apply.previsao = false;
                 }
-                if (apply.equipe) {
-                    if ((base.squad || '') === (values.equipe || '')) apply.equipe = false;
-                }
-                if (apply.respAtual) {
-                    const target = (raw.respAtual === '__CLEAR__') ? '' : values.respAtual;
-                    if ((base.resp_atual || '') === (target || '')) apply.respAtual = false;
-                }
-                if (apply.analista) {
-                    if ((base.atribuicao || '') === (values.analista || '')) apply.analista = false;
-                }
-            } catch (e) { console.warn('Erro ao comparar valores da demanda:', e); }
+            } catch (e) { 
+                console.warn('Erro ao comparar valores da demanda:', e); 
+            }
         }
 
-        if (!apply.status && !apply.gmud && !apply.previsao && !apply.equipe && !apply.respAtual && !apply.analista && !values.comment) {
+        // Verifica se há alterações para aplicar
+        if (!Object.values(apply).some(v => v) && !values.comment) {
             mostrarNotificacao('Selecione pelo menos um campo para aplicar ou insira um comentário.', 'aviso');
             return;
         }
 
+        // Configura elementos da UI para processamento
         const progress = modal.querySelector('#massProgress');
-        const progressBar = modal.querySelector('#massProgressBar');
-        const progressBarFill = modal.querySelector('#massProgressBarFill');
+        const progressFill = progress.querySelector('.progress-fill');
         const resultsBox = modal.querySelector('#massResults');
         resultsBox.setAttribute('role', 'status');
         resultsBox.setAttribute('aria-live', 'polite');
+
         const total = ticketNumbers.length;
         let done = 0;
-        progress.textContent = `Processando 0/${total}...`;
+        progress.querySelector('.progress-text').textContent = `Processando 0/${total}...`;
+        
         const saveBtnEl = modal.querySelector('#massSave');
         const cancelBtnEl = modal.querySelector('#massCancel');
         
-        // Pré-confirmação: mostra resumo do que será aplicado antes de iniciar
+        // Pré-confirmação antes de iniciar o processamento
         if (!modal.dataset.massConfirmed) {
-            const fieldsToApply = [];
-            if (apply.status) fieldsToApply.push(`Status → ${raw.status === '__CLEAR__' ? '(em branco)' : values.status}`);
-            if (apply.gmud) fieldsToApply.push(`GMUD → ${values.gmud}`);
-            if (apply.previsao) fieldsToApply.push(`Previsão → ${values.previsao}`);
-            if (apply.equipe) fieldsToApply.push(`Equipe → ${values.equipe}`);
-            if (apply.respAtual) fieldsToApply.push(`Resp. Atual → ${raw.respAtual === '__CLEAR__' ? '(em branco)' : values.respAtual}`);
-            if (apply.analista) fieldsToApply.push(`Analista → ${values.analista}`);
-            if (values.comment) fieldsToApply.push(`Comentário ✓`);
+            const fieldsToApply = [
+                ...(apply.status ? [`Status → ${raw.status === '__CLEAR__' ? '(em branco)' : values.status}`] : []),
+                ...(apply.gmud ? [`GMUD → ${values.gmud}`] : []),
+                ...(apply.previsao ? [`Previsão → ${values.previsao}`] : []),
+                ...(apply.equipe ? [`Equipe → ${values.equipe}`] : []),
+                ...(apply.respAtual ? [`Resp. Atual → ${raw.respAtual === '__CLEAR__' ? '(em branco)' : values.respAtual}`] : []),
+                ...(apply.analista ? [`Analista → ${values.analista}`] : []),
+                ...(values.comment ? ['Comentário ✓'] : [])
+            ];
 
             const summaryHtml = `
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                  <strong>Confirmação</strong>
-                  <span>${total} itens serão afetados</span>
+                <div class="summary-item">
+                    <div style="font-weight:600;margin-bottom:8px;">
+                        ${total} ${total === 1 ? 'item será afetado' : 'itens serão afetados'}
+                    </div>
+                    <div class="summary-changes">
+                        ${fieldsToApply.length ? fieldsToApply.map(f => `<div>• ${f}</div>`).join('') 
+                            : '<div>Nenhuma alteração selecionada</div>'}
+                    </div>
                 </div>
-                <div style="margin-top:8px; font-size:12px; color:#333;">
-                  ${fieldsToApply.length ? fieldsToApply.map(f => `<div>• ${f}</div>`).join('') : '<div>Nenhum campo selecionado.</div>'}
-                </div>
-                <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-                  <button id="mass-confirm" class="btn btn-save">Confirmar</button>
-                  <button id="mass-back" class="btn btn-cancel">Voltar</button>
+                <div class="unified-modal-footer" style="margin-top:16px;">
+                    <button class="unified-modal-btn unified-modal-btn-cancel" id="mass-back">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <button class="unified-modal-btn unified-modal-btn-save" id="mass-confirm">
+                        <i class="fas fa-check"></i> Confirmar
+                    </button>
                 </div>
             `;
+
             resultsBox.innerHTML = summaryHtml;
-            resultsBox.style.display = 'block';
-            progress.textContent = 'Aguardando confirmação...';
+            progress.style.display = 'none';
 
             const confirmBtn = resultsBox.querySelector('#mass-confirm');
             const backBtn = resultsBox.querySelector('#mass-back');
+            
             confirmBtn?.addEventListener('click', () => {
                 modal.dataset.massConfirmed = '1';
+                progress.style.display = 'block';
                 resultsBox.style.display = 'none';
                 saveBtnEl.click();
             });
+            
             backBtn?.addEventListener('click', () => {
-                resultsBox.style.display = 'none';
-                progress.textContent = 'Pronto';
+                updateSummary();
             });
+            
             return;
         }
 
+        // Inicia o processamento
         saveBtnEl.disabled = true;
         cancelBtnEl.disabled = true;
         isSubmitting = true;
-        progressBar.style.display = 'block';
-        progressBarFill.style.width = '0%';
+        progress.style.display = 'block';
+        progressFill.style.width = '0%';
 
         const worker = async (numero) => {
             const base = getDemandaByNumero(numero) || {};
             const patchPayload = {};
             const custom_fields = [];
-            if (apply.status) {
-                const v = (raw.status === '__CLEAR__') ? '' : values.status;
-                custom_fields.push({ field: { id: 70 }, value: v });
-            }
-            if (apply.gmud && values.gmud) custom_fields.push({ field: { id: 71 }, value: values.gmud });
-            if (apply.previsao) {
+
+            const addCustomField = (shouldApply, fieldId, value, transform = v => v) => {
+                if (shouldApply) {
+                    custom_fields.push({ 
+                        field: { id: fieldId }, 
+                        value: transform(value)
+                    });
+                }
+            };
+
+            addCustomField(
+                apply.status, 
+                70, 
+                values.status, 
+                v => raw.status === '__CLEAR__' ? '' : v
+            );
+
+            addCustomField(
+                apply.gmud && values.gmud, 
+                71, 
+                values.gmud
+            );
+
+            if (apply.previsao && values.previsao) {
                 let previsaoTs = null;
-                if (values.previsao && /^\d{4}-\d{2}-\d{2}$/.test(values.previsao)) {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(values.previsao)) {
                     previsaoTs = Math.floor(Date.parse(values.previsao + 'T00:00:00') / 1000);
-                } else if (values.previsao) {
+                } else {
                     const parsed = Date.parse(values.previsao);
                     if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
                 }
-                if (previsaoTs !== null) custom_fields.push({ field: { id: 72 }, value: previsaoTs });
+                if (previsaoTs !== null) {
+                    addCustomField(true, 72, previsaoTs);
+                }
             }
-            if (apply.equipe && values.equipe) custom_fields.push({ field: { id: 49 }, value: values.equipe });
-            if (apply.respAtual) {
-                const v = (raw.respAtual === '__CLEAR__') ? '' : values.respAtual;
-                custom_fields.push({ field: { id: 69 }, value: v });
-            }
-            if (custom_fields.length) patchPayload.custom_fields = custom_fields;
-            if (apply.analista && values.analista) patchPayload.handler = { name: values.analista };
 
-            // Estado nativo: resolved
+            addCustomField(
+                apply.equipe && values.equipe, 
+                49, 
+                values.equipe
+            );
+
+            addCustomField(
+                apply.respAtual, 
+                69, 
+                values.respAtual, 
+                v => raw.respAtual === '__CLEAR__' ? '' : v
+            );
+
+            if (custom_fields.length) {
+                patchPayload.custom_fields = custom_fields;
+            }
+
+            if (apply.analista && values.analista) {
+                patchPayload.handler = { name: values.analista };
+            }
+
             if (apply.resolved) {
                 patchPayload.status = { name: 'resolved' };
                 patchPayload.resolution = { name: 'fixed' };
@@ -2905,229 +3087,240 @@ function createMassEditModal(ticketNumbers) {
             let patchOk = true;
             if (Object.keys(patchPayload).length > 0) {
                 try {
-                    await mantisRequest(`issues/${numero}`, { method: 'PATCH', body: JSON.stringify(patchPayload) });
+                    await mantisRequest(`issues/${numero}`, { 
+                        method: 'PATCH', 
+                        body: JSON.stringify(patchPayload) 
+                    });
                 } catch (e) {
+                    console.error(`Erro ao atualizar ticket #${numero}:`, e);
                     patchOk = false;
                 }
             }
 
-            // Montar comentário
+            // Prepara comentário
             const lines = [];
-            if (apply.status) {
-                const oldStatus = base.status || '';
-                if (patchOk && (oldStatus !== (raw.status === '__CLEAR__' ? '' : values.status))) {
-                    if (raw.status === '__CLEAR__') {
-                        lines.push('Status :  ');
-                    } else {
-                        lines.push(`Status: ${values.status}`);
-                    }
+            const addCommentLine = (shouldAdd, oldValue, newValue, label) => {
+                if (!shouldAdd || !patchOk) return;
+                const target = newValue === '__CLEAR__' ? '' : newValue;
+                if (oldValue !== target) {
+                    lines.push(`${label}: ${target || ' '}`);
                 }
-            }
-            if (apply.resolved) {
-                lines.push('Estado: resolved');
-            }
-            if (apply.gmud) {
-                const oldGmud = base.numero_gmud || '';
-                if (patchOk && (!oldGmud || oldGmud !== values.gmud)) lines.push(`GMUD: ${values.gmud}`);
-            }
-            if (apply.previsao) {
-                const oldPrev = base.previsao_etapa || '';
-                if (patchOk && (!oldPrev || oldPrev !== values.previsao)) lines.push(`Previsão Etapa: ${values.previsao}`);
-            }
+            };
+
+            addCommentLine(apply.status, base.status, raw.status, 'Status');
+            if (apply.resolved) lines.push('Estado: resolved');
+            addCommentLine(apply.gmud, base.numero_gmud, values.gmud, 'GMUD');
+            addCommentLine(apply.previsao, base.previsao_etapa, values.previsao, 'Previsão Etapa');
             if (values.comment) lines.push(values.comment);
 
             let postOk = true;
             if (lines.length > 0) {
                 try {
-                    await mantisRequest(`issues/${numero}/notes`, { method: 'POST', body: JSON.stringify({ text: lines.join('\n'), view_state: { name: 'public' } }) });
-                } catch (e) { postOk = false; }
+                    await mantisRequest(`issues/${numero}/notes`, { 
+                        method: 'POST', 
+                        body: JSON.stringify({ 
+                            text: lines.join('\n'), 
+                            view_state: { name: 'public' } 
+                        })
+                    });
+                } catch (e) { 
+                    console.error(`Erro ao adicionar comentário ao ticket #${numero}:`, e);
+                    postOk = false; 
+                }
             }
 
-            // Atualiza dados locais e IndexedDB se patch OK
+            // Atualiza dados locais e IndexedDB
             if (patchOk) {
+                const updateLocal = (data) => {
+                    if (apply.status) data.status = raw.status === '__CLEAR__' ? '' : values.status;
+                    if (apply.resolved) data.estado = 'resolved';
+                    if (apply.gmud) data.numero_gmud = values.gmud;
+                    if (apply.previsao) data.previsao_etapa = values.previsao;
+                    if (apply.equipe) data.squad = values.equipe;
+                    if (apply.respAtual) data.resp_atual = raw.respAtual === '__CLEAR__' ? '' : values.respAtual;
+                    if (apply.analista) data.atribuicao = values.analista;
+                    return data;
+                };
+
+                // Atualiza no array em memória
                 const idx = demandasData.findIndex(d => d.numero === numero);
                 if (idx !== -1) {
-                    if (apply.status) demandasData[idx].status = values.status;
-                    if (apply.resolved) demandasData[idx].estado = 'resolved';
-                    if (apply.gmud) demandasData[idx].numero_gmud = values.gmud;
-                    if (apply.previsao) demandasData[idx].previsao_etapa = values.previsao;
-                    if (apply.equipe) demandasData[idx].squad = values.equipe;
-                    if (apply.respAtual) demandasData[idx].resp_atual = (raw.respAtual === '__CLEAR__') ? '' : values.respAtual;
-                    if (apply.analista) demandasData[idx].atribuicao = values.analista;
+                    demandasData[idx] = updateLocal(demandasData[idx]);
                 }
+
+                // Atualiza no IndexedDB
                 try {
                     const db = await openDB();
                     const tx = db.transaction([STORE_NAME], 'readwrite');
                     const store = tx.objectStore(STORE_NAME);
-                    const getReq = store.get(numero);
-                    const demanda = await new Promise((resolve) => { getReq.onsuccess = () => resolve(getReq.result); getReq.onerror = () => resolve(null); });
+                    const demanda = await new Promise((resolve) => {
+                        const req = store.get(numero);
+                        req.onsuccess = () => resolve(req.result);
+                        req.onerror = () => resolve(null);
+                    });
+
                     if (demanda) {
-                        if (apply.status) demanda.status = (raw.status === '__CLEAR__') ? '' : values.status;
-                        if (apply.resolved) demanda.estado = 'resolved';
-                        if (apply.gmud) demanda.numero_gmud = values.gmud;
-                        if (apply.previsao) demanda.previsao_etapa = values.previsao;
-                        if (apply.equipe) demanda.squad = values.equipe;
-                        if (apply.respAtual) demanda.resp_atual = (raw.respAtual === '__CLEAR__') ? '' : values.respAtual;
-                        if (apply.analista) demanda.atribuicao = values.analista;
-                        const putReq = store.put(demanda);
-                        await new Promise((resolve) => { putReq.onsuccess = resolve; putReq.onerror = resolve; });
-                    } else {
-                        console.warn('Demanda não encontrada no IndexedDB para ticket', numero);
+                        updateLocal(demanda);
+                        await new Promise((resolve) => {
+                            const req = store.put(demanda);
+                            req.onsuccess = resolve;
+                            req.onerror = resolve;
+                        });
                     }
                 } catch (e) {
                     console.warn('Falha ao atualizar IndexedDB para ticket', numero, e);
                 }
-                try { await updateDemandaLastUpdated(numero); } catch {}
+
+                try { 
+                    await updateDemandaLastUpdated(numero); 
+                } catch (e) {
+                    console.warn('Falha ao atualizar last_updated para ticket', numero, e);
+                }
             }
 
             done++;
-            progress.textContent = `Processando ${done}/${total}...`;
+            progress.querySelector('.progress-text').textContent = `Processando ${done}/${total}...`;
+            progressFill.style.width = `${Math.round((done/total) * 100)}%`;
+            
             return { numero, patchOk, postOk };
         };
 
         const renderResults = (results) => {
             const okCount = results.filter(r => r && r.patchOk !== false).length;
             const fail = results.filter(r => r && r.patchOk === false);
-            progress.textContent = `Concluído. Sucesso: ${okCount} | Falhas: ${fail.length}`;
-            // Esconde barra de progresso ao concluir
-            if (progressBar) progressBar.style.display = 'none';
+            
+            progress.querySelector('.progress-text').textContent = `Concluído. Sucesso: ${okCount} | Falhas: ${fail.length}`;
 
             try {
                 const successful = results.filter(r => r && r.patchOk !== false).map(r => r.numero);
                 if (successful.length) markRecentlyUpdated(successful);
-            } catch {}
-            filterData();
-            selectedTickets.clear();
-            syncSelectAllCheckboxForPage();
-            const massEditBtn = document.getElementById('massEditBtn');
-            if (massEditBtn) massEditBtn.disabled = true;
+                filterData();
+                selectedTickets.clear();
+                syncSelectAllCheckboxForPage();
+                
+                const massEditBtn = document.getElementById('massEditBtn');
+                if (massEditBtn) massEditBtn.disabled = true;
+            } catch (e) {
+                console.warn('Erro ao atualizar UI após processamento:', e);
+            }
 
-            // Mostrar box de resultados com ações
+            // Prepara sumário dos resultados
             const failedIds = fail.map(f => f.numero);
-            // Monta tabela resumida (colapsável)
-            const summarized = results.map(r => ({
-                numero: r?.numero,
-                status: r?.patchOk === false ? 'fail' : 'ok',
-                msg: r?.patchOk === false ? 'patch failed' : 'ok'
-            })).filter(r => r.numero != null);
-            const tableRowsAll = summarized.map(r => `
-                <tr data-status="${r.status}">
-                  <td style="padding:6px 8px; font-family:monospace;">${r.numero}</td>
-                  <td style="padding:6px 8px;">${r.status === 'ok' ? '✅' : '❌'}</td>
-                  <td style="padding:6px 8px; color:#555; font-size:12px;">${r.msg}</td>
-                </tr>
-            `).join('');
-            const summaryHtml = `
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <strong>Resumo:</strong>
-                  <span style="color:#2ecc71">Sucesso: ${okCount}</span>
-                  <span style="color:#e74c3c">Falhas: ${fail.length}</span>
+            const rows = results
+                .filter(r => r?.numero != null)
+                .map(r => ({
+                    numero: r.numero,
+                    status: r.patchOk === false ? 'fail' : 'ok',
+                    msg: r.patchOk === false ? 'Falha ao atualizar' : 'Atualizado com sucesso'
+                }));
+
+            resultsBox.innerHTML = `
+                <div class="summary-item">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <strong>Resultado Final</strong>
+                        <span style="color:#22c55e">✓ ${okCount} sucesso${okCount !== 1 ? 's' : ''}</span>
+                        ${fail.length ? `<span style="color:#ef4444">✗ ${fail.length} falha${fail.length !== 1 ? 's' : ''}</span>` : ''}
+                    </div>
+                    
+                    ${fail.length ? `
+                        <div class="summary-changes" style="margin-bottom:12px;">
+                            <details>
+                                <summary style="cursor:pointer;padding:8px 0;">
+                                    Ver detalhes ${fail.length ? `(${fail.length} falha${fail.length !== 1 ? 's' : ''})` : ''}
+                                </summary>
+                                <div style="margin-top:8px;">
+                                    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                                        <thead>
+                                            <tr style="background:#f8fafc;text-align:left;">
+                                                <th style="padding:6px 8px;">Ticket</th>
+                                                <th style="padding:6px 8px;">Status</th>
+                                                <th style="padding:6px 8px;">Mensagem</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${rows.map(r => `
+                                                <tr data-status="${r.status}" style="border-bottom:1px solid #e5e7eb;">
+                                                    <td style="padding:6px 8px;font-family:monospace;">#${r.numero}</td>
+                                                    <td style="padding:6px 8px;">${r.status === 'ok' ? '✓' : '✗'}</td>
+                                                    <td style="padding:6px 8px;color:#64748b;">${r.msg}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </details>
+                        </div>
+                    ` : ''}
                 </div>
-                <details style="margin-top:8px;">
-                  <summary style="cursor:pointer; user-select:none;">Ver resultados por item</summary>
-                  <div style="margin-top:8px;">
-                    <div style="display:flex; gap:8px; margin-bottom:8px;">
-                      <button id="mass-view-fail" class="btn">Ver somente falhas</button>
-                      ${fail.length ? '<button id="mass-copy-fail" class="btn">Copiar IDs falhos</button>' : ''}
-                    </div>
-                    <div style="max-height:220px; overflow:auto; border:1px solid #eee; border-radius:6px;">
-                      <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                        <thead>
-                          <tr style="background:#f1f3f5; text-align:left;">
-                            <th style="padding:6px 8px;">ID</th>
-                            <th style="padding:6px 8px;">Status</th>
-                            <th style="padding:6px 8px;">Mensagem</th>
-                          </tr>
-                        </thead>
-                        <tbody id="massResultsTable">
-                          ${tableRowsAll}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </details>
-                <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-                  <button id="mass-close" class="btn btn-cancel">Fechar</button>
-                  ${fail.length ? '<button id="mass-retry" class="btn btn-save">Reprocessar falhas</button>' : ''}
-                  ${fail.length ? '<button id="mass-export" class="btn">Exportar erros (CSV)</button>' : ''}
+                
+                <div class="unified-modal-footer" style="margin-top:16px;">
+                    <button class="unified-modal-btn unified-modal-btn-cancel" id="mass-close">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                    ${fail.length ? `
+                        <button class="unified-modal-btn unified-modal-btn-save" id="mass-retry">
+                            <i class="fas fa-redo"></i> Reprocessar Falhas
+                        </button>
+                    ` : ''}
                 </div>
             `;
-            resultsBox.innerHTML = summaryHtml;
+            
             resultsBox.style.display = 'block';
 
             const closeBtn = resultsBox.querySelector('#mass-close');
-            if (closeBtn) closeBtn.addEventListener('click', () => close());
-
-            // Ação: Copiar IDs falhos
-            const copyFailBtn = resultsBox.querySelector('#mass-copy-fail');
-            if (copyFailBtn) copyFailBtn.addEventListener('click', async () => {
-                try {
-                    await navigator.clipboard.writeText(failedIds.join(', '));
-                    mostrarNotificacao('IDs falhos copiados para a área de transferência.', 'sucesso');
-                } catch {
-                    mostrarNotificacao('Não foi possível copiar. Selecione e copie manualmente.', 'aviso');
-                }
-            });
-
-            // Ação: Ver somente falhas (filtro local na tabela)
-            const viewFailBtn = resultsBox.querySelector('#mass-view-fail');
-            if (viewFailBtn) {
-                let showingOnlyFails = false;
-                const tbody = resultsBox.querySelector('#massResultsTable');
-                viewFailBtn.addEventListener('click', () => {
-                    showingOnlyFails = !showingOnlyFails;
-                    viewFailBtn.textContent = showingOnlyFails ? 'Ver todos' : 'Ver somente falhas';
-                    Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
-                        const st = tr.getAttribute('data-status');
-                        tr.style.display = (showingOnlyFails && st !== 'fail') ? 'none' : '';
-                    });
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    isSubmitting = false;
+                    close();
                 });
             }
 
-            const exportBtn = resultsBox.querySelector('#mass-export');
-            if (exportBtn) exportBtn.addEventListener('click', () => {
-                const rows = [['numero','erro']];
-                fail.forEach(f => rows.push([f.numero, 'patch failed']));
-                const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = 'edicao_massiva_erros.csv';
-                link.click();
-            });
-
             const retryBtn = resultsBox.querySelector('#mass-retry');
-            if (retryBtn) retryBtn.addEventListener('click', async () => {
-                // Reprocessar apenas IDs com falha
-                resultsBox.style.display = 'none';
-                done = 0;
-                const retryList = failedIds.slice();
-                progress.textContent = `Reprocessando 0/${retryList.length}...`;
-                isSubmitting = true;
-                saveBtnEl.disabled = true;
-                cancelBtnEl.disabled = true;
-                const retryResults = await runWithConcurrency(retryList, worker, 3);
-                isSubmitting = false;
-                saveBtnEl.disabled = false;
-                cancelBtnEl.disabled = false;
-                renderResults(retryResults);
-            });
+            if (retryBtn) {
+                retryBtn.addEventListener('click', async () => {
+                    resultsBox.style.display = 'none';
+                    done = 0;
+                    isSubmitting = true;
+                    saveBtnEl.disabled = true;
+                    cancelBtnEl.disabled = true;
 
-            // Habilitar botões novamente e liberar fechamento
+                    const retryList = fail.map(f => f.numero);
+                    progress.querySelector('.progress-text').textContent = `Reprocessando 0/${retryList.length}...`;
+                    progress.style.display = 'block';
+                    progressFill.style.width = '0%';
+
+                    const retryResults = await Promise.all(retryList.map(async n => {
+                        const r = await worker(n);
+                        progress.querySelector('.progress-text').textContent = 
+                            `Reprocessando ${done}/${retryList.length}...`;
+                        return r;
+                    }));
+
+                    isSubmitting = false;
+                    saveBtnEl.disabled = false;
+                    cancelBtnEl.disabled = false;
+                    renderResults(retryResults);
+                });
+            }
+
             isSubmitting = false;
             saveBtnEl.disabled = false;
             cancelBtnEl.disabled = false;
-            mostrarNotificacao(`Edição massiva concluída. Sucesso: ${okCount} | Falhas: ${fail.length}`, fail.length ? 'aviso' : 'sucesso');
+
+            mostrarNotificacao(
+                `Edição massiva concluída. Sucesso: ${okCount} | Falhas: ${fail.length}`, 
+                fail.length ? 'aviso' : 'sucesso'
+            );
         };
 
-        const results = await runWithConcurrency(ticketNumbers, async (n) => {
+        // Processa os tickets
+        const results = await Promise.all(ticketNumbers.map(async n => {
             const r = await worker(n);
-            done += 1;
-            progress.textContent = `Processando ${done}/${total}...`;
-            const pct = Math.max(0, Math.min(100, Math.round((done/total)*100)));
-            if (progressBarFill) progressBarFill.style.width = pct + '%';
+            progress.querySelector('.progress-text').textContent = 
+                `Processando ${done}/${total}...`;
             return r;
-        }, 3);
+        }));
+
         renderResults(results);
     });
 }
@@ -3791,38 +3984,236 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     return true;
 }
 
-// Passo 1.2: Criar o Modal de Edição Unificado
+// Modal de Edição Unificado
 function createUnifiedEditModal(demanda) {
     console.log('Função createUnifiedEditModal chamada com a demanda:', demanda);
 
     // Remover qualquer modal existente para evitar duplicatas
-    const existingOverlay = document.querySelector('.modal-overlay');
+    const existingOverlay = document.querySelector('.unified-modal-overlay');
     if (existingOverlay) existingOverlay.remove();
 
     // Overlay unificado
     const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
+    overlay.className = 'unified-modal-overlay';
     document.body.appendChild(overlay);
 
-    // Container unificado
+    // Container principal do modal
     const modal = document.createElement('div');
-    modal.className = 'simple-update-modal';
+    modal.className = 'unified-modal';
 
-    const modalTitle = document.createElement('h3');
-    modalTitle.textContent = `Editar Chamado #${demanda.numero}`;
-    // Barra de progresso (mesmo estilo do massivo)
+    // Link do CSS adicional se ainda não estiver incluído
+    if (!document.querySelector('link[href*="modal-edit.css"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'css/modal-edit.css';
+        document.head.appendChild(link);
+    }
+
+    // Estrutura do Modal
+    modal.innerHTML = `
+        <div class="unified-modal-header">
+            <h3 class="unified-modal-title">Editar Mantis #${demanda.numero}</h3>
+            <div class="last-update">
+                Última atualização: ${formatarDataAmigavel(demanda.data_atualizacao) || 'Não disponível'}
+            </div>
+        </div>
+
+        <div class="unified-modal-content">
+            <!-- Coluna de Informações Principais -->
+            <div class="unified-modal-section">
+                <h4 class="unified-modal-section-title">Informações Principais</h4>
+                
+                <div class="unified-modal-field">
+                    <label class="required">Status</label>
+                    <select id="modal-status" required>
+                        ${STATUS_OPTIONS.map(opt => 
+                            `<option value="${opt}" ${demanda.status === opt ? 'selected' : ''}>${opt}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+
+                <div class="unified-modal-field">
+                    <label>Analista Responsável</label>
+                    <select id="modal-analista">
+                        ${ANALISTA_RESPONSAVEL_OPTIONS.map(opt => 
+                            `<option value="${opt}" ${demanda.atribuicao === opt ? 'selected' : ''}>${opt}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+
+                <div class="unified-modal-field">
+                    <label>Responsável Atual</label>
+                    <select id="modal-responsavel">
+                        ${RESPONSAVEL_ATUAL_OPTIONS.map(opt => 
+                            `<option value="${opt}" ${demanda.resp_atual === opt ? 'selected' : ''}>${opt}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+
+                <div class="unified-modal-field">
+                    <label>Equipe</label>
+                    <select id="modal-equipe">
+                        ${SQUAD_OPTIONS.map(opt => 
+                            `<option value="${opt}" ${demanda.squad === opt ? 'selected' : ''}>${opt}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+
+                <div class="unified-modal-field">
+                    <label class="required">Previsão Etapa</label>
+                    <input type="date" id="modal-previsao" required 
+                           value="${demanda.previsao_etapa || ''}" />
+                </div>
+
+                <div class="unified-modal-field">
+                    <label>GMUD</label>
+                    <input type="text" id="modal-gmud" 
+                           value="${demanda.numero_gmud || ''}" />
+                </div>
+            </div>
+
+            <!-- Coluna de Observações -->
+            <div class="unified-modal-section">
+                <h4 class="unified-modal-section-title">Observações e Comentários</h4>
+                
+                <div class="unified-modal-comments">
+                    <div class="unified-modal-last-comment">
+                        <strong>Último Comentário:</strong><br>
+                        ${demanda.ultimo_comentario || 'Nenhum comentário disponível'}
+                    </div>
+
+                    <div class="unified-modal-field">
+                        <label>Adicional Nota / Observação</label>
+                        <textarea id="modal-observacao" rows="4" 
+                                 placeholder="Digite sua observação aqui..."></textarea>
+                    </div>
+                </div>
+
+                <div class="unified-modal-field">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="modal-resolvido">
+                        Marcar como Resolvido
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumo das Alterações -->
+        <div class="unified-modal-summary">
+            <h4 class="unified-modal-summary-title">Resumo das Alterações</h4>
+            <div class="unified-modal-summary-content" id="summary-content">
+                <div class="summary-item">
+                    <span class="summary-label">Status:</span>
+                    <span class="summary-value">Nenhuma alteração</span>
+                </div>
+                <!-- Outros itens do resumo serão adicionados dinamicamente -->
+            </div>
+        </div>
+
+        <!-- Footer com botões -->
+        <div class="unified-modal-footer">
+            <button class="unified-modal-btn unified-modal-btn-cancel" id="modal-cancel">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button class="unified-modal-btn unified-modal-btn-save" id="modal-save">
+                <i class="fas fa-save"></i> Salvar
+            </button>
+        </div>
+    `;
+
+    // Estado interno do modal unificado
+    let isSubmitting = false;
+    let isDirty = false;
+    
+    // Adiciona o modal ao overlay
+    overlay.appendChild(modal);
+
+    // Progress bar para feedback visual
     const progressWrap = document.createElement('div');
     progressWrap.style.cssText = 'margin:8px 0 12px;background:#f3f4f6;border-radius:6px;height:8px;position:relative;overflow:hidden;display:none;';
     const progressBar = document.createElement('div');
     progressBar.style.cssText = 'height:100%;width:0%;background:#10b981;transition:width .25s';
     progressWrap.appendChild(progressBar);
-    const progressText = document.createElement('div');
-    progressText.style.cssText = 'font-size:12px;color:#6b7280;margin:-2px 0 8px 0;display:none;';
-    progressText.textContent = 'Processando...';
+    modal.insertBefore(progressWrap, modal.firstChild);
 
-    // Estado interno do modal unificado
-    let isSubmitting = false;
-    let isDirty = false;
+    // Função para atualizar o resumo das alterações
+    function updateSummary() {
+        const summaryContent = document.getElementById('summary-content');
+        const changes = [];
+
+        // Verifica cada campo e compara com o valor original
+        const status = document.getElementById('modal-status').value;
+        if (status !== original.status) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Status:</span>
+                <span class="summary-value">${original.status} → ${status}</span>
+            </div>`);
+        }
+
+        const analista = document.getElementById('modal-analista').value;
+        if (analista !== original.analista) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Analista:</span>
+                <span class="summary-value">${original.analista} → ${analista}</span>
+            </div>`);
+        }
+
+        const responsavel = document.getElementById('modal-responsavel').value;
+        if (responsavel !== original.responsavel) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Responsável:</span>
+                <span class="summary-value">${original.responsavel} → ${responsavel}</span>
+            </div>`);
+        }
+
+        const equipe = document.getElementById('modal-equipe').value;
+        if (equipe !== original.equipe) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Equipe:</span>
+                <span class="summary-value">${original.equipe} → ${equipe}</span>
+            </div>`);
+        }
+
+        const previsao = document.getElementById('modal-previsao').value;
+        if (previsao !== original.previsao) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">Previsão:</span>
+                <span class="summary-value">${original.previsao} → ${previsao}</span>
+            </div>`);
+        }
+
+        const gmud = document.getElementById('modal-gmud').value;
+        if (gmud !== original.gmud) {
+            changes.push(`<div class="summary-item">
+                <span class="summary-label">GMUD:</span>
+                <span class="summary-value">${original.gmud} → ${gmud}</span>
+            </div>`);
+        }
+
+        // Atualiza o conteúdo do resumo
+        summaryContent.innerHTML = changes.length > 0 ? 
+            changes.join('') : 
+            '<div class="summary-item"><span class="summary-value">Nenhuma alteração realizada</span></div>';
+
+        // Atualiza o estado de isDirty
+        isDirty = changes.length > 0 || document.getElementById('modal-observacao').value.trim().length > 0;
+        
+        // Atualiza o estado do botão de salvar
+        const saveButton = document.getElementById('modal-save');
+        saveButton.disabled = !isDirty || isSubmitting;
+    }
+
+    // Adiciona listeners para todos os campos para atualizar o resumo
+    ['status', 'analista', 'responsavel', 'equipe', 'previsao', 'gmud'].forEach(field => {
+        document.getElementById(`modal-${field}`).addEventListener('change', updateSummary);
+    });
+
+    // Adiciona listener para o campo de observação
+    document.getElementById('modal-observacao').addEventListener('input', () => {
+        isDirty = true;
+        document.getElementById('modal-save').disabled = false;
+    });
+    // Estado original para comparação
     const original = {
         status: demanda.status || '',
         gmud: demanda.numero_gmud || '',
@@ -3832,16 +4223,99 @@ function createUnifiedEditModal(demanda) {
             if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
             const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
             if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-            const ts = Date.parse(v); if (!Number.isNaN(ts)) { const d = new Date(ts); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mm}-${dd}`; }
+            const ts = Date.parse(v); 
+            if (!Number.isNaN(ts)) { 
+                const d = new Date(ts); 
+                const mm = String(d.getMonth()+1).padStart(2,'0'); 
+                const dd = String(d.getDate()).padStart(2,'0'); 
+                return `${d.getFullYear()}-${mm}-${dd}`; 
+            }
             return '';
         })(),
         equipe: demanda.squad || '',
         analista: demanda.atribuicao || '',
         responsavel: demanda.resp_atual || ''
     };
-    const undoStack = []; // { field, prev, next }
-    let snackbarTimer = null;
-    let lastUndo = null;
+
+    // Handlers para botões
+    document.getElementById('modal-cancel').addEventListener('click', () => {
+        if (isDirty) {
+            if (confirm('Existem alterações não salvas. Deseja realmente cancelar?')) {
+                overlay.remove();
+            }
+        } else {
+            overlay.remove();
+        }
+    });
+
+    document.getElementById('modal-save').addEventListener('click', async () => {
+        if (isSubmitting || !isDirty) return;
+
+        const status = document.getElementById('modal-status').value;
+        const analista = document.getElementById('modal-analista').value;
+        const responsavel = document.getElementById('modal-responsavel').value;
+        const equipe = document.getElementById('modal-equipe').value;
+        const previsao = document.getElementById('modal-previsao').value;
+        const gmud = document.getElementById('modal-gmud').value;
+        const observacao = document.getElementById('modal-observacao').value;
+        const marcarResolvido = document.getElementById('modal-resolvido').checked;
+
+        isSubmitting = true;
+        progressWrap.style.display = 'block';
+        progressBar.style.width = '0%';
+
+        try {
+            // Atualiza a barra de progresso
+            progressBar.style.width = '30%';
+
+            // Salva as alterações
+            const success = await updateTicketField(demanda.numero, {
+                status,
+                atribuicao: analista,
+                resp_atual: responsavel,
+                squad: equipe,
+                previsao_etapa: previsao,
+                numero_gmud: gmud,
+                observacao,
+                resolvido: marcarResolvido
+            });
+
+            if (success) {
+                progressBar.style.width = '100%';
+                mostrarNotificacao('Alterações salvas com sucesso!', 'success');
+                
+                // Atualiza os dados e fecha o modal
+                await atualizarDados();
+                overlay.remove();
+            } else {
+                throw new Error('Falha ao salvar alterações');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar alterações:', error);
+            mostrarNotificacao('Erro ao salvar alterações. Tente novamente.', 'error');
+            progressBar.style.backgroundColor = '#ef4444';
+        } finally {
+            isSubmitting = false;
+        }
+    });
+
+    // Fechamento do modal ao clicar no overlay
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            if (isDirty) {
+                if (confirm('Existem alterações não salvas. Deseja realmente cancelar?')) {
+                    overlay.remove();
+                }
+            } else {
+                overlay.remove();
+            }
+        }
+    });
+
+    // Previne o fechamento do modal ao clicar dentro dele
+    modal.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
 
     // Helpers de UI
     const makeStatusIcon = () => {
