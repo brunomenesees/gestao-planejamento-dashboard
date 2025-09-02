@@ -4124,7 +4124,13 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 
 // Modal de Edição Unificado
 function createUnifiedEditModal(demanda) {
-    console.log('Função createUnifiedEditModal chamada com a demanda:', demanda);
+    console.log('=== DIAGNÓSTICO DO MODAL ===');
+    console.log('Estado da demanda:', JSON.stringify({
+        numero: demanda.numero,
+        status: demanda.status,
+        ultimo_comentario: demanda.ultimo_comentario,
+        data_atualizacao: demanda.data_atualizacao
+    }, null, 2));
 
     // Remover qualquer modal existente para evitar duplicatas
     const existingOverlay = document.querySelector('.unified-modal-overlay');
@@ -4461,6 +4467,14 @@ function createUnifiedEditModal(demanda) {
             });
 
             if (success) {
+                console.log('=== DIAGNÓSTICO - ANTES DA ATUALIZAÇÃO ===');
+                console.log('Estado atual da demanda:', JSON.stringify({
+                    numero: demanda.numero,
+                    status: demanda.status,
+                    ultimo_comentario: demanda.ultimo_comentario,
+                    data_atualizacao: demanda.data_atualizacao
+                }, null, 2));
+
                 const novosDados = {
                     status: status,
                     gmud: gmud,
@@ -4516,6 +4530,14 @@ function createUnifiedEditModal(demanda) {
                 if (lastUpdateEl) {
                     lastUpdateEl.textContent = `Última atualização: ${formatarDataAmigavel(now)}`;
                 }
+
+                console.log('=== DIAGNÓSTICO - APÓS ATUALIZAÇÃO ===');
+                console.log('Estado atualizado da demanda:', JSON.stringify({
+                    numero: demanda.numero,
+                    status: demanda.status,
+                    ultimo_comentario: demanda.ultimo_comentario,
+                    data_atualizacao: demanda.data_atualizacao
+                }, null, 2));
                 
                 progressBar.style.width = '100%';
                 mostrarNotificacao('Alterações salvas com sucesso!', 'success');
