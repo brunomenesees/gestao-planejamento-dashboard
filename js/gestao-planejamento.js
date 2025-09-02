@@ -3908,3 +3908,231 @@ function createUnifiedEditModal(demanda) {
         console.error('Erro ao redirecionar createUnifiedEditModal:', e);
     }
 }
+
+// ---------------------- Modal: Edição única + Edição em Massa ----------------------
+// Estado temporário do modal
+let __mp_currentTicket = null; // objeto da demanda atual (string numero ou objeto)
+let __mp_bulkSelection = []; // array de numeros
+
+function populateSelect(selectEl, options, includeEmpty = true) {
+    if (!selectEl) return;
+    selectEl.innerHTML = '';
+    if (includeEmpty) {
+        const opt = document.createElement('option'); opt.value = ''; opt.textContent = includeEmpty === true ? ' ' : includeEmpty; selectEl.appendChild(opt);
+    }
+    options.forEach(o => {
+        const opt = document.createElement('option'); opt.value = o; opt.textContent = o; selectEl.appendChild(opt);
+    });
+}
+
+function initTicketModals() {
+    // Selects single
+    populateSelect(document.getElementById('edit-status'), STATUS_OPTIONS, 'Selecione o status');
+    populateSelect(document.getElementById('edit-analista'), ANALISTA_RESPONSAVEL_OPTIONS, 'Selecione o analista');
+    populateSelect(document.getElementById('edit-responsavel'), RESPONSAVEL_ATUAL_OPTIONS, 'Selecione o responsável');
+    populateSelect(document.getElementById('edit-equipe'), SQUAD_OPTIONS, 'Equipe responsável');
+
+    // Selects mass
+    populateSelect(document.getElementById('mass-status'), STATUS_OPTIONS, 'Selecione o status');
+    populateSelect(document.getElementById('mass-analista'), ANALISTA_RESPONSAVEL_OPTIONS, 'Selecione o analista');
+    populateSelect(document.getElementById('mass-responsavel'), RESPONSAVEL_ATUAL_OPTIONS, 'Selecione o responsável');
+    populateSelect(document.getElementById('mass-equipe'), SQUAD_OPTIONS, 'Equipe responsável');
+
+    // Bind buttons
+    const editCancel = document.getElementById('edit-cancel');
+    const editSave = document.getElementById('edit-save');
+    const massCancel = document.getElementById('mass-cancel');
+    const massSave = document.getElementById('mass-save');
+
+    editCancel && editCancel.addEventListener('click', closeEditModal);
+    massCancel && massCancel.addEventListener('click', closeMassModal);
+
+    // Enable save when changes occur
+    const singleInputs = ['edit-status','edit-analista','edit-responsavel','edit-equipe','edit-previsao','edit-note','edit-mark-resolved'];
+    singleInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', () => updateSingleSummaryAndToggle());
+        el.addEventListener('change', () => updateSingleSummaryAndToggle());
+    });
+
+    const massInputs = ['mass-status','mass-analista','mass-responsavel','mass-equipe','mass-previsao','mass-note','mass-mark-resolved'];
+    massInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', () => updateMassSummaryAndToggle());
+        el.addEventListener('change', () => updateMassSummaryAndToggle());
+    });
+
+    editSave && editSave.addEventListener('click', async (e) => {
+        editSave.disabled = true;
+        try {
+            await submitSingleChanges();
+        } catch (err) {
+            console.error('Erro submit single:', err);
+            try { mostrarNotificacao('Erro ao salvar alteração.', 'erro'); } catch {}
+        } finally {
+            editSave.disabled = false;
+        }
+    });
+
+    massSave && massSave.addEventListener('click', async (e) => {
+        massSave.disabled = true;
+        try {
+            await submitMassChanges();
+        } catch (err) {
+            console.error('Erro submit mass:', err);
+            try { mostrarNotificacao('Erro ao salvar alterações em massa.', 'erro'); } catch {}
+        } finally {
+            massSave.disabled = false;
+        }
+    });
+}
+
+function openEditModal(ticket) {
+    __mp_currentTicket = ticket; // pode ser número ou objeto
+    const overlay = document.getElementById('ticketEditModalOverlay');
+    if (!overlay) return;
+    // Preencher campos com dados existentes quando tiver object
+    const t = typeof ticket === 'object' ? ticket : (demandasData.find(d => d.numero === String(ticket)) || { numero: String(ticket) });
+    document.getElementById('edit-status').value = t.status || '';
+    document.getElementById('edit-analista').value = t.atribuicao || '';
+    document.getElementById('edit-responsavel').value = t.resp_atual || '';
+    document.getElementById('edit-equipe').value = t.squad || '';
+    if (t.previsao_etapa) document.getElementById('edit-previsao').value = t.previsao_etapa;
+    document.getElementById('edit-last-comment').textContent = t.ultima_observacao || '';
+    document.getElementById('edit-note').value = '';
+    document.getElementById('edit-mark-resolved').checked = false;
+    document.getElementById('edit-summary').textContent = '';
+    document.getElementById('edit-save').disabled = true;
+    overlay.classList.remove('hidden'); overlay.setAttribute('aria-hidden','false');
+    setTimeout(()=> document.getElementById('edit-note').focus(),50);
+}
+
+function closeEditModal() {
+    const overlay = document.getElementById('ticketEditModalOverlay');
+    if (!overlay) return;
+    overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden','true');
+    __mp_currentTicket = null;
+}
+
+function openMassModal(ids) {
+    __mp_bulkSelection = Array.isArray(ids) ? ids.map(String) : [];
+    const overlay = document.getElementById('massEditModalOverlay');
+    if (!overlay) return;
+    const chips = document.getElementById('mass-chips'); chips.innerHTML = '';
+    // mostrar até 20 chips e um resumo
+    const max = 20;
+    __mp_bulkSelection.slice(0, max).forEach(id => {
+        const c = document.createElement('div'); c.className = 'mp-chip'; c.textContent = `#${id}`; chips.appendChild(c);
+    });
+    if (__mp_bulkSelection.length > max) { const more = document.createElement('div'); more.className='mp-chip'; more.textContent = `+${__mp_bulkSelection.length - max} mais`; chips.appendChild(more); }
+    // reset fields
+    ['mass-status','mass-analista','mass-responsavel','mass-equipe','mass-previsao','mass-note'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('mass-mark-resolved').checked = false;
+    document.getElementById('mass-summary').textContent = '';
+    document.getElementById('mass-save').disabled = true;
+    overlay.classList.remove('hidden'); overlay.setAttribute('aria-hidden','false');
+    setTimeout(()=> document.getElementById('mass-note').focus(),50);
+}
+
+function closeMassModal() {
+    const overlay = document.getElementById('massEditModalOverlay');
+    if (!overlay) return;
+    overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden','true');
+    __mp_bulkSelection = [];
+}
+
+function buildChangesFromForm(prefix='edit') {
+    const fields = {};
+    const status = document.getElementById(`${prefix}-status`); if (status && status.value) fields.status = status.value;
+    const analista = document.getElementById(`${prefix}-analista`); if (analista && analista.value) fields.analista = analista.value;
+    const responsavel = document.getElementById(`${prefix}-responsavel`); if (responsavel && responsavel.value) fields.responsavel = responsavel.value;
+    const equipe = document.getElementById(`${prefix}-equipe`); if (equipe && equipe.value) fields.equipe = equipe.value;
+    const previsao = document.getElementById(`${prefix}-previsao`); if (previsao && previsao.value) fields.previsao_etapa = previsao.value;
+    const note = document.getElementById(`${prefix}-note`); if (note && note.value && note.value.trim()) fields.note = note.value.trim();
+    const markResolved = document.getElementById(`${prefix}-mark-resolved`); if (markResolved && markResolved.checked) fields.mark_resolved = true;
+    return fields;
+}
+
+function updateSingleSummaryAndToggle() {
+    const changes = buildChangesFromForm('edit');
+    const summaryEl = document.getElementById('edit-summary');
+    const saveBtn = document.getElementById('edit-save');
+    if (!summaryEl || !saveBtn) return;
+    if (!changes || Object.keys(changes).length === 0) { summaryEl.textContent = ''; saveBtn.disabled = true; return; }
+    // montar texto resumido
+    summaryEl.textContent = Object.entries(changes).map(([k,v]) => `${k.replace('_',' ')}: ${v}`).join(' • ');
+    saveBtn.disabled = false;
+}
+
+function updateMassSummaryAndToggle() {
+    const changes = buildChangesFromForm('mass');
+    const summaryEl = document.getElementById('mass-summary');
+    const saveBtn = document.getElementById('mass-save');
+    if (!summaryEl || !saveBtn) return;
+    if (!changes || Object.keys(changes).length === 0) { summaryEl.textContent = ''; saveBtn.disabled = true; return; }
+    summaryEl.textContent = Object.entries(changes).map(([k,v]) => `${k.replace('_',' ')}: ${v}`).join(' • ');
+    saveBtn.disabled = false;
+}
+
+async function submitSingleChanges() {
+    if (!__mp_currentTicket) return;
+    const id = typeof __mp_currentTicket === 'object' ? __mp_currentTicket.numero : String(__mp_currentTicket);
+    const changes = buildChangesFromForm('edit');
+    if (!changes || Object.keys(changes).length === 0) return;
+    // 1) adiciona nota se houver
+    if (changes.note) {
+        await mantisRequest(`issues/${id}/notes`, { method: 'POST', body: JSON.stringify({ text: changes.note, view_state: { name: 'public' } }) });
+    }
+    // 2) prepara custom_fields para status e GMUD (se aplicável)
+    const custom_fields = [];
+    if (changes.status) custom_fields.push({ field: { id: 70, name: 'Status' }, value: changes.status });
+    if (changes.equipe) custom_fields.push({ field: { id: 49, name: 'Squad' }, value: changes.equipe });
+    if (changes.responsavel) custom_fields.push({ field: { id: 69, name: 'Responsavel Atual' }, value: changes.responsavel });
+    if (changes.previsao_etapa) custom_fields.push({ field: { id: 72, name: 'Previsao Etapa' }, value: changes.previsao_etapa });
+    // marcar resolvido: se marcado, atualiza status para 'Resolvido'
+    if (changes.mark_resolved) custom_fields.push({ field: { id: 70, name: 'Status' }, value: 'Resolvido' });
+
+    if (custom_fields.length > 0) {
+        await mantisRequest(`issues/${id}`, { method: 'PATCH', body: JSON.stringify({ custom_fields }) });
+    }
+    // Atualiza UI local e fecha modal
+    markRecentlyUpdated([id]);
+    try { mostrarNotificacao('Alteração salva com sucesso.', 'sucesso'); } catch {}
+    closeEditModal();
+    await atualizarDados();
+}
+
+async function submitMassChanges() {
+    if (!__mp_bulkSelection || __mp_bulkSelection.length === 0) return;
+    const changes = buildChangesFromForm('mass');
+    if (!changes || Object.keys(changes).length === 0) return;
+    // Para cada id, adiciona nota (se existir) e faz PATCH com custom_fields
+    const ids = __mp_bulkSelection.slice(0, 500); // limite preventivo
+    for (const id of ids) {
+        try {
+            if (changes.note) {
+                await mantisRequest(`issues/${id}/notes`, { method: 'POST', body: JSON.stringify({ text: changes.note, view_state: { name: 'public' } }) });
+            }
+            const custom_fields = [];
+            if (changes.status) custom_fields.push({ field: { id: 70, name: 'Status' }, value: changes.status });
+            if (changes.equipe) custom_fields.push({ field: { id: 49, name: 'Squad' }, value: changes.equipe });
+            if (changes.responsavel) custom_fields.push({ field: { id: 69, name: 'Responsavel Atual' }, value: changes.responsavel });
+            if (changes.previsao_etapa) custom_fields.push({ field: { id: 72, name: 'Previsao Etapa' }, value: changes.previsao_etapa });
+            if (changes.mark_resolved) custom_fields.push({ field: { id: 70, name: 'Status' }, value: 'Resolvido' });
+            if (custom_fields.length > 0) {
+                await mantisRequest(`issues/${id}`, { method: 'PATCH', body: JSON.stringify({ custom_fields }) });
+            }
+            markRecentlyUpdated([id]);
+        } catch (err) {
+            console.error('Erro atualizando ticket', id, err);
+        }
+    }
+    try { mostrarNotificacao('Atualizações em massa executadas (verifique o log para erros).', 'sucesso'); } catch {}
+    closeMassModal();
+    await atualizarDados();
+}
+
+// Inicializa os modais quando o script carregar
+try { initTicketModals(); } catch (e) { console.warn('Não foi possível inicializar modais:', e); }
