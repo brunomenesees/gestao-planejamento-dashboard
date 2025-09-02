@@ -190,22 +190,23 @@ let selectedSquadFilter = new Set();
 // Lista de status disponíveis para o dropdown (lista fixa)
 const STATUS_OPTIONS = [
     ' ',
-    'Aguardando Deploy',
     'Ajuste Especificação',
     'Ajustes',
+    'Aguardando Deploy',
     'Análise Suporte',
     'Code Review',
     'Desenvolvimento',
     'Despriorizado',
     'Especificação',
-    'Revisão Especificação',
     'Fila ABAP',
     'Fila Analytics',
     'Fila Especificação',
     'Fila WEB',
-    'Testes',
     'Pendência',
     'Pendência Cliente',
+    'Resolvido',
+    'Revisão Especificação',
+    'Testes',
     'Validação Cliente'
 ];
 // Lista de opções para os novos modais de atualização
