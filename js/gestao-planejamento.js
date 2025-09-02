@@ -2361,6 +2361,14 @@ async function atualizarDemandasUnica(issueId) {
             // Atualizar a visualização apenas desta linha
             filterData(); // Isso vai recriar a tabela, mas usando o cache local
             
+            // Se o modal estiver aberto, atualiza ele também
+            const modalOverlay = document.querySelector('.unified-modal-overlay');
+            if (modalOverlay) {
+                // Recria o modal com os dados atualizados
+                modalOverlay.remove();
+                createUnifiedEditModal(issueData);
+            }
+            
             // Atualizar timestamp apenas desta atualização
             const now = new Date();
             const formattedDate = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
