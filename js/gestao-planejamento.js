@@ -2873,6 +2873,16 @@ function createMassEditModal(ticketNumbers) {
             } catch (e) { console.warn('Erro ao comparar valores da demanda:', e); }
         }
 
+        // Validação adicional: se estiver aplicando status e o novo status for Aguardando Deploy,
+        // exige que o GMUD esteja preenchido (para evitar envio inválido em massa).
+        try {
+            const willApplyAguardando = apply.status && String(values.status || '').toLowerCase() === 'aguardando deploy';
+            if (willApplyAguardando && !values.gmud) {
+                mostrarNotificacao('Para marcar como Aguardando Deploy é obrigatório informar o GMUD.', 'aviso');
+                return;
+            }
+        } catch (e) { /* falha na validação não bloqueia por segurança */ }
+
         if (!apply.status && !apply.gmud && !apply.previsao && !apply.equipe && !apply.respAtual && !apply.analista && !values.comment) {
             mostrarNotificacao('Selecione pelo menos um campo para aplicar ou insira um comentário.', 'aviso');
             return;
@@ -3627,6 +3637,22 @@ function showActionButtons(container, newStatus, ticketNumber) {
 
     gmudInput.addEventListener('input', updatePreview);
 
+    // Validação: se o status for 'Aguardando Deploy', exige GMUD não vazio para habilitar salvar
+    const validateSaveEnabled = () => {
+        const gmud = gmudInput.value.trim();
+        const isAguardando = String(newStatus || '').toLowerCase() === 'aguardando deploy';
+        if (isAguardando && !gmud) {
+            saveBtn.disabled = true;
+            saveBtn.title = 'Preencha o campo GMUD para marcar como Aguardando Deploy';
+        } else {
+            saveBtn.disabled = false;
+            saveBtn.title = '';
+        }
+    };
+    gmudInput.addEventListener('input', validateSaveEnabled);
+    // Executa validação inicial
+    validateSaveEnabled();
+
     // Botões
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = `
@@ -3685,6 +3711,11 @@ function showActionButtons(container, newStatus, ticketNumber) {
         e.stopPropagation();
         
         const gmudValue = gmudInput.value.trim();
+        // Proteção extra: não prossegue se status é Aguardando Deploy e gmud vazio
+        if (String(newStatus || '').toLowerCase() === 'aguardando deploy' && !gmudValue) {
+            mostrarNotificacao('GMUD é obrigatório para marcar como Aguardando Deploy.', 'aviso');
+            return;
+        }
         const note = previewTextarea.value;
         let success = await postToMantis(ticketNumber, note, newStatus, gmudValue);
 

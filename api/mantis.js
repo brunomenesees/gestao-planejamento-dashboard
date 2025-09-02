@@ -61,7 +61,7 @@ export default async function handler(req, res) {
         const finalQS = usp.toString();
         if (finalQS) mantisUrl += `?${finalQS}`;
         
-        const method = req.method;
+    const method = req.method;
         const headers = {
             'Authorization': process.env.MANTIS_API_TOKEN,
         };
@@ -69,6 +69,39 @@ export default async function handler(req, res) {
         const canHaveBody = method !== 'GET' && method !== 'HEAD';
         if (canHaveBody) {
             headers['Content-Type'] = 'application/json';
+        }
+
+        // Validação de integridade: impede transição para "Aguardando Deploy" sem campo GMUD (CF ID 71)
+        // Aplica apenas para PATCH em issues/<id>
+        if (method === 'PATCH') {
+            const issueMatch = endpointPath.match(/^issues\/(\d+)/);
+            if (issueMatch) {
+                let body = req.body || {};
+                if (typeof body === 'string') {
+                    try { body = JSON.parse(body); } catch { body = {}; }
+                }
+                // Tenta extrair status atualizado a partir de custom_fields (CF ID 70) ou status.name
+                let newStatus = null;
+                if (Array.isArray(body.custom_fields)) {
+                    const sf = body.custom_fields.find(cf => cf && cf.field && Number(cf.field.id) === 70);
+                    if (sf) newStatus = String(sf.value || '').trim();
+                }
+                if (!newStatus && body.status && body.status.name) {
+                    newStatus = String(body.status.name || '').trim();
+                }
+                if (newStatus && String(newStatus).toLowerCase() === 'aguardando deploy') {
+                    // Verifica se CF 71 está presente e preenchido
+                    let gmudVal = null;
+                    if (Array.isArray(body.custom_fields)) {
+                        const gf = body.custom_fields.find(cf => cf && cf.field && Number(cf.field.id) === 71);
+                        if (gf) gmudVal = String(gf.value || '').trim();
+                    }
+                    if (!gmudVal) {
+                        res.status(400).json({ error: 'Campo GMUD (Numero_GMUD - CF 71) é obrigatório ao marcar como Aguardando Deploy' });
+                        return;
+                    }
+                }
+            }
         }
 
         const fetchOptions = { method, headers };
