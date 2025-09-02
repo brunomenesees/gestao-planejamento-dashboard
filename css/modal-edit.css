@@ -22,8 +22,8 @@
 /* Cabeçalho do Modal */
 .unified-modal-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 12px;
     margin-bottom: 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border-color, #e5e7eb);
@@ -33,6 +33,12 @@
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-color, #2c3e50);
+    margin: 0;
+}
+
+.unified-modal-subtitle {
+    color: var(--text-color-secondary, #4b5563);
+    font-size: 0.875rem;
     margin: 0;
 }
 

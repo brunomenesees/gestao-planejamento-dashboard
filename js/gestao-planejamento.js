@@ -2608,11 +2608,9 @@ function createMassEditModal(ticketNumbers) {
     modal.innerHTML = `
         <div class="unified-modal-header">
             <h3 class="unified-modal-title">Edição em Massa</h3>
-            <div class="unified-modal-mass-header">
-                <div>Editando ${ticketNumbers.length} ${ticketNumbers.length === 1 ? 'chamado selecionado' : 'chamados selecionados'}</div>
-                <div class="selected-tickets">
-                    ${ticketNumbers.map(num => `<span class="ticket-tag">#${num}</span>`).join('')}
-                </div>
+            <p class="unified-modal-subtitle">Editando ${ticketNumbers.length} ${ticketNumbers.length === 1 ? 'chamado selecionado' : 'chamados selecionados'}</p>
+            <div class="selected-tickets">
+                ${ticketNumbers.map(num => `<span class="ticket-tag">#${num}</span>`).join('')}
             </div>
         </div>
 
