@@ -4988,14 +4988,36 @@ function createUnifiedEditModal(demanda) {
             if (custom_fields.length > 0) payload.custom_fields = custom_fields;
             if (newAnalista !== original.analista) payload.handler = { name: newAnalista };
             if (markResolved) {
-                payload.status = { name: 'resolved' };
-                payload.resolution = { name: 'fixed' };
-                // Força o campo Status para "Resolvido" quando marcar como resolvido
-                if (!payload.custom_fields) payload.custom_fields = [];
-                // Remove qualquer atualização anterior do campo Status
-                payload.custom_fields = payload.custom_fields.filter(cf => cf.field.id !== 70);
-                // Adiciona o Status como "Resolvido"
-                payload.custom_fields.push({ field: { id: 70, name: "Status" }, value: "Resolvido" });
+                // Primeiro atualiza o Status para "Resolvido"
+                try {
+                    console.log('Atualizando Status para Resolvido...');
+                    await mantisRequest(
+                        `issues/${demanda.numero}`,
+                        {
+                            method: 'PATCH',
+                            body: JSON.stringify({
+                                custom_fields: [
+                                    { field: { id: 70, name: "Status" }, value: "Resolvido" }
+                                ]
+                            })
+                        }
+                    );
+                    
+                    // Depois atualiza o estado para resolved
+                    console.log('Atualizando estado para resolved...');
+                    await mantisRequest(
+                        `issues/${demanda.numero}`,
+                        {
+                            method: 'PATCH',
+                            body: JSON.stringify({
+                                status: { name: 'resolved' },
+                                resolution: { name: 'fixed' }
+                            })
+                        }
+                    );
+                } catch (error) {
+                    console.error('Erro ao marcar como resolvido:', error);
+                }
             }
 
             const willPatch = Object.keys(payload).length > 0;
@@ -5007,11 +5029,6 @@ function createUnifiedEditModal(demanda) {
                 progressWrap.style.display = 'none';
                 progressText.style.display = 'none';
                 return;
-            }
-
-            // Log do payload para debug
-            if (willPatch) {
-                console.log('DEBUG - Payload completo:', JSON.stringify(payload, null, 2));
             }
 
             if (willPatch) {
