@@ -4130,26 +4130,36 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 
     const isMarkedAsResolved = text && text.includes('Estado: resolved');
     
-    // Atualiza status e GMUD
+    // Prepara o payload
+    const payload = {};
+    
+    // Prepara os campos customizados
     const customFields = [];
-    // Se está marcando como resolvido, usa "Resolvido" como status, caso contrário usa o newStatus informado
-    if (isMarkedAsResolved || newStatus) {
-        customFields.push({ field: { id: 70, name: "Status" }, value: isMarkedAsResolved ? "Resolvido" : newStatus });
+    
+    // Trata o campo Status
+    if (isMarkedAsResolved) {
+        // Se está marcando como resolvido, força o Status para "Resolvido"
+        customFields.push({ field: { id: 70, name: "Status" }, value: "Resolvido" });
+        // E também atualiza o estado nativo
+        payload.status = { name: 'resolved' };
+    } else if (newStatus) {
+        // Se não está marcando como resolvido mas tem newStatus, usa ele
+        customFields.push({ field: { id: 70, name: "Status" }, value: newStatus });
     }
+    
+    // Adiciona GMUD se fornecido
     if (gmudValue) {
         customFields.push({ field: { id: 71, name: "Numero_GMUD" }, value: gmudValue });
     }
 
-    const payload = {
-        custom_fields: customFields
-    };
-
-    // Adiciona a mudança de estado se estiver marcando como resolvido
-    if (isMarkedAsResolved) {
-        payload.status = { name: 'resolved' };
+    // Sempre inclui custom_fields no payload se houver campos para atualizar
+    if (customFields.length > 0) {
+        payload.custom_fields = customFields;
     }
 
-    if (customFields.length > 0 || isMarkedAsResolved) {
+    // Faz a chamada PATCH se houver algo para atualizar
+    if (Object.keys(payload).length > 0) {
+        console.log('Enviando payload para o Mantis:', JSON.stringify(payload, null, 2));
         await mantisRequest(
             `issues/${ticketNumber}`,
             {
