@@ -8,7 +8,7 @@ class DashboardStorage {
         this.dbName = 'DashboardDB';
         this.chamadosStoreName = 'chamados';
         this.notificacoesStoreName = 'notificacoes';
-        this.version = 2; // <<<<<<< VERSÃO INCREMENTADA PARA ADICIONAR NOVA STORE
+        this.version = 3; // Incrementando versão para adicionar índices de chamados
     }
 
     async initDB() {
@@ -21,7 +21,11 @@ class DashboardStorage {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 if (!db.objectStoreNames.contains(this.chamadosStoreName)) {
-                    db.createObjectStore(this.chamadosStoreName, { keyPath: 'timestamp' });
+                    const chamadosStore = db.createObjectStore(this.chamadosStoreName, { keyPath: 'numero' });
+                    // Índices para busca rápida
+                    chamadosStore.createIndex('timestamp', 'timestamp', { unique: false });
+                    chamadosStore.createIndex('status', 'status', { unique: false });
+                    chamadosStore.createIndex('ultimo_comentario', 'ultimo_comentario', { unique: false });
                 }
                 // Nova store para notificações
                 if (!db.objectStoreNames.contains(this.notificacoesStoreName)) {

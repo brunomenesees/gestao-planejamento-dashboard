@@ -3254,13 +3254,23 @@ function createMassEditModal(ticketNumbers) {
             let postOk = true;
             if (lines.length > 0) {
                 try {
-                    await mantisRequest(`issues/${numero}/notes`, { 
+                    const response = await mantisRequest(`issues/${numero}/notes`, { 
                         method: 'POST', 
                         body: JSON.stringify({ 
                             text: lines.join('\n'), 
                             view_state: { name: 'public' } 
                         })
                     });
+
+                    // Atualizar o último comentário localmente
+                    const idx = demandasData.findIndex(d => d.numero === numero);
+                    if (idx !== -1) {
+                        demandasData[idx].ultimo_comentario = {
+                            texto: lines.join('\n'),
+                            data: new Date().toISOString(),
+                            autor: window.AppConfig.USER_NAME || 'Sistema'
+                        };
+                    }
                 } catch (e) { 
                     console.error(`Erro ao adicionar comentário ao ticket #${numero}:`, e);
                     postOk = false; 
@@ -3277,6 +3287,15 @@ function createMassEditModal(ticketNumbers) {
                     if (apply.equipe) data.squad = values.equipe;
                     if (apply.respAtual) data.resp_atual = raw.respAtual === '__CLEAR__' ? '' : values.respAtual;
                     if (apply.analista) data.atribuicao = values.analista;
+                    
+                    // Garantir que o último comentário seja atualizado se houver um novo
+                    if (lines.length > 0) {
+                        data.ultimo_comentario = {
+                            texto: lines.join('\n'),
+                            data: new Date().toISOString(),
+                            autor: window.AppConfig.USER_NAME || 'Sistema'
+                        };
+                    }
                     return data;
                 };
 
@@ -3291,6 +3310,8 @@ function createMassEditModal(ticketNumbers) {
                     const db = await openDB();
                     const tx = db.transaction([STORE_NAME], 'readwrite');
                     const store = tx.objectStore(STORE_NAME);
+                    
+                    // Busca a demanda atual
                     const demanda = await new Promise((resolve) => {
                         const req = store.get(numero);
                         req.onsuccess = () => resolve(req.result);
