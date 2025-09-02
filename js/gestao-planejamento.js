@@ -4367,6 +4367,32 @@ function createUnifiedEditModal(demanda) {
         isDirty = true;
         document.getElementById('modal-save').disabled = false;
     });
+    // Função para gerar o comentário no formato do Mantis
+    function gerarComentarioOtimista(novosDados, observacao) {
+        const linhas = [];
+        
+        // Adiciona campos apenas se foram alterados
+        if (novosDados.status !== original.status) {
+            linhas.push(`Status: ${novosDados.status}`);
+        }
+        
+        if (novosDados.gmud !== original.gmud) {
+            linhas.push(`GMUD: ${novosDados.gmud}`);
+        }
+        
+        if (novosDados.previsao !== original.previsao) {
+            // Formata a data no padrão YYYY-MM-DD
+            linhas.push(`Previsão Etapa: ${novosDados.previsao}`);
+        }
+        
+        // Adiciona a observação se houver
+        if (observacao && observacao.trim()) {
+            linhas.push(observacao.trim());
+        }
+        
+        return linhas.join('\n');
+    }
+
     // Estado original para comparação
     const original = {
         status: demanda.status || '',
@@ -4435,18 +4461,50 @@ function createUnifiedEditModal(demanda) {
             });
 
             if (success) {
-                progressBar.style.width = '70%';
+                const novosDados = {
+                    status: status,
+                    gmud: gmud,
+                    previsao: previsao,
+                };
                 
-                try {
-                    // Atualiza apenas a demanda específica
-                    await atualizarDemandasUnica(demanda.numero);
-                    progressBar.style.width = '100%';
-                    mostrarNotificacao('Alterações salvas com sucesso!', 'success');
-                } catch (error) {
-                    console.error('Erro ao atualizar demanda, tentando atualização completa:', error);
-                    await atualizarDados(); // Fallback para atualização completa em caso de erro
-                    mostrarNotificacao('Alterações salvas, mas foi necessária uma atualização completa.', 'success');
+                // Gera o comentário no formato do Mantis
+                const comentario = gerarComentarioOtimista(novosDados, observacao);
+                
+                // Atualiza o último comentário otimisticamente
+                const now = new Date().toISOString();
+                const novoUltimoComentario = {
+                    texto: comentario,
+                    autor: window.authService.getUser()?.name || 'Usuário',
+                    data: now,
+                    view_state: 'public'
+                };
+                
+                // Atualiza o objeto demanda
+                demandasData[demandasData.findIndex(d => d.numero === demanda.numero)] = {
+                    ...demanda,
+                    ultimo_comentario: novoUltimoComentario,
+                    status: status,
+                    numero_gmud: gmud,
+                    previsao_etapa: previsao
+                };
+                
+                // Atualiza a UI
+                const ultimoComentarioSection = document.querySelector('.ultimo-comentario-section');
+                if (ultimoComentarioSection) {
+                    ultimoComentarioSection.innerHTML = `
+                        <h4>Último Comentário</h4>
+                        <div class="ultimo-comentario-content">
+                            <div class="comentario-info">
+                                <span class="comentario-data">${formatarDataAmigavel(now)}</span>
+                                <span class="comentario-autor">${novoUltimoComentario.autor}</span>
+                            </div>
+                            <div class="comentario-texto">${comentario}</div>
+                        </div>
+                    `;
                 }
+                
+                progressBar.style.width = '100%';
+                mostrarNotificacao('Alterações salvas com sucesso!', 'success');
                 overlay.remove();
             } else {
                 throw new Error('Falha ao salvar alterações');
