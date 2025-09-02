@@ -148,6 +148,31 @@ function ensureRecentStyle() {
       .badge-updated { display:inline-block; margin-left:6px; padding:2px 6px; font-size:10px; font-weight:600; color:#835400; background:#ffe08a; border-radius:10px; }
       label.required:after { content: ' *'; color: #dc2626; }
       input[required], select[required], textarea[required] { border-color: #dc2626; }
+
+      @keyframes fieldWarningPulse {
+        0% { border-color: #dc2626; }
+        50% { border-color: #f87171; }
+        100% { border-color: #dc2626; }
+      }
+
+      .field-warning {
+        animation: fieldWarningPulse 2s infinite;
+        background-color: #fee2e2 !important;
+        border: 2px solid #dc2626 !important;
+      }
+
+      .field-warning-icon {
+        position: absolute;
+        right: -25px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #dc2626;
+        font-size: 18px;
+      }
+
+      .unified-modal-field {
+        position: relative;
+      }
     `;
     document.head.appendChild(style);
 }
@@ -2885,16 +2910,36 @@ function createMassEditModal(ticketNumbers) {
 
     // Função para atualizar a obrigatoriedade do campo Previsão Etapa
     const updatePrevisaoRequired = (status) => {
-        const previsaoLabel = modal.querySelector('.unified-modal-field:has(#massPrevisao) label');
+        const previsaoField = modal.querySelector('.unified-modal-field:has(#massPrevisao)');
+        const previsaoLabel = previsaoField?.querySelector('label');
         const previsaoInput = modal.querySelector('#massPrevisao');
         
         if (previsaoLabel && previsaoInput) {
+            // Remove o ícone de alerta existente se houver
+            const existingIcon = previsaoField.querySelector('.field-warning-icon');
+            if (existingIcon) {
+                existingIcon.remove();
+            }
+
             if (!isStatusFila(status)) {
                 previsaoLabel.classList.add('required');
                 previsaoInput.setAttribute('required', 'required');
+                
+                // Adiciona o ícone de alerta se o campo estiver vazio
+                if (!previsaoInput.value) {
+                    previsaoInput.classList.add('field-warning');
+                    const warningIcon = document.createElement('span');
+                    warningIcon.className = 'field-warning-icon';
+                    warningIcon.innerHTML = '⚠️';
+                    warningIcon.title = 'Este campo é obrigatório para o status selecionado';
+                    previsaoField.appendChild(warningIcon);
+                } else {
+                    previsaoInput.classList.remove('field-warning');
+                }
             } else {
                 previsaoLabel.classList.remove('required');
                 previsaoInput.removeAttribute('required');
+                previsaoInput.classList.remove('field-warning');
             }
         }
     };
@@ -2936,12 +2981,29 @@ function createMassEditModal(ticketNumbers) {
 
     // Adiciona listener para atualizar obrigatoriedade da Previsão Etapa
     const statusSelect = modal.querySelector('#massStatus');
+    const previsaoInput = modal.querySelector('#massPrevisao');
+    
     if (statusSelect) {
         statusSelect.addEventListener('change', (e) => {
             updatePrevisaoRequired(e.target.value);
         });
         // Inicializa o estado do campo baseado no status atual
         updatePrevisaoRequired(statusSelect.value);
+    }
+
+    if (previsaoInput) {
+        previsaoInput.addEventListener('input', (e) => {
+            const status = statusSelect?.value;
+            if (!isStatusFila(status)) {
+                if (e.target.value) {
+                    e.target.classList.remove('field-warning');
+                    const warningIcon = modal.querySelector('.field-warning-icon');
+                    if (warningIcon) warningIcon.remove();
+                } else {
+                    updatePrevisaoRequired(status);
+                }
+            }
+        });
     }
 
     // Se apenas 1 ticket foi passado, pré-preenche os campos com os valores atuais
