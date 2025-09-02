@@ -2628,16 +2628,6 @@ function createMassEditModal(ticketNumbers) {
             <div class="selected-tickets">
                 ${ticketNumbers.map(num => `<span class="ticket-tag">#${num}</span>`).join('')}
             </div>
-            ${isSingleSelection && ultimoComentario ? `
-            <div class="ultimo-comentario-section">
-                <h4>Último Comentário</h4>
-                <div class="comentario-info">
-                    <span class="comentario-autor">${ultimoComentario.autor}</span>
-                    <span class="comentario-data">${formatarDataAmigavel(ultimoComentario.data)}</span>
-                </div>
-                <div class="comentario-texto">${ultimoComentario.texto}</div>
-            </div>
-            ` : ''}
         </div>
 
         <div class="unified-modal-content">
@@ -2679,7 +2669,16 @@ function createMassEditModal(ticketNumbers) {
             <!-- Coluna de Observações -->
             <div class="unified-modal-section">
                 <h4 class="unified-modal-section-title">Observações</h4>
-                
+                ${isSingleSelection && ultimoComentario ? `
+                <div class="ultimo-comentario-section">
+                    <h4>Último Comentário</h4>
+                    <div class="comentario-info">
+                        <span class="comentario-autor">${ultimoComentario.autor}</span>
+                        <span class="comentario-data">${formatarDataAmigavel(ultimoComentario.data)}</span>
+                    </div>
+                    <div class="comentario-texto">${ultimoComentario.texto}</div>
+                </div>
+                ` : ''}
                 <div class="unified-modal-field">
                     <label>Adicionar Nota / Observação</label>
                     <textarea id="massComment" rows="4" placeholder="Digite sua observação aqui..."></textarea>
