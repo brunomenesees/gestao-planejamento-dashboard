@@ -254,6 +254,11 @@ function getCustomFieldValue(issue, fieldId) {
 }
 
 function mapIssueToDemanda(issue) {
+    // Obter o último comentário
+    const lastNote = issue.notes?.length > 0 
+        ? issue.notes[issue.notes.length - 1] 
+        : null;
+
     return {
         numero: String(issue.id),
         categoria: issue.category?.name || '',
@@ -276,7 +281,13 @@ function mapIssueToDemanda(issue) {
         solicitante: issue.reporter?.name || '',
         status: getCustomFieldValue(issue, 70) || '',
         numero_gmud: getCustomFieldValue(issue, 71) || '',
-        previsao_etapa: getCustomFieldValue(issue, 72) || ''
+        previsao_etapa: getCustomFieldValue(issue, 72) || '',
+        ultimo_comentario: lastNote ? {
+            texto: lastNote.text || '',
+            autor: lastNote.reporter?.name || '',
+            data: lastNote.created_at || '',
+            view_state: lastNote.view_state?.name || 'public'
+        } : null
     };
 }
 
@@ -2605,6 +2616,11 @@ function createMassEditModal(ticketNumbers) {
     modal.className = 'unified-modal';
     overlay.appendChild(modal);
 
+    // Identificar se é seleção única para mostrar o último comentário
+    const isSingleSelection = ticketNumbers.length === 1;
+    const demanda = isSingleSelection ? getDemandaByNumero(ticketNumbers[0]) : null;
+    const ultimoComentario = demanda?.ultimo_comentario;
+
     modal.innerHTML = `
         <div class="unified-modal-header">
             <h3 class="unified-modal-title">Edição em Massa</h3>
@@ -2612,6 +2628,16 @@ function createMassEditModal(ticketNumbers) {
             <div class="selected-tickets">
                 ${ticketNumbers.map(num => `<span class="ticket-tag">#${num}</span>`).join('')}
             </div>
+            ${isSingleSelection && ultimoComentario ? `
+            <div class="ultimo-comentario-section">
+                <h4>Último Comentário</h4>
+                <div class="comentario-info">
+                    <span class="comentario-autor">${ultimoComentario.autor}</span>
+                    <span class="comentario-data">${formatarDataAmigavel(ultimoComentario.data)}</span>
+                </div>
+                <div class="comentario-texto">${ultimoComentario.texto}</div>
+            </div>
+            ` : ''}
         </div>
 
         <div class="unified-modal-content">
