@@ -4446,6 +4446,15 @@ function createUnifiedEditModal(demanda) {
         const observacao = document.getElementById('modal-observacao').value;
         const marcarResolvido = document.getElementById('modal-resolvido').checked;
 
+        // Gera o comentário ANTES de qualquer atualização
+        const novosDados = {
+            status,
+            gmud,
+            previsao
+        };
+        const comentario = gerarComentarioOtimista(novosDados, observacao);
+        console.log('Novo comentário gerado:', comentario);
+
         isSubmitting = true;
         progressWrap.style.display = 'block';
         progressBar.style.width = '0%';
@@ -4467,22 +4476,9 @@ function createUnifiedEditModal(demanda) {
             });
 
             if (success) {
-                console.log('=== DIAGNÓSTICO - ANTES DA ATUALIZAÇÃO ===');
-                console.log('Estado atual da demanda:', JSON.stringify({
-                    numero: demanda.numero,
-                    status: demanda.status,
-                    ultimo_comentario: demanda.ultimo_comentario,
-                    data_atualizacao: demanda.data_atualizacao
-                }, null, 2));
-
-                const novosDados = {
-                    status: status,
-                    gmud: gmud,
-                    previsao: previsao,
-                };
-                
-                // Gera o comentário no formato do Mantis
-                const comentario = gerarComentarioOtimista(novosDados, observacao);
+                // Usamos o comentário que já foi gerado antes do save
+                console.log('=== DIAGNÓSTICO - ATUALIZANDO DEMANDA ===');
+                console.log('Comentário a ser usado:', comentario);
                 
                 // Atualiza o último comentário otimisticamente
                 const now = new Date().toISOString();
