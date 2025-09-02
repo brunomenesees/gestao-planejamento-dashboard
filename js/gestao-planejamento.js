@@ -4122,6 +4122,24 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
     return true;
 }
 
+// Função para renderizar o último comentário
+function renderizarUltimoComentario(demanda, container) {
+    if (!container) return;
+    
+    container.innerHTML = `
+        <h4>Último Comentário</h4>
+        <div class="ultimo-comentario-content">
+            ${demanda.ultimo_comentario ? `
+                <div class="comentario-info">
+                    <span class="comentario-data">${formatarDataAmigavel(demanda.ultimo_comentario.data)}</span>
+                    <span class="comentario-autor">${demanda.ultimo_comentario.autor}</span>
+                </div>
+                <div class="comentario-texto">${demanda.ultimo_comentario.texto}</div>
+            ` : 'Nenhum comentário disponível'}
+        </div>
+    `;
+}
+
 // Modal de Edição Unificado
 function createUnifiedEditModal(demanda) {
     console.log('=== DIAGNÓSTICO DO MODAL ===');
@@ -4163,19 +4181,7 @@ function createUnifiedEditModal(demanda) {
             <div class="last-update">
                 Última atualização: ${formatarDataAmigavel(demanda.data_atualizacao) || 'Não disponível'}
             </div>
-            ${isUniqueSelection ? `
-            <div class="ultimo-comentario-section">
-                <h4>Último Comentário</h4>
-                <div class="ultimo-comentario-content">
-                    ${demanda.ultimo_comentario ? `
-                        <div class="comentario-info">
-                            <span class="comentario-data">${formatarDataAmigavel(demanda.ultimo_comentario.data)}</span>
-                            <span class="comentario-autor">${demanda.ultimo_comentario.autor}</span>
-                        </div>
-                        <div class="comentario-texto">${demanda.ultimo_comentario.texto}</div>
-                    ` : 'Nenhum comentário disponível'}
-                </div>
-            </div>` : ''}
+            ${isUniqueSelection ? `<div class="ultimo-comentario-section"></div>` : ''}
         </div>
 
         <div class="unified-modal-content">
@@ -4506,19 +4512,13 @@ function createUnifiedEditModal(demanda) {
                 // Atualiza a visualização da tabela
                 filterData();
 
-                // Força a atualização do conteúdo do modal
+                // Atualiza a visualização do último comentário
                 const ultimoComentarioSection = overlay.querySelector('.ultimo-comentario-section');
                 if (ultimoComentarioSection) {
-                    ultimoComentarioSection.innerHTML = `
-                        <h4>Último Comentário</h4>
-                        <div class="ultimo-comentario-content">
-                            <div class="comentario-info">
-                                <span class="comentario-data">${formatarDataAmigavel(now)}</span>
-                                <span class="comentario-autor">${novoUltimoComentario.autor}</span>
-                            </div>
-                            <div class="comentario-texto">${comentario}</div>
-                        </div>
-                    `;
+                    // Atualiza o objeto demanda com o novo comentário
+                    demanda.ultimo_comentario = novoUltimoComentario;
+                    // Renderiza usando a função específica
+                    renderizarUltimoComentario(demanda, ultimoComentarioSection);
                 }
 
                 // Atualiza também o timestamp de última atualização
