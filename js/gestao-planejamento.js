@@ -3264,11 +3264,6 @@ function createMassEditModal(ticketNumbers) {
                         patchOk = false;
                     }
                 }
-                    });
-                } catch (e) {
-                    console.error(`Erro ao atualizar ticket #${numero}:`, e);
-                    patchOk = false;
-                }
             }
 
             // Prepara comentário
