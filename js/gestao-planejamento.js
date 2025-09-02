@@ -3312,7 +3312,10 @@ function createMassEditModal(ticketNumbers) {
             if (patchOk) {
                 const updateLocal = (data) => {
                     if (apply.status) data.status = raw.status === '__CLEAR__' ? '' : values.status;
-                    if (apply.resolved) data.estado = 'resolved';
+                    if (apply.resolved) {
+                        data.estado = 'resolved';
+                        data.status = "Resolvido"; // Atualiza também o status quando marca como resolvido
+                    }
                     if (apply.gmud) data.numero_gmud = values.gmud;
                     if (apply.previsao) data.previsao_etapa = values.previsao;
                     if (apply.equipe) data.squad = values.equipe;
