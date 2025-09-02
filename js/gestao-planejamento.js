@@ -2331,16 +2331,15 @@ async function atualizarDados() {
 async function atualizarDemandasUnica(issueId) {
     console.debug(`[atualizarDemandasUnica] Atualizando issue #${issueId}`);
     try {
-        // Buscar apenas a issue específica
-        const response = await fetch(`/api/mantis/issue/${issueId}`, {
-            headers: {
-                'Authorization': `Bearer ${window.authService.getToken()}`
-            }
-        });
+        // Buscar apenas a issue específica usando a função mantisRequest para manter consistência
+        const response = await mantisRequest(`issues/${issueId}`, { method: 'GET' });
         
-        if (!response.ok) throw new Error('Falha ao buscar dados da issue');
+        if (!response || !response.issues || !response.issues[0]) {
+            throw new Error('Falha ao buscar dados da issue');
+        }
         
-        const issueData = await response.json();
+        // Processar os dados usando a mesma função que processa os dados completos
+        const issueData = processIssueData(response.issues[0]);
         
         // Atualizar apenas esta demanda no array global
         const index = demandasData.findIndex(d => d.numero === issueId);
