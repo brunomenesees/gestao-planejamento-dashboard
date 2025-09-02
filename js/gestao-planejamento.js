@@ -2909,23 +2909,19 @@ function createMassEditModal(ticketNumbers) {
     document.addEventListener('keydown', handleEsc);
 
     // Função para atualizar a obrigatoriedade do campo Previsão Etapa
+    let previsaoObrigatoriaAtivada = false;
     const updatePrevisaoRequired = (status) => {
         const previsaoField = modal.querySelector('.unified-modal-field:has(#massPrevisao)');
         const previsaoLabel = previsaoField?.querySelector('label');
         const previsaoInput = modal.querySelector('#massPrevisao');
-        
+        if (!previsaoObrigatoriaAtivada) return; // só ativa após interação
         if (previsaoLabel && previsaoInput) {
             // Remove o ícone de alerta existente se houver
             const existingIcon = previsaoField.querySelector('.field-warning-icon');
-            if (existingIcon) {
-                existingIcon.remove();
-            }
-
+            if (existingIcon) existingIcon.remove();
             if (!isStatusFila(status)) {
                 previsaoLabel.classList.add('required');
                 previsaoInput.setAttribute('required', 'required');
-                
-                // Adiciona o ícone de alerta se o campo estiver vazio
                 if (!previsaoInput.value) {
                     previsaoInput.classList.add('field-warning');
                     const warningIcon = document.createElement('span');
@@ -2985,10 +2981,10 @@ function createMassEditModal(ticketNumbers) {
     
     if (statusSelect) {
         statusSelect.addEventListener('change', (e) => {
+            previsaoObrigatoriaAtivada = true;
             updatePrevisaoRequired(e.target.value);
         });
-        // Inicializa o estado do campo baseado no status atual
-        updatePrevisaoRequired(statusSelect.value);
+        // Não chama updatePrevisaoRequired ao abrir, só após interação
     }
 
     if (previsaoInput) {
@@ -4559,27 +4555,33 @@ function createUnifiedEditModal(demanda) {
     // Adiciona o modal ao overlay
     overlay.appendChild(modal);
 
-    // Configura o comportamento do campo de previsão com base no status
+    // Só mostra obrigatoriedade da previsão após interação do usuário
+    let previsaoObrigatoriaAtivada = false;
+    const statusEl = document.getElementById('modal-status');
+    // previsaoLabel e previsaoInput já existem no escopo (criados acima)
+
+    // Remove obrigatoriedade visual ao abrir
+    if (previsaoLabel && previsaoInput) {
+        previsaoLabel.classList.remove('required');
+        previsaoInput.removeAttribute('required');
+    }
+
+    // Só ativa obrigatoriedade após o usuário alterar o status
     const updatePrevisaoRequired = () => {
-        const statusEl = document.getElementById('modal-status');
-        const previsaoLabel = document.querySelector('.unified-modal-field:has(#modal-previsao) label');
-        const previsaoInput = document.getElementById('modal-previsao');
-        
-        if (previsaoLabel && previsaoInput && statusEl) {
-            const status = statusEl.value;
-            if (!isStatusFila(status)) {
-                previsaoLabel.classList.add('required');
-                previsaoInput.setAttribute('required', 'required');
-            } else {
-                previsaoLabel.classList.remove('required');
-                previsaoInput.removeAttribute('required');
-            }
+        if (!previsaoLabel || !previsaoInput || !statusEl) return;
+        const status = statusEl.value;
+        previsaoObrigatoriaAtivada = true;
+        if (!isStatusFila(status)) {
+            previsaoLabel.classList.add('required');
+            previsaoInput.setAttribute('required', 'required');
+        } else {
+            previsaoLabel.classList.remove('required');
+            previsaoInput.removeAttribute('required');
         }
     };
 
-    // Atualiza inicialmente e adiciona listener para mudanças
-    updatePrevisaoRequired();
-    document.getElementById('modal-status')?.addEventListener('change', updatePrevisaoRequired);
+    // Só adiciona o listener, não chama updatePrevisaoRequired ao abrir
+    statusEl?.addEventListener('change', updatePrevisaoRequired);
 
     // Progress bar para feedback visual
     const progressWrap = document.createElement('div');
