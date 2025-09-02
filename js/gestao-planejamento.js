@@ -2331,8 +2331,8 @@ async function atualizarDados() {
 async function atualizarDemandasUnica(issueId) {
     console.debug(`[atualizarDemandasUnica] Atualizando issue #${issueId}`);
     try {
-        // Adiciona um pequeno delay para garantir que o comentário esteja disponível na API
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Adiciona um delay maior para garantir que o comentário esteja disponível na API
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Buscar apenas a issue específica usando a função mantisRequest para manter consistência
         // Adiciona parâmetro para incluir as notas na resposta
@@ -2361,12 +2361,28 @@ async function atualizarDemandasUnica(issueId) {
             // Atualizar a visualização apenas desta linha
             filterData(); // Isso vai recriar a tabela, mas usando o cache local
             
-            // Se o modal estiver aberto, atualiza ele também
+            // Se o modal estiver aberto, atualiza apenas o conteúdo relevante
             const modalOverlay = document.querySelector('.unified-modal-overlay');
             if (modalOverlay) {
-                // Recria o modal com os dados atualizados
-                modalOverlay.remove();
-                createUnifiedEditModal(issueData);
+                const ultimoComentarioSection = modalOverlay.querySelector('.ultimo-comentario-section');
+                if (ultimoComentarioSection && issueData.ultimo_comentario) {
+                    ultimoComentarioSection.innerHTML = `
+                        <h4>Último Comentário</h4>
+                        <div class="ultimo-comentario-content">
+                            <div class="comentario-info">
+                                <span class="comentario-data">${formatarDataAmigavel(issueData.ultimo_comentario.data)}</span>
+                                <span class="comentario-autor">${issueData.ultimo_comentario.autor}</span>
+                            </div>
+                            <div class="comentario-texto">${issueData.ultimo_comentario.texto}</div>
+                        </div>
+                    `;
+                }
+                
+                // Atualiza também a data de última atualização
+                const lastUpdateEl = modalOverlay.querySelector('.last-update');
+                if (lastUpdateEl) {
+                    lastUpdateEl.textContent = `Última atualização: ${formatarDataAmigavel(issueData.data_atualizacao) || 'Não disponível'}`;
+                }
             }
             
             // Atualizar timestamp apenas desta atualização
