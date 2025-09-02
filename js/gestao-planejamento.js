@@ -3217,25 +3217,53 @@ function createMassEditModal(ticketNumbers) {
                 patchPayload.handler = { name: values.analista };
             }
 
+            // Se está marcando como resolvido, adiciona primeiro o campo Status
             if (apply.resolved) {
-                // Se está marcando como resolvido, atualiza tanto o estado quanto o status
+                addCustomField(true, 70, "Resolvido");
+            }
+
+            // Garante que os campos customizados sejam adicionados ao payload primeiro
+            if (custom_fields.length) {
+                patchPayload.custom_fields = custom_fields;
+            }
+
+            // Depois adiciona as mudanças de estado se necessário
+            if (apply.resolved) {
                 patchPayload.status = { name: 'resolved' };
                 patchPayload.resolution = { name: 'fixed' };
-                
-                // Adiciona o campo Status como "Resolvido"
-                addCustomField(true, 70, "Resolvido");
-                if (custom_fields.length) {
-                    patchPayload.custom_fields = custom_fields;
-                }
             }
 
             let patchOk = true;
             if (Object.keys(patchPayload).length > 0) {
                 console.log('DEBUG - Enviando payload:', JSON.stringify(patchPayload, null, 2));
-                try {
-                    await mantisRequest(`issues/${numero}`, { 
-                        method: 'PATCH', 
-                        body: JSON.stringify(patchPayload) 
+                // Tenta primeiro atualizar apenas os campos customizados
+                if (patchPayload.custom_fields) {
+                    try {
+                        await mantisRequest(`issues/${numero}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ custom_fields: patchPayload.custom_fields })
+                        });
+                    } catch (error) {
+                        console.error('Erro ao atualizar campos customizados:', error);
+                        patchOk = false;
+                    }
+                }
+                
+                // Depois atualiza o estado
+                if (patchOk && (patchPayload.status || patchPayload.resolution)) {
+                    try {
+                        await mantisRequest(`issues/${numero}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({
+                                status: patchPayload.status,
+                                resolution: patchPayload.resolution
+                            })
+                        });
+                    } catch (error) {
+                        console.error('Erro ao atualizar estado:', error);
+                        patchOk = false;
+                    }
+                }
                     });
                 } catch (e) {
                     console.error(`Erro ao atualizar ticket #${numero}:`, e);
