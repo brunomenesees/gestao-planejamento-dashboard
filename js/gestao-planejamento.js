@@ -4479,33 +4479,28 @@ function createUnifiedEditModal(demanda) {
                     view_state: 'public'
                 };
                 
-                // Atualiza o objeto demanda
-                demandasData[demandasData.findIndex(d => d.numero === demanda.numero)] = {
+                // Atualiza o objeto demanda com os novos dados
+                const index = demandasData.findIndex(d => d.numero === demanda.numero);
+                const demandaAtualizada = {
                     ...demanda,
                     ultimo_comentario: novoUltimoComentario,
                     status: status,
                     numero_gmud: gmud,
                     previsao_etapa: previsao
                 };
+                demandasData[index] = demandaAtualizada;
                 
-                // Atualiza a UI
-                const ultimoComentarioSection = document.querySelector('.ultimo-comentario-section');
-                if (ultimoComentarioSection) {
-                    ultimoComentarioSection.innerHTML = `
-                        <h4>Último Comentário</h4>
-                        <div class="ultimo-comentario-content">
-                            <div class="comentario-info">
-                                <span class="comentario-data">${formatarDataAmigavel(now)}</span>
-                                <span class="comentario-autor">${novoUltimoComentario.autor}</span>
-                            </div>
-                            <div class="comentario-texto">${comentario}</div>
-                        </div>
-                    `;
-                }
+                // Atualiza a visualização da tabela
+                filterData();
+                
+                // Remove o modal atual
+                overlay.remove();
+                
+                // Cria um novo modal com os dados atualizados
+                createUnifiedEditModal(demandaAtualizada);
                 
                 progressBar.style.width = '100%';
                 mostrarNotificacao('Alterações salvas com sucesso!', 'success');
-                overlay.remove();
             } else {
                 throw new Error('Falha ao salvar alterações');
             }
