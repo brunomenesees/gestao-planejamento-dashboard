@@ -4130,46 +4130,31 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
 
     const isMarkedAsResolved = text && text.includes('Estado: resolved');
     
-    // Se está marcando como resolvido, primeiro atualiza o status customizado
-    if (isMarkedAsResolved) {
-        // Primeiro atualiza o campo customizado Status para "Resolvido"
-        await mantisRequest(
-            `issues/${ticketNumber}`,
-            {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    custom_fields: [
-                        { field: { id: 70, name: "Status" }, value: "Resolvido" }
-                    ]
-                })
-            }
-        );
-
-        // Depois atualiza o estado nativo para "resolved"
-        await mantisRequest(
-            `issues/${ticketNumber}`,
-            {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    status: { name: 'resolved' }
-                })
-            }
-        );
+    // Atualiza status e GMUD
+    const customFields = [];
+    // Se está marcando como resolvido, usa "Resolvido" como status, caso contrário usa o newStatus informado
+    if (isMarkedAsResolved || newStatus) {
+        customFields.push({ field: { id: 70, name: "Status" }, value: isMarkedAsResolved ? "Resolvido" : newStatus });
+    }
+    if (gmudValue) {
+        customFields.push({ field: { id: 71, name: "Numero_GMUD" }, value: gmudValue });
     }
 
-    // Atualiza outros campos customizados se houver
-    const customFields = [];
-    if (newStatus && !isMarkedAsResolved) customFields.push({ field: { id: 70, name: "Status" }, value: newStatus });
-    if (gmudValue) customFields.push({ field: { id: 71, name: "Numero_GMUD" }, value: gmudValue });
+    const payload = {
+        custom_fields: customFields
+    };
 
-    if (customFields.length > 0) {
+    // Adiciona a mudança de estado se estiver marcando como resolvido
+    if (isMarkedAsResolved) {
+        payload.status = { name: 'resolved' };
+    }
+
+    if (customFields.length > 0 || isMarkedAsResolved) {
         await mantisRequest(
             `issues/${ticketNumber}`,
             {
                 method: 'PATCH',
-                body: JSON.stringify({
-                    custom_fields: customFields
-                })
+                body: JSON.stringify(payload)
             }
         );
     }
