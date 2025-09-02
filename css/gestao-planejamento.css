@@ -535,6 +535,25 @@
     .mass-edit-modal, .simple-update-modal { max-width: 92%; }
 }
 
+/* Estilos para layout label/valor (semelhante à imagem fornecida) */
+.simple-update-modal h3, .mass-edit-modal h3 { border-bottom: 3px solid #1e90ff; padding-bottom: 10px; }
+.form-row { display: flex; gap: 12px; align-items: center; margin: 8px 0; }
+.form-row .form-label { width: 180px; font-weight: 700; color: #333; }
+.form-row .form-value { flex: 1; }
+.form-row.inline-top { align-items: center; }
+.date-input { width: 180px; }
+
+/* GMUD input estilo */
+#edit-gmud, #mass-gmud { width: 100%; padding: 8px 10px; border-radius: 4px; border: 1px solid #d0d0d0; }
+
+/* Botões estilo similar à imagem */
+.btn-cancel { background-color: #ef4444; color: #fff; }
+.btn-save { background-color: #10b981; color: #fff; }
+
+/* ticket info textarea (último comentário) */
+.ticket-info-box { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #e6e6e6; background: #fafafa; resize: none; }
+.ticket-info-box[readonly] { background: #f6f6f6; color: #333; }
+
 .simple-update-modal-content .ticket-info {
     background-color: var(--background-color, #f8f9fa);
     padding: 10px;

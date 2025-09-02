@@ -309,42 +309,45 @@
             <div id="ticketEditModalOverlay" class="modal-overlay hidden" aria-hidden="true">
                 <div class="simple-update-modal" role="dialog" aria-modal="true" aria-labelledby="ticketEditTitle">
                     <h3 id="ticketEditTitle">Editar Chamado</h3>
-                    <div class="simple-update-modal-content mp-grid">
-                        <div class="mp-col">
-                            <div class="form-group">
-                                <label for="edit-status">Status</label>
-                                <select id="edit-status"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-analista">Analista Responsável</label>
-                                <select id="edit-analista"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-responsavel">Responsável Atual</label>
-                                <select id="edit-responsavel"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-equipe">Equipe</label>
-                                <select id="edit-equipe"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-previsao">Previsão Etapa</label>
-                                <input type="date" id="edit-previsao" />
+                    <div class="simple-update-modal-content">
+                        <div class="form-row inline-top">
+                            <div class="form-label">&nbsp;</div>
+                            <div class="form-value">
+                                <input type="checkbox" id="edit-mark-resolved" />
+                                <label for="edit-mark-resolved" style="margin-left:8px;">Marcar como Resolvido</label>
                             </div>
                         </div>
-                        <div class="mp-col">
-                            <div class="form-group">
-                                <label>Último Comentário</label>
-                                <div id="edit-last-comment" class="ticket-info-box" style="min-height:70px; overflow:auto;"></div>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-note">Adicionar Nota / Observação</label>
-                                <textarea id="edit-note" placeholder="Digite sua observação aqui..."></textarea>
-                            </div>
-                            <div class="form-group inline">
-                                <input type="checkbox" id="edit-mark-resolved" />
-                                <label for="edit-mark-resolved">Marcar como Resolvido</label>
-                            </div>
+                        <div class="form-row">
+                            <div class="form-label">Status</div>
+                            <div class="form-value"><select id="edit-status"></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">GMUD</div>
+                            <div class="form-value"><input type="text" id="edit-gmud" placeholder="Número GMUD" /></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Previsão Etapa</div>
+                            <div class="form-value"><input type="text" id="edit-previsao" placeholder="dd/mm/aaaa" class="date-input" /></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Equipe</div>
+                            <div class="form-value"><select id="edit-equipe"></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Responsável Atual</div>
+                            <div class="form-value"><select id="edit-responsavel"></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Analista Responsável</div>
+                            <div class="form-value"><select id="edit-analista"></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Comentário (opcional)</div>
+                            <div class="form-value"><textarea id="edit-note" placeholder="Digite sua observação aqui..." rows="4"></textarea></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Último Comentário</div>
+                            <div class="form-value"><textarea id="edit-last-comment" class="ticket-info-box" readonly rows="3"></textarea></div>
                         </div>
                     </div>
                     <div class="mp-summary" id="edit-summary">Resumo das Alterações</div>
@@ -360,41 +363,41 @@
                 <div class="mass-edit-modal" role="dialog" aria-modal="true" aria-labelledby="massEditTitle">
                     <h3 id="massEditTitle">Edição em Massa</h3>
                     <div class="mass-edit-modal-content mp-grid">
-                        <div class="mp-col">
-                            <div class="form-group">
-                                <label>Chamados Selecionados</label>
-                                <div id="mass-chips" style="display:flex; flex-wrap:wrap; gap:6px; max-height:80px; overflow:auto;"></div>
-                            </div>
-                            <div class="form-group">
-                                <label for="mass-status">Status</label>
-                                <select id="mass-status"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="mass-analista">Analista Responsável</label>
-                                <select id="mass-analista"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="mass-responsavel">Responsável Atual</label>
-                                <select id="mass-responsavel"></select>
-                            </div>
+                        <div class="form-row">
+                            <div class="form-label">Chamados Selecionados</div>
+                            <div class="form-value"><div id="mass-chips" style="display:flex; flex-wrap:wrap; gap:6px; max-height:80px; overflow:auto;"></div></div>
                         </div>
-                        <div class="mp-col">
-                            <div class="form-group">
-                                <label for="mass-equipe">Equipe</label>
-                                <select id="mass-equipe"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="mass-previsao">Previsão Etapa</label>
-                                <input type="date" id="mass-previsao" />
-                            </div>
-                            <div class="form-group">
-                                <label for="mass-note">Adicionar Nota / Observação</label>
-                                <textarea id="mass-note" placeholder="Digite sua observação aqui..."></textarea>
-                            </div>
-                            <div class="form-group inline">
-                                <input type="checkbox" id="mass-mark-resolved" />
-                                <label for="mass-mark-resolved">Marcar como Resolvido</label>
-                            </div>
+                        <div class="form-row">
+                            <div class="form-label">Status</div>
+                            <div class="form-value"><select id="mass-status"></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">GMUD</div>
+                            <div class="form-value"><input type="text" id="mass-gmud" placeholder="Número GMUD" /></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Previsão Etapa</div>
+                            <div class="form-value"><input type="text" id="mass-previsao" placeholder="dd/mm/aaaa" class="date-input" /></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Equipe</div>
+                            <div class="form-value"><select id="mass-equipe"></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Responsável Atual</div>
+                            <div class="form-value"><select id="mass-responsavel"></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Analista Responsável</div>
+                            <div class="form-value"><select id="mass-analista"></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">Adicionar Nota / Observação</div>
+                            <div class="form-value"><textarea id="mass-note" placeholder="Digite sua observação aqui..." rows="4"></textarea></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-label">&nbsp;</div>
+                            <div class="form-value"><input type="checkbox" id="mass-mark-resolved" /> <label for="mass-mark-resolved" style="margin-left:8px;">Marcar como Resolvido</label></div>
                         </div>
                     </div>
                     <div class="mp-summary" id="mass-summary">Resumo das Alterações</div>

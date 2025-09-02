@@ -3943,12 +3943,18 @@ function initTicketModals() {
     const editSave = document.getElementById('edit-save');
     const massCancel = document.getElementById('mass-cancel');
     const massSave = document.getElementById('mass-save');
+    const massEditBtn = document.getElementById('massEditBtn');
 
     editCancel && editCancel.addEventListener('click', closeEditModal);
     massCancel && massCancel.addEventListener('click', closeMassModal);
+    massEditBtn && massEditBtn.addEventListener('click', () => {
+        const ids = Array.from(selectedTickets).map(String);
+        if (!ids.length) return;
+        openMassModal(ids);
+    });
 
     // Enable save when changes occur
-    const singleInputs = ['edit-status','edit-analista','edit-responsavel','edit-equipe','edit-previsao','edit-note','edit-mark-resolved'];
+    const singleInputs = ['edit-status','edit-analista','edit-responsavel','edit-equipe','edit-previsao','edit-note','edit-mark-resolved','edit-gmud'];
     singleInputs.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -3956,7 +3962,7 @@ function initTicketModals() {
         el.addEventListener('change', () => updateSingleSummaryAndToggle());
     });
 
-    const massInputs = ['mass-status','mass-analista','mass-responsavel','mass-equipe','mass-previsao','mass-note','mass-mark-resolved'];
+    const massInputs = ['mass-status','mass-analista','mass-responsavel','mass-equipe','mass-previsao','mass-note','mass-mark-resolved','mass-gmud'];
     massInputs.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -4000,7 +4006,10 @@ function openEditModal(ticket) {
     document.getElementById('edit-responsavel').value = t.resp_atual || '';
     document.getElementById('edit-equipe').value = t.squad || '';
     if (t.previsao_etapa) document.getElementById('edit-previsao').value = t.previsao_etapa;
-    document.getElementById('edit-last-comment').textContent = t.ultima_observacao || '';
+    document.getElementById('edit-gmud').value = t.numero_gmud || '';
+    // preencher último comentário em textarea readonly
+    const lastCommentEl = document.getElementById('edit-last-comment');
+    if (lastCommentEl) lastCommentEl.value = t.ultima_observacao || '';
     document.getElementById('edit-note').value = '';
     document.getElementById('edit-mark-resolved').checked = false;
     document.getElementById('edit-summary').textContent = '';
@@ -4028,7 +4037,7 @@ function openMassModal(ids) {
     });
     if (__mp_bulkSelection.length > max) { const more = document.createElement('div'); more.className='mp-chip'; more.textContent = `+${__mp_bulkSelection.length - max} mais`; chips.appendChild(more); }
     // reset fields
-    ['mass-status','mass-analista','mass-responsavel','mass-equipe','mass-previsao','mass-note'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['mass-status','mass-analista','mass-responsavel','mass-equipe','mass-previsao','mass-note','mass-gmud'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('mass-mark-resolved').checked = false;
     document.getElementById('mass-summary').textContent = '';
     document.getElementById('mass-save').disabled = true;
@@ -4050,6 +4059,7 @@ function buildChangesFromForm(prefix='edit') {
     const responsavel = document.getElementById(`${prefix}-responsavel`); if (responsavel && responsavel.value) fields.responsavel = responsavel.value;
     const equipe = document.getElementById(`${prefix}-equipe`); if (equipe && equipe.value) fields.equipe = equipe.value;
     const previsao = document.getElementById(`${prefix}-previsao`); if (previsao && previsao.value) fields.previsao_etapa = previsao.value;
+    const gmud = document.getElementById(`${prefix}-gmud`); if (gmud && gmud.value) fields.gmud = gmud.value;
     const note = document.getElementById(`${prefix}-note`); if (note && note.value && note.value.trim()) fields.note = note.value.trim();
     const markResolved = document.getElementById(`${prefix}-mark-resolved`); if (markResolved && markResolved.checked) fields.mark_resolved = true;
     return fields;
@@ -4091,6 +4101,7 @@ async function submitSingleChanges() {
     if (changes.equipe) custom_fields.push({ field: { id: 49, name: 'Squad' }, value: changes.equipe });
     if (changes.responsavel) custom_fields.push({ field: { id: 69, name: 'Responsavel Atual' }, value: changes.responsavel });
     if (changes.previsao_etapa) custom_fields.push({ field: { id: 72, name: 'Previsao Etapa' }, value: changes.previsao_etapa });
+    if (changes.gmud) custom_fields.push({ field: { id: 71, name: 'Numero_GMUD' }, value: changes.gmud });
     // marcar resolvido: se marcado, atualiza status para 'Resolvido'
     if (changes.mark_resolved) custom_fields.push({ field: { id: 70, name: 'Status' }, value: 'Resolvido' });
 
@@ -4120,6 +4131,7 @@ async function submitMassChanges() {
             if (changes.equipe) custom_fields.push({ field: { id: 49, name: 'Squad' }, value: changes.equipe });
             if (changes.responsavel) custom_fields.push({ field: { id: 69, name: 'Responsavel Atual' }, value: changes.responsavel });
             if (changes.previsao_etapa) custom_fields.push({ field: { id: 72, name: 'Previsao Etapa' }, value: changes.previsao_etapa });
+            if (changes.gmud) custom_fields.push({ field: { id: 71, name: 'Numero_GMUD' }, value: changes.gmud });
             if (changes.mark_resolved) custom_fields.push({ field: { id: 70, name: 'Status' }, value: 'Resolvido' });
             if (custom_fields.length > 0) {
                 await mantisRequest(`issues/${id}`, { method: 'PATCH', body: JSON.stringify({ custom_fields }) });
