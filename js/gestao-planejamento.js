@@ -1887,7 +1887,9 @@ function updateTable() {
         editButton.className = 'edit-btn'; // Adicionar uma classe para estilização
         editButton.addEventListener('click', () => {
             console.log('Botão Editar clicado para a demanda:', demanda);
-            createUnifiedEditModal(demanda);
+            // Abrir a modal de edição massiva com apenas este ticket selecionado.
+            // A modal massiva agora lida também com o caso single-item (pré-preenche e evita PATCHs redundantes).
+            createMassEditModal([demanda.numero]);
         });
 
         actionsTd.appendChild(editButton);
@@ -2681,6 +2683,51 @@ function createMassEditModal(ticketNumbers) {
     { const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— selecione —'; ph.selected = true; analistaSel.appendChild(ph); }
     ANALISTA_RESPONSAVEL_OPTIONS.sort().forEach(s => { const v = (s || '').trim(); if (!v) return; const o = document.createElement('option'); o.value = s; o.textContent = s; analistaSel.appendChild(o); });
 
+    // Se apenas 1 ticket foi passado, pré-preencher os campos com os valores atuais
+    if (ticketNumbers.length === 1) {
+        try {
+            const ticket = getDemandaByNumero(ticketNumbers[0]) || {};
+            // Preenche inputs com valores existentes
+            const curStatus = ticket.status || '';
+            const curGmud = ticket.numero_gmud || '';
+            const curPrevisao = ticket.previsao_etapa || '';
+            const curEquipe = ticket.squad || '';
+            const curResp = ticket.resp_atual || '';
+            const curAnalista = ticket.atribuicao || '';
+
+            if (curStatus) {
+                const opt = Array.from(statusSel.options).find(o => o.value === curStatus);
+                if (opt) opt.selected = true;
+            }
+            const gmudEl = modal.querySelector('#massGmud');
+            if (gmudEl) gmudEl.value = curGmud;
+            const prevEl = modal.querySelector('#massPrevisao');
+            if (prevEl) {
+                // tenta normalizar datas no formato yyyy-mm-dd
+                const v = (curPrevisao || '').trim();
+                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) prevEl.value = v;
+                else {
+                    const m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                    if (m) prevEl.value = `${m[3]}-${m[2]}-${m[1]}`;
+                }
+            }
+            if (curEquipe) {
+                const o = Array.from(equipeSel.options).find(x => x.value === curEquipe);
+                if (o) o.selected = true;
+            }
+            if (curResp) {
+                const o = Array.from(respSel.options).find(x => x.value === curResp);
+                if (o) o.selected = true;
+            }
+            if (curAnalista) {
+                const o = Array.from(analistaSel.options).find(x => x.value === curAnalista);
+                if (o) o.selected = true;
+            }
+        } catch (e) {
+            console.warn('Falha ao pré-preencher modal massiva para 1 ticket:', e);
+        }
+    }
+
     // Habilita todos os campos por padrão e oculta checkboxes de "Aplicar"
     const pairs = [
         ['applyStatus','massStatus'],
@@ -2699,7 +2746,7 @@ function createMassEditModal(ticketNumbers) {
 
     // Save handler
     modal.querySelector('#massSave').addEventListener('click', async () => {
-        const raw = {
+    const raw = {
             status: modal.querySelector('#massStatus').value,
             gmud: modal.querySelector('#massGmud').value,
             previsao: modal.querySelector('#massPrevisao').value,
@@ -2717,7 +2764,8 @@ function createMassEditModal(ticketNumbers) {
             analista: (raw.analista || '').trim(),
             comment: (raw.comment || '').trim()
         };
-        const apply = {
+        // Quando houver apenas 1 ticket, só aplicar campos que realmente mudaram em relação ao valor atual
+        let apply = {
             status: values.status !== '' || raw.status === '__CLEAR__',
             resolved: modal.querySelector('#applyResolved').checked,
             gmud: values.gmud !== '',
@@ -2726,6 +2774,35 @@ function createMassEditModal(ticketNumbers) {
             respAtual: values.respAtual !== '' || raw.respAtual === '__CLEAR__',
             analista: values.analista !== '',
         };
+        if (ticketNumbers.length === 1) {
+            try {
+                const base = getDemandaByNumero(ticketNumbers[0]) || {};
+                // Ajusta flags para não aplicar quando o valor é igual ao atual
+                if (apply.status) {
+                    const target = (raw.status === '__CLEAR__') ? '' : values.status;
+                    if ((base.status || '') === (target || '')) apply.status = false;
+                }
+                if (apply.gmud) {
+                    if ((base.numero_gmud || '') === (values.gmud || '')) apply.gmud = false;
+                }
+                if (apply.previsao) {
+                    // normaliza previsões para comparação simples
+                    const a = (base.previsao_etapa || '').trim();
+                    const b = (values.previsao || '').trim();
+                    if (a === b) apply.previsao = false;
+                }
+                if (apply.equipe) {
+                    if ((base.squad || '') === (values.equipe || '')) apply.equipe = false;
+                }
+                if (apply.respAtual) {
+                    const target = (raw.respAtual === '__CLEAR__') ? '' : values.respAtual;
+                    if ((base.resp_atual || '') === (target || '')) apply.respAtual = false;
+                }
+                if (apply.analista) {
+                    if ((base.atribuicao || '') === (values.analista || '')) apply.analista = false;
+                }
+            } catch (e) { console.warn('Erro ao comparar valores da demanda:', e); }
+        }
 
         if (!apply.status && !apply.gmud && !apply.previsao && !apply.equipe && !apply.respAtual && !apply.analista && !values.comment) {
             mostrarNotificacao('Selecione pelo menos um campo para aplicar ou insira um comentário.', 'aviso');
