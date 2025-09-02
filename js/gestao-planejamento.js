@@ -2655,7 +2655,16 @@ function createMassEditModal(ticketNumbers) {
     `;
 
     let isSubmitting = false;
-    const close = () => { if (isSubmitting) return; overlay.remove(); };
+    // Track if user modified any field in the modal (unsaved changes)
+    let isDirty = false;
+    const close = () => {
+        if (isSubmitting) return;
+        if (isDirty) {
+            const ok = window.confirm('Há alterações não salvas. Deseja descartar as alterações e fechar?');
+            if (!ok) return;
+        }
+        overlay.remove();
+    };
     modal.querySelector('#massCancel').addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (!isSubmitting && e.target === overlay) close(); });
     const handleEsc = (e) => { if (e.key === 'Escape' && !isSubmitting) { close(); document.removeEventListener('keydown', handleEsc); } };
@@ -2744,6 +2753,65 @@ function createMassEditModal(ticketNumbers) {
         if (inp) inp.disabled = false;
         if (chk) chk.style.display = 'none';
     });
+
+    // --- Dirty tracking: captura estado inicial e monitora mudanças ---
+    try {
+        const statusEl = modal.querySelector('#massStatus');
+        const gmudEl = modal.querySelector('#massGmud');
+        const prevEl = modal.querySelector('#massPrevisao');
+        const equipeEl = modal.querySelector('#massEquipe');
+        const respEl = modal.querySelector('#massRespAtual');
+        const analistaEl = modal.querySelector('#massAnalista');
+        const resolvedEl = modal.querySelector('#applyResolved');
+        const commentEl = modal.querySelector('#massComment');
+
+        const initialState = {
+            status: (statusEl && statusEl.value) || '',
+            gmud: (gmudEl && gmudEl.value) || '',
+            previsao: (prevEl && prevEl.value) || '',
+            equipe: (equipeEl && equipeEl.value) || '',
+            respAtual: (respEl && respEl.value) || '',
+            analista: (analistaEl && analistaEl.value) || '',
+            resolved: !!(resolvedEl && resolvedEl.checked),
+            comment: (commentEl && commentEl.value) || ''
+        };
+
+        const computeDirty = () => {
+            const cur = {
+                status: (statusEl && statusEl.value) || '',
+                gmud: (gmudEl && gmudEl.value) || '',
+                previsao: (prevEl && prevEl.value) || '',
+                equipe: (equipeEl && equipeEl.value) || '',
+                respAtual: (respEl && respEl.value) || '',
+                analista: (analistaEl && analistaEl.value) || '',
+                resolved: !!(resolvedEl && resolvedEl.checked),
+                comment: (commentEl && commentEl.value) || ''
+            };
+            const dirty = (
+                cur.status !== initialState.status ||
+                cur.gmud !== initialState.gmud ||
+                cur.previsao !== initialState.previsao ||
+                cur.equipe !== initialState.equipe ||
+                cur.respAtual !== initialState.respAtual ||
+                cur.analista !== initialState.analista ||
+                cur.resolved !== initialState.resolved ||
+                cur.comment !== initialState.comment
+            );
+            isDirty = dirty;
+            const progress = modal.querySelector('#massProgress');
+            if (progress) progress.textContent = isDirty ? 'Alterações não salvas' : 'Pronto';
+            return isDirty;
+        };
+
+        // Attach listeners
+        [statusEl, gmudEl, prevEl, equipeEl, respEl, analistaEl, commentEl, resolvedEl].forEach(el => {
+            if (!el) return;
+            const ev = (el.tagName === 'INPUT' && el.type === 'text') || el.tagName === 'TEXTAREA' ? 'input' : 'change';
+            el.addEventListener(ev, computeDirty);
+        });
+    } catch (e) {
+        console.warn('Não foi possível inicializar dirty-tracking da modal massiva:', e);
+    }
 
     // Save handler
     modal.querySelector('#massSave').addEventListener('click', async () => {
@@ -3058,6 +3126,13 @@ function createMassEditModal(ticketNumbers) {
 
             const closeBtn = resultsBox.querySelector('#mass-close');
             if (closeBtn) closeBtn.addEventListener('click', () => close());
+
+            // Limpa estado dirty após conclusão (operações salvas/terminadas)
+            try {
+                isDirty = false;
+                const progressEl = modal.querySelector('#massProgress');
+                if (progressEl) progressEl.textContent = 'Pronto';
+            } catch (e) { /* ignore */ }
 
             // Ação: Copiar IDs falhos
             const copyFailBtn = resultsBox.querySelector('#mass-copy-fail');
