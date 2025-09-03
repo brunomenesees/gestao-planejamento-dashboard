@@ -4522,6 +4522,18 @@ async function checkDocumentationStatus(notes) {
     return hasDocumentation ? 'documented' : 'pending';
 }
 
+// Busca as notas de uma issue específica
+async function fetchIssueNotes(issueId) {
+    try {
+        const endpoint = `issues/${encodeURIComponent(String(issueId))}/notes`;
+        const resp = await authFetchMantis(endpoint, { method: 'GET' });
+        return resp && Array.isArray(resp.notes) ? resp.notes : [];
+    } catch (e) {
+        console.warn('Erro ao buscar notas:', e);
+        return [];
+    }
+}
+
 // Função para verificar documentação de um ticket específico
 async function checkDocumentationForTicket(ticketNumber) {
     try {
