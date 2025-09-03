@@ -1197,57 +1197,37 @@ function updateDashboard() {
 
 function updateKPIs() {
     if (!demandasData || demandasData.length === 0) {
-        document.querySelector('#kpi-total-chamados .kpi-value-modern').textContent = '0';
-        document.querySelector('#kpi-abertos-hoje .kpi-value-modern').textContent = '0';
-        document.querySelector('#kpi-resolvidos-hoje .kpi-value-modern').textContent = '0';
-        document.querySelector('#kpi-ytd .kpi-value-modern').textContent = '0';
+        document.querySelector('#kpi-analise-suporte .kpi-value-modern').textContent = '0';
         document.querySelector('#kpi-fila .kpi-value-modern').textContent = '0';
-        document.querySelector('#kpi-variacao .kpi-value-modern').textContent = '0%';
+        document.querySelector('#kpi-desenvolvimento .kpi-value-modern').textContent = '0';
+        document.querySelector('#kpi-testes .kpi-value-modern').textContent = '0';
+        document.querySelector('#kpi-aguardando-deploy .kpi-value-modern').textContent = '0';
+        document.querySelector('#kpi-pendencia .kpi-value-modern').textContent = '0';
+        document.querySelector('#kpi-resolvido .kpi-value-modern').textContent = '0';
         return;
     }
 
     const dadosParaAnalise = filteredData;
-    
-    const totalDemandas = dadosParaAnalise.length;
-    
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const demandasAbertasHoje = dadosParaAnalise.filter(demanda => {
-        if (!demanda.data_abertura) return false;
-        const dataAbertura = parseDateBR(demanda.data_abertura);
-        if (!dataAbertura) return false;
-        dataAbertura.setHours(0, 0, 0, 0);
-        return dataAbertura.getTime() === hoje.getTime();
-    }).length;
+    // Status relevantes
+    const filaStatus = ['Fila ABAP', 'Fila Analytics', 'Fila Especificação', 'Fila WEB'];
+    const pendenciaStatus = ['Pendência', 'Pendência Cliente'];
 
-    const demandasResolvidasHoje = dadosParaAnalise.filter(demanda => {
-        if (!demanda.data_fechamento) return false;
-        const dataFechamento = parseDateBR(demanda.data_fechamento);
-        if (!dataFechamento) return false;
-        dataFechamento.setHours(0, 0, 0, 0);
-        return dataFechamento.getTime() === hoje.getTime();
-    }).length;
+    // Contagem por status
+    const analiseSuporte = dadosParaAnalise.filter(d => d.status === 'Análise Suporte').length;
+    const fila = dadosParaAnalise.filter(d => filaStatus.includes(d.status)).length;
+    const desenvolvimento = dadosParaAnalise.filter(d => d.status === 'Desenvolvimento').length;
+    const testes = dadosParaAnalise.filter(d => d.status === 'Testes').length;
+    const aguardandoDeploy = dadosParaAnalise.filter(d => d.status === 'Aguardando Deploy').length;
+    const pendencia = dadosParaAnalise.filter(d => pendenciaStatus.includes(d.status)).length;
+    const resolvido = dadosParaAnalise.filter(d => d.status === 'Resolvido').length;
 
-    const demandasNaFila = dadosParaAnalise.filter(demanda => {
-        return ['iniciado', 'aberto', 'vencido', 'atenção'].includes(demanda.estado);
-    });
-
-    const demandasYTD = dadosParaAnalise.filter(demanda => {
-        if (!demanda.data_abertura) return false;
-        const dataAbertura = parseDateBR(demanda.data_abertura);
-        if (!dataAbertura) return false;
-        dataAbertura.setHours(0, 0, 0, 0);
-        return dataAbertura.getTime() < hoje.getTime();
-    }).length;
-
-    const variacaoAno = totalDemandas > 0 ? ((demandasYTD - totalDemandas) / totalDemandas) * 100 : 0;
-
-    document.querySelector('#kpi-total-chamados .kpi-value-modern').textContent = totalDemandas;
-    document.querySelector('#kpi-abertos-hoje .kpi-value-modern').textContent = demandasAbertasHoje;
-    document.querySelector('#kpi-resolvidos-hoje .kpi-value-modern').textContent = demandasResolvidasHoje;
-    document.querySelector('#kpi-ytd .kpi-value-modern').textContent = demandasYTD;
-    document.querySelector('#kpi-fila .kpi-value-modern').textContent = demandasNaFila.length;
-    document.querySelector('#kpi-variacao .kpi-value-modern').textContent = variacaoAno.toFixed(0) + '%';
+    document.querySelector('#kpi-analise-suporte .kpi-value-modern').textContent = analiseSuporte;
+    document.querySelector('#kpi-fila .kpi-value-modern').textContent = fila;
+    document.querySelector('#kpi-desenvolvimento .kpi-value-modern').textContent = desenvolvimento;
+    document.querySelector('#kpi-testes .kpi-value-modern').textContent = testes;
+    document.querySelector('#kpi-aguardando-deploy .kpi-value-modern').textContent = aguardandoDeploy;
+    document.querySelector('#kpi-pendencia .kpi-value-modern').textContent = pendencia;
+    document.querySelector('#kpi-resolvido .kpi-value-modern').textContent = resolvido;
 }
 
 function parseDateBR(dataStr) {

@@ -1,3 +1,32 @@
+/* Ícones e cores para os novos cards de status */
+.icon-analise-suporte {
+    background: #6c63ff;
+    color: #fff;
+}
+.icon-fila {
+    background: #00b894;
+    color: #fff;
+}
+.icon-desenvolvimento {
+    background: #0984e3;
+    color: #fff;
+}
+.icon-testes {
+    background: #fdcb6e;
+    color: #fff;
+}
+.icon-aguardando-deploy {
+    background: #e17055;
+    color: #fff;
+}
+.icon-pendencia {
+    background: #e17055;
+    color: #fff;
+}
+.icon-resolvido {
+    background: #00b894;
+    color: #fff;
+}
 /* Estilos para a página de Gestão de Planejamento */
 
 /* Adicione aqui os estilos específicos para a nova página, se necessário. */
