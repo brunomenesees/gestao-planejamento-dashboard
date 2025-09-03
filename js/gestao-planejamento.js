@@ -4,6 +4,18 @@ function setupResponsavelEquipeAutoFill(modalRoot=document) {
     const respAtualSelect = modalRoot.querySelector('#respAtual, [name="resp_atual"], #massRespAtual, [name="massRespAtual"]');
     // Equipe pode ter vários ids/names possíveis
     const equipeSelect = modalRoot.querySelector('#squad, [name="squad"], #equipe, [name="equipe"], #massEquipe, [name="massEquipe"]');
+    // Função para atualizar painel de resumo, se existir
+    function atualizarResumo(modalRoot) {
+        // Procura por função global ou método do modal
+        if (typeof window.atualizarCamposResumo === 'function') {
+            window.atualizarCamposResumo();
+        } else {
+            // Procura por função inline em escopo do modal
+            const evt = new Event('input', { bubbles: true });
+            if (equipeSelect) equipeSelect.dispatchEvent(evt);
+            if (respAtualSelect) respAtualSelect.dispatchEvent(evt);
+        }
+    }
     if (respAtualSelect && equipeSelect) {
         // Remove listeners duplicados
         respAtualSelect.removeEventListener('change', respAtualSelect._equipeAutoFillHandler || (()=>{}));
@@ -22,6 +34,8 @@ function setupResponsavelEquipeAutoFill(modalRoot=document) {
                 const event = new Event('change', { bubbles: true });
                 equipeSelect.dispatchEvent(event);
             }
+            // Atualiza painel de resumo imediatamente
+            setTimeout(() => atualizarResumo(modalRoot), 0);
         };
         respAtualSelect.addEventListener('change', handler);
         respAtualSelect._equipeAutoFillHandler = handler;
