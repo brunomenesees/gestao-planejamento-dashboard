@@ -5046,8 +5046,13 @@ function createUnifiedEditModal(demanda) {
             cfs.push({ field: { id: 71 }, value: nextValue });
         } else if (field === 'previsao') {
             let ts = null;
-            if (nextValue && /^\d{4}-\d{2}-\d{2}$/.test(nextValue)) ts = Math.floor(Date.parse(nextValue + 'T00:00:00') / 1000);
-            if (ts !== null) cfs.push({ field: { id: 72 }, value: ts });
+            if (!nextValue || nextValue === '') {
+                // Se vazio, envia null para zerar
+                cfs.push({ field: { id: 72 }, value: null });
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(nextValue)) {
+                ts = Math.floor(Date.parse(nextValue + 'T00:00:00') / 1000);
+                cfs.push({ field: { id: 72 }, value: ts });
+            }
         } else if (field === 'equipe') {
             cfs.push({ field: { id: 49 }, value: nextValue });
         } else if (field === 'resp') {
@@ -5327,14 +5332,19 @@ function createUnifiedEditModal(demanda) {
                 custom_fields.push({ field: { id: 71 }, value: gmudValue });
             }
             if (newPrevisao !== original.previsao) {
-                let previsaoTs = null;
-                if (newPrevisao && /^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
-                    previsaoTs = Math.floor(Date.parse(newPrevisao + 'T00:00:00') / 1000);
-                } else if (newPrevisao) {
+                if (!newPrevisao || newPrevisao === '') {
+                    // Se vazio, envia null para zerar
+                    custom_fields.push({ field: { id: 72 }, value: null });
+                } else if (/^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
+                    const previsaoTs = Math.floor(Date.parse(newPrevisao + 'T00:00:00') / 1000);
+                    custom_fields.push({ field: { id: 72 }, value: previsaoTs });
+                } else {
                     const parsed = Date.parse(newPrevisao);
-                    if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
+                    if (!Number.isNaN(parsed)) {
+                        const previsaoTs = Math.floor(parsed / 1000);
+                        custom_fields.push({ field: { id: 72 }, value: previsaoTs });
+                    }
                 }
-                if (previsaoTs !== null) custom_fields.push({ field: { id: 72 }, value: previsaoTs });
             }
             if (newEquipe !== original.equipe) {
                 custom_fields.push({ field: { id: 49 }, value: newEquipe });
