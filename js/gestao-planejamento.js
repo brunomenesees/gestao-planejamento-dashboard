@@ -4522,34 +4522,20 @@ async function checkDocumentationStatus(notes) {
     return hasDocumentation ? 'documented' : 'pending';
 }
 
-// Busca as notas de uma issue específica
-async function fetchIssueNotes(issueId) {
-    try {
-        const endpoint = `issues/${encodeURIComponent(String(issueId))}/notes`;
-        const resp = await mantisRequest(endpoint, { method: 'GET' });
-        return resp && Array.isArray(resp.notes) ? resp.notes : [];
-    } catch (e) {
-        console.warn('Erro ao buscar notas:', e);
-        return [];
-    }
-}
-
 // Função para verificar documentação de um ticket específico
 async function checkDocumentationForTicket(ticketNumber) {
     try {
-        // Buscar todos os comentários da issue via API
-        const notes = await fetchIssueNotes(ticketNumber);
+        // Usar dados já carregados da demanda
+        const demanda = getDemandaByNumero(ticketNumber);
         
-        if (!Array.isArray(notes)) {
-            console.warn('Notas não encontradas para ticket:', ticketNumber);
+        if (!demanda || !demanda.ultimo_comentario) {
+            console.warn('Demanda ou último comentário não encontrado para ticket:', ticketNumber);
             return false;
         }
         
-        // Verificar se algum comentário contém link da wiki
-        const hasDoc = notes.some(note => {
-            const text = note.text || note.note || '';
-            return text.includes('wiki.xcelis.com.br');
-        });
+        // Verificar se o último comentário contém link da wiki
+        const texto = demanda.ultimo_comentario.texto || '';
+        const hasDoc = texto.includes('wiki.xcelis.com.br');
         
         return hasDoc;
     } catch (e) {
