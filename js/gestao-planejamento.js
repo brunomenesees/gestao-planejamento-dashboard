@@ -1,10 +1,14 @@
 // Atualiza o campo Equipe automaticamente ao selecionar Responsável Atual (modais individuais)
 function setupResponsavelEquipeAutoFill(modalRoot=document) {
-    // Tenta encontrar campos por id ou por seletor name
-    const respAtualSelect = modalRoot.querySelector('#respAtual, [name="resp_atual"]');
-    const equipeSelect = modalRoot.querySelector('#squad, [name="squad"], #equipe, [name="equipe"]');
+    // Procura por possíveis ids/names para os campos
+    const respAtualSelect = modalRoot.querySelector('#respAtual, [name="resp_atual"], #massRespAtual, [name="massRespAtual"]');
+    // Equipe pode ter vários ids/names possíveis
+    const equipeSelect = modalRoot.querySelector('#squad, [name="squad"], #equipe, [name="equipe"], #massEquipe, [name="massEquipe"]');
     if (respAtualSelect && equipeSelect) {
-        respAtualSelect.addEventListener('change', function() {
+        // Remove listeners duplicados
+        respAtualSelect.removeEventListener('change', respAtualSelect._equipeAutoFillHandler || (()=>{}));
+        // Cria handler e armazena para evitar duplicidade
+        const handler = function() {
             const resp = respAtualSelect.value;
             const equipe = RESPONSAVEL_TO_EQUIPE[resp] || '';
             // Se Choices.js está em uso
@@ -18,7 +22,9 @@ function setupResponsavelEquipeAutoFill(modalRoot=document) {
                 const event = new Event('change', { bubbles: true });
                 equipeSelect.dispatchEvent(event);
             }
-        });
+        };
+        respAtualSelect.addEventListener('change', handler);
+        respAtualSelect._equipeAutoFillHandler = handler;
     }
 }
 
