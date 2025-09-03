@@ -3389,11 +3389,11 @@ function createMassEditModal(ticketNumbers) {
                             : '<div>Nenhuma alteração selecionada</div>'}
                     </div>
                 </div>
-                <div class="unified-modal-footer" style="margin-top:16px;">
-                    <button class="unified-modal-btn unified-modal-btn-cancel" id="mass-back">
+                <div class="unified-modal-footer" style="margin-top:16px; gap: 10px;">
+                    <button class="unified-modal-btn unified-modal-btn-cancel" id="mass-back" style="min-width: 90px;">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </button>
-                    <button class="unified-modal-btn unified-modal-btn-save" id="mass-confirm">
+                    <button class="unified-modal-btn unified-modal-btn-save" id="mass-confirm" style="min-width: 110px;">
                         <i class="fas fa-check"></i> Confirmar
                     </button>
                 </div>

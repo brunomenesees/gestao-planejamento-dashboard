@@ -205,23 +205,26 @@
 .unified-modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    margin-top: 24px;
-    padding-top: 16px;
+    gap: 10px;
+    margin-top: 18px;
+    padding-top: 12px;
     border-top: 1px solid var(--border-color, #e5e7eb);
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 /* Botões */
 .unified-modal-btn {
-    padding: 8px 16px;
+    padding: 7px 16px;
     border-radius: 6px;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
+    min-width: 90px;
 }
 
 .unified-modal-btn-cancel {
