@@ -3085,8 +3085,11 @@ function createMassEditModal(ticketNumbers) {
             // Se for edição unitária, atualizar badge ao mudar status
             if (ticketNumbers.length === 1) {
                 if (e.target.value === 'Aguardando Deploy') {
-                    const hasDoc = checkDocumentationForTicket(ticketNumbers[0]);
-                    updateDocumentationBadge(hasDoc, e.target.value);
+                    checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
+                        updateDocumentationBadge(hasDoc, e.target.value);
+                    }).catch(e => {
+                        console.warn('Erro ao verificar documentação:', e);
+                    });
                 }
             }
         });
@@ -3153,8 +3156,11 @@ function createMassEditModal(ticketNumbers) {
                 
                 // Verificar documentação se campo visível
                 if (ticket.status === 'Aguardando Deploy') {
-                    const hasDoc = checkDocumentationForTicket(ticketNumbers[0]);
-                    updateDocumentationBadge(hasDoc, ticket.status);
+                    checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
+                        updateDocumentationBadge(hasDoc, ticket.status);
+                    }).catch(e => {
+                        console.warn('Erro ao verificar documentação:', e);
+                    });
                 }
             }
         } catch (e) {
