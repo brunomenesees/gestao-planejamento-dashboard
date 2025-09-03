@@ -2900,6 +2900,10 @@ function createMassEditModal(ticketNumbers) {
                             <i class="fas fa-exclamation-triangle"></i>
                             <span>Documentação pendente na wiki</span>
                         </div>
+                        <div id="docSuccess" class="doc-success" style="display: none;">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Documentação encontrada</span>
+                        </div>
                     </div>
                 </div>
                 ` : ''}
@@ -3414,7 +3418,7 @@ function createMassEditModal(ticketNumbers) {
                             : '<div>Nenhuma alteração selecionada</div>'}
                     </div>
                 </div>
-                <div class="unified-modal-footer" style="margin-top:16px; gap: 10px;">
+                <div class="unified-modal-footer" style="margin-top:16px;">
                     <button class="unified-modal-btn unified-modal-btn-cancel" id="mass-back" style="min-width: 90px;">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </button>
@@ -4546,11 +4550,21 @@ async function checkDocumentationForTicket(ticketNumber) {
 
 // Função para atualizar o badge de documentação
 function updateDocumentationBadge(hasDocumentation, currentStatus) {
-    const docAlert = document.getElementById('docAlert');
-    if (!docAlert) return;
+    const docSuccess = document.getElementById('docSuccess');
     
-    const shouldShowAlert = currentStatus === 'Aguardando Deploy' && !hasDocumentation;
-    docAlert.style.display = shouldShowAlert ? 'flex' : 'none';
+    if (!docSuccess) return;
+    
+    const isAguardandoDeploy = currentStatus === 'Aguardando Deploy';
+    
+    if (isAguardandoDeploy && hasDocumentation) {
+        // Mostrar badge verde de sucesso quando há documentação
+        docSuccess.style.display = 'flex';
+    } else {
+        // Ocultar badge de sucesso nos demais casos
+        docSuccess.style.display = 'none';
+    }
+    
+    // O badge de alerta (docAlert) continua sendo controlado pelo sistema existente
 }
 
 // Função para controlar visibilidade dos campos GMUD e Documentação
