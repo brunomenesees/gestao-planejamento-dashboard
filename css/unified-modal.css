@@ -79,20 +79,20 @@
 .unified-modal-field input[type="date"],
 .unified-modal-field select,
 .unified-modal-field textarea {
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    transition: border-color 0.15s ease;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s;
 }
 
-.unified-modal-field input[type="text"]:focus,
-.unified-modal-field input[type="date"]:focus,
+.unified-modal-field input:focus,
 .unified-modal-field select:focus,
 .unified-modal-field textarea:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .unified-modal-field textarea {
@@ -247,10 +247,36 @@
     font-size: 0.875rem;
 }
 
+/* Estilos para o campo de documentação */
+.doc-field-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.doc-alert {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    color: #856404;
+    font-size: 13px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.doc-alert i {
+    color: #f39c12;
+    font-size: 14px;
+}
+
 /* Animações */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .unified-modal-overlay {

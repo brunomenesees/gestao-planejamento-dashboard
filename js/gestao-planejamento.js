@@ -2890,6 +2890,19 @@ function createMassEditModal(ticketNumbers) {
                     <label>GMUD</label>
                     <input type="text" id="massGmud" placeholder="Número GMUD">
                 </div>
+
+                ${isSingleSelection ? `
+                <div class="unified-modal-field">
+                    <label>Link Documentação</label>
+                    <div class="doc-field-container">
+                        <input type="text" id="massLinkDoc" placeholder="wiki.xcelis.com.br">
+                        <div id="docAlert" class="doc-alert" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Documentação pendente na wiki</span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
             </div>
 
             <!-- Coluna de Observações -->
@@ -3065,6 +3078,15 @@ function createMassEditModal(ticketNumbers) {
         statusSelect.addEventListener('change', (e) => {
             previsaoObrigatoriaAtivada = true;
             updatePrevisaoRequired(e.target.value);
+            
+            // Se for edição unitária, atualizar badge ao mudar status
+            if (ticketNumbers.length === 1) {
+                checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
+                    updateDocumentationBadge(hasDoc, e.target.value);
+                }).catch(e => {
+                    console.warn('Erro ao verificar documentação:', e);
+                });
+            }
         });
         // Não chama updatePrevisaoRequired ao abrir, só após interação
     }
@@ -3118,6 +3140,19 @@ function createMassEditModal(ticketNumbers) {
             setFieldValue('#massEquipe', ticket.squad, true);
             setFieldValue('#massRespAtual', ticket.resp_atual, true);
             setFieldValue('#massAnalista', ticket.atribuicao, true);
+            
+            // Se for edição unitária, verificar documentação
+            const linkDocField = modal.querySelector('#massLinkDoc');
+            if (linkDocField) {
+                linkDocField.value = ''; // Campo sempre vazio inicialmente
+                
+                // Verificar documentação em background
+                checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
+                    updateDocumentationBadge(hasDoc, ticket.status);
+                }).catch(e => {
+                    console.warn('Erro ao verificar documentação:', e);
+                });
+            }
         } catch (e) {
             console.warn('Falha ao pré-preencher modal para 1 ticket:', e);
         }
@@ -4463,6 +4498,41 @@ async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
         );
     }
     return true;
+}
+
+// Função para verificar se há documentação nos comentários da issue
+async function checkDocumentationStatus(notes) {
+    if (!Array.isArray(notes)) return 'no-comments';
+    
+    const hasDocumentation = notes.some(note => {
+        const text = note.text || note.note || '';
+        return text.includes('wiki.xcelis.com.br');
+    });
+    
+    return hasDocumentation ? 'documented' : 'pending';
+}
+
+// Função para verificar documentação de um ticket específico
+async function checkDocumentationForTicket(ticketNumber) {
+    try {
+        const notes = await fetchIssueNotes(ticketNumber);
+        return notes.some(note => {
+            const text = note.text || note.note || '';
+            return text.includes('wiki.xcelis.com.br');
+        });
+    } catch (e) {
+        console.warn('Erro ao verificar documentação:', e);
+        return false;
+    }
+}
+
+// Função para atualizar o badge de documentação
+function updateDocumentationBadge(hasDocumentation, currentStatus) {
+    const docAlert = document.getElementById('docAlert');
+    if (!docAlert) return;
+    
+    const shouldShowAlert = currentStatus === 'Aguardando Deploy' && !hasDocumentation;
+    docAlert.style.display = shouldShowAlert ? 'flex' : 'none';
 }
 
 // Função para renderizar o último comentário
