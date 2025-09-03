@@ -3085,17 +3085,18 @@ function createMassEditModal(ticketNumbers) {
             
             // Controlar visibilidade dos campos GMUD e Documentação
             toggleGmudAndDocFields(e.target.value);
-            
-            // Se for edição unitária, atualizar badge ao mudar status
-            if (ticketNumbers.length === 1) {
-                if (e.target.value === 'Aguardando Deploy') {
-                    checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
-                        updateDocumentationBadge(hasDoc, e.target.value);
-                    }).catch(e => {
-                        console.warn('Erro ao verificar documentação:', e);
-                    });
+                        // Se for edição unitária, atualizar badge ao mudar status
+                if (ticketNumbers.length === 1) {
+                    if (e.target.value === 'Aguardando Deploy') {
+                        checkDocumentationForTicket(ticketNumbers[0]).then(docResult => {
+                            updateDocumentationBadge(docResult, e.target.value);
+                        }).catch(e => {
+                            console.warn('Erro ao verificar documentação:', e);
+                        });
+                    } else {
+                        updateDocumentationBadge({ hasDoc: false, wikiLink: null }, e.target.value);
+                    }
                 }
-            }
         });
         // Não chama updatePrevisaoRequired ao abrir, só após interação
     }
@@ -4534,34 +4535,49 @@ async function checkDocumentationForTicket(ticketNumber) {
         
         if (!demanda || !demanda.ultimo_comentario) {
             console.warn('Demanda ou último comentário não encontrado para ticket:', ticketNumber);
-            return false;
+            return { hasDoc: false, wikiLink: null };
         }
         
         // Verificar se o último comentário contém link da wiki
         const texto = demanda.ultimo_comentario.texto || '';
-        const hasDoc = texto.includes('wiki.xcelis.com.br');
+        const wikiRegex = /(https?:\/\/wiki\.xcelis\.com\.br[^\s]+)/;
+        const match = texto.match(wikiRegex);
         
-        return hasDoc;
+        return {
+            hasDoc: !!match,
+            wikiLink: match ? match[1] : null
+        };
     } catch (e) {
         console.warn('Erro ao verificar documentação:', e);
-        return false;
+        return { hasDoc: false, wikiLink: null };
     }
 }
 
 // Função para atualizar o badge de documentação
-function updateDocumentationBadge(hasDocumentation, currentStatus) {
+function updateDocumentationBadge(docResult, currentStatus) {
     const docSuccess = document.getElementById('docSuccess');
+    const docInput = document.getElementById('massLinkDoc');
     
-    if (!docSuccess) return;
+    if (!docSuccess || !docInput) return;
     
     const isAguardandoDeploy = currentStatus === 'Aguardando Deploy';
     
-    if (isAguardandoDeploy && hasDocumentation) {
-        // Mostrar badge verde de sucesso quando há documentação
+    if (isAguardandoDeploy && docResult.hasDoc) {
+        // Mostrar badge verde e bloquear input
         docSuccess.style.display = 'flex';
+        docInput.value = docResult.wikiLink || '';
+        docInput.disabled = true;
+        docInput.style.backgroundColor = '#f9fafb';
+        docInput.style.color = '#6b7280';
     } else {
-        // Ocultar badge de sucesso nos demais casos
+        // Ocultar badge e liberar input
         docSuccess.style.display = 'none';
+        docInput.disabled = false;
+        docInput.style.backgroundColor = '';
+        docInput.style.color = '';
+        if (!docInput.value || docInput.value === docResult.wikiLink) {
+            docInput.value = '';
+        }
     }
     
     // O badge de alerta (docAlert) continua sendo controlado pelo sistema existente
