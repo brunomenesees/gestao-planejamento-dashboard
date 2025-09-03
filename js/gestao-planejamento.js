@@ -309,10 +309,18 @@ document.addEventListener('DOMContentLoaded', function() {
         respAtualSelect.addEventListener('change', function() {
             const resp = respAtualSelect.value;
             const equipe = RESPONSAVEL_TO_EQUIPE[resp] || '';
-            equipeSelect.value = equipe;
-            // Se estiver usando Choices.js, atualizar visual
+            // Se Choices.js está em uso
             if (equipeSelect.choicesInstance && typeof equipeSelect.choicesInstance.setChoiceByValue === 'function') {
-                equipeSelect.choicesInstance.setChoiceByValue(equipe);
+                // Remove seleção anterior
+                equipeSelect.choicesInstance.removeActiveItems();
+                if (equipe) {
+                    equipeSelect.choicesInstance.setChoiceByValue(equipe);
+                }
+            } else {
+                equipeSelect.value = equipe;
+                // Dispara evento de change para garantir atualização visual
+                const event = new Event('change', { bubbles: true });
+                equipeSelect.dispatchEvent(event);
             }
         });
     }
