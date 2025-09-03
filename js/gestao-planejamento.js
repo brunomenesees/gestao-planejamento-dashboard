@@ -3119,25 +3119,13 @@ function createMassEditModal(ticketNumbers) {
                 } else {
                     if (selector === '#massPrevisao') {
                         // Normaliza datas para o formato yyyy-mm-dd
-                        let v = value.trim();
-                        // Se vier como dd/mm/yyyy, converte
-                        let m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-                        if (m) {
-                            v = `${m[3]}-${m[2]}-${m[1]}`;
+                        const v = value.trim();
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                            el.value = v;
                         } else {
-                            // Se vier como yyyy-mm-dd, mantém
-                            m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                            if (m) {
-                                v = `${m[1]}-${m[2]}-${m[3]}`;
-                            } else {
-                                // Se vier como yyyy-mm-ddTHH:MM:SS, pega só a data
-                                m = v.match(/^(\d{4})-(\d{2})-(\d{2})T/);
-                                if (m) {
-                                    v = `${m[1]}-${m[2]}-${m[3]}`;
-                                }
-                            }
+                            const m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                            if (m) el.value = `${m[3]}-${m[2]}-${m[1]}`;
                         }
-                        el.value = v;
                     } else {
                         el.value = value;
                     }
