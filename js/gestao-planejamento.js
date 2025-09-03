@@ -4841,7 +4841,14 @@ function createUnifiedEditModal(demanda) {
         const previsao = document.getElementById('modal-previsao').value;
         const gmud = document.getElementById('modal-gmud').value;
 
-        // Validação da previsão de etapa baseada no status
+        // Nova regra: se o status foi alterado, exigir nova previsão de etapa
+        if (status !== original.status && (!previsao || previsao.trim() === '')) {
+            mostrarNotificacao('Preencha a previsão da nova etapa para o novo status.', 'aviso');
+            document.getElementById('modal-previsao').focus();
+            return;
+        }
+
+        // Validação da previsão de etapa baseada no status (mantém regra antiga para outros casos)
         const validationError = validarPrevisaoEtapa(status, previsao, demanda.numero);
         if (validationError) {
             mostrarNotificacao(validationError, 'aviso');
