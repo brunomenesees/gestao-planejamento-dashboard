@@ -3085,11 +3085,8 @@ function createMassEditModal(ticketNumbers) {
             // Se for edição unitária, atualizar badge ao mudar status
             if (ticketNumbers.length === 1) {
                 if (e.target.value === 'Aguardando Deploy') {
-                    checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
-                        updateDocumentationBadge(hasDoc, e.target.value);
-                    }).catch(e => {
-                        console.warn('Erro ao verificar documentação:', e);
-                    });
+                    const hasDoc = checkDocumentationForTicket(ticketNumbers[0]);
+                    updateDocumentationBadge(hasDoc, e.target.value);
                 }
             }
         });
@@ -3154,13 +3151,10 @@ function createMassEditModal(ticketNumbers) {
             if (linkDocField) {
                 linkDocField.value = ''; // Campo sempre vazio inicialmente
                 
-                // Verificar documentação em background se campo visível
+                // Verificar documentação se campo visível
                 if (ticket.status === 'Aguardando Deploy') {
-                    checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
-                        updateDocumentationBadge(hasDoc, ticket.status);
-                    }).catch(e => {
-                        console.warn('Erro ao verificar documentação:', e);
-                    });
+                    const hasDoc = checkDocumentationForTicket(ticketNumbers[0]);
+                    updateDocumentationBadge(hasDoc, ticket.status);
                 }
             }
         } catch (e) {
@@ -4525,23 +4519,17 @@ async function checkDocumentationStatus(notes) {
 // Função para verificar documentação de um ticket específico
 async function checkDocumentationForTicket(ticketNumber) {
     try {
-        // Buscar dados completos da issue incluindo notes
-        const endpoint = `issues/${encodeURIComponent(String(ticketNumber))}?include=notes`;
-        const response = await authFetchMantis(endpoint, { method: 'GET' });
+        // Buscar todos os comentários da issue via API
+        const notes = await fetchIssueNotes(ticketNumber);
         
-        if (!response || !response.issues || !Array.isArray(response.issues)) {
-            console.warn('Resposta inválida da API:', response);
+        if (!Array.isArray(notes)) {
+            console.warn('Notas não encontradas para ticket:', ticketNumber);
             return false;
         }
         
-        const issue = response.issues[0];
-        if (!issue || !issue.notes || !Array.isArray(issue.notes)) {
-            console.warn('Issue ou notes não encontradas:', issue);
-            return false;
-        }
-        
-        const hasDoc = issue.notes.some(note => {
-            const text = note.text || '';
+        // Verificar se algum comentário contém link da wiki
+        const hasDoc = notes.some(note => {
+            const text = note.text || note.note || '';
             return text.includes('wiki.xcelis.com.br');
         });
         
