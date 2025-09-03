@@ -1,3 +1,45 @@
+// Atualiza o campo Equipe automaticamente ao selecionar Responsável Atual (modais individuais)
+function setupResponsavelEquipeAutoFill(modalRoot=document) {
+    // Tenta encontrar campos por id ou por seletor name
+    const respAtualSelect = modalRoot.querySelector('#respAtual, [name="resp_atual"]');
+    const equipeSelect = modalRoot.querySelector('#squad, [name="squad"], #equipe, [name="equipe"]');
+    if (respAtualSelect && equipeSelect) {
+        respAtualSelect.addEventListener('change', function() {
+            const resp = respAtualSelect.value;
+            const equipe = RESPONSAVEL_TO_EQUIPE[resp] || '';
+            // Se Choices.js está em uso
+            if (equipeSelect.choicesInstance && typeof equipeSelect.choicesInstance.setChoiceByValue === 'function') {
+                equipeSelect.choicesInstance.removeActiveItems();
+                if (equipe) {
+                    equipeSelect.choicesInstance.setChoiceByValue(equipe);
+                }
+            } else {
+                equipeSelect.value = equipe;
+                const event = new Event('change', { bubbles: true });
+                equipeSelect.dispatchEvent(event);
+            }
+        });
+    }
+}
+
+// Detecta abertura de modais e aplica o autofill
+document.addEventListener('DOMContentLoaded', function() {
+    // Edição massiva já tratada acima
+    // Para modais individuais, observar aberturas dinâmicas
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) {
+                    // Procura por modais de edição de ticket
+                    if (node.classList.contains('modal') || node.classList.contains('unified-modal')) {
+                        setupResponsavelEquipeAutoFill(node);
+                    }
+                }
+            });
+        });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+});
 // Dados globais - inicializados vazios
 let demandasData = [];
 // Seleção de tickets para edição massiva
