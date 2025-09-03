@@ -92,6 +92,7 @@
                 <th data-sort="squad">Squad</th>
                 <th data-sort="data">Janela de Implantação</th>
                 <th data-sort="gmud">Número GMUD</th>
+                <th>Tempo</th>
                 <th data-sort="documentacao">Documentação</th>
               </tr>
             </thead>
@@ -108,9 +109,37 @@
   <script src="/js/gmud-relatorio.js"></script>
   
   <style>
+    /* Estilos para a coluna Tempo */
+    .table th:nth-child(8),
+    .table td:nth-child(8) {
+      width: 80px;
+      min-width: 80px;
+      text-align: center;
+    }
+    
+    .table th:nth-child(8) {
+      background-color: #e3f2fd;
+      font-weight: 600;
+      color: #1565c0;
+    }
+    
+    /* Estilos para o botão de tempo */
+    .btn-tempo-status {
+      border: none !important;
+      outline: none !important;
+    }
+    
+    .btn-tempo-status:focus {
+      box-shadow: 0 0 0 2px rgba(0,123,255,0.25) !important;
+    }
+    
+    .btn-tempo-status:active {
+      transform: translateY(1px) !important;
+    }
+    
     /* Estilos para a coluna de documentação */
     .table th[data-sort="documentacao"],
-    .table td:nth-child(8) {
+    .table td:nth-child(9) {
       width: 120px;
       min-width: 120px;
       text-align: center;
@@ -122,12 +151,12 @@
     }
     
     /* Hover effect para ícones de documentação */
-    .table td:nth-child(8) span {
+    .table td:nth-child(9) span {
       transition: transform 0.2s ease;
       display: inline-block;
     }
     
-    .table td:nth-child(8) span:hover {
+    .table td:nth-child(9) span:hover {
       transform: scale(1.2);
     }
     
@@ -149,10 +178,21 @@
     
     /* Responsividade para telas menores */
     @media (max-width: 768px) {
-      .table th[data-sort="documentacao"],
+      .table th:nth-child(8),
       .table td:nth-child(8) {
+        width: 60px;
+        min-width: 60px;
+      }
+      
+      .table th[data-sort="documentacao"],
+      .table td:nth-child(9) {
         width: 80px;
         min-width: 80px;
+      }
+      
+      .btn-tempo-status {
+        padding: 4px 6px !important;
+        font-size: 10px !important;
       }
     }
   </style>

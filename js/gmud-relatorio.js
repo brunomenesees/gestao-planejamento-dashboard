@@ -730,25 +730,47 @@ function renderTable(rows) {
 
     const tdGMUD = document.createElement('td');
     tdGMUD.textContent = row.numero_gmud || '';
+    tdGMUD.style.textAlign = 'center';
     
-    // Adiciona botão de expansão de status
+    // Nova coluna Tempo com botão melhorado
+    const tdTempo = document.createElement('td');
+    tdTempo.style.textAlign = 'center';
+    tdTempo.style.padding = '8px';
+    
     if (row.raw) {
       const btnStatus = document.createElement('button');
-      btnStatus.innerHTML = '⏱';
-      btnStatus.className = 'btn-status-expand';
+      btnStatus.innerHTML = '<i class="fas fa-clock"></i>';
+      btnStatus.className = 'btn-tempo-status';
       btnStatus.title = 'Ver resumo de tempo por status';
-      btnStatus.style.marginLeft = '8px';
-      btnStatus.style.padding = '4px 8px';
-      btnStatus.style.border = '1px solid #ddd';
-      btnStatus.style.borderRadius = '4px';
-      btnStatus.style.background = '#f8f9fa';
+      btnStatus.style.padding = '6px 8px';
+      btnStatus.style.border = '1px solid #007bff';
+      btnStatus.style.borderRadius = '6px';
+      btnStatus.style.background = 'linear-gradient(135deg, #007bff, #0056b3)';
+      btnStatus.style.color = 'white';
       btnStatus.style.cursor = 'pointer';
+      btnStatus.style.fontSize = '12px';
+      btnStatus.style.transition = 'all 0.2s ease';
+      btnStatus.style.boxShadow = '0 2px 4px rgba(0,123,255,0.3)';
+      
+      btnStatus.addEventListener('mouseenter', () => {
+        btnStatus.style.transform = 'translateY(-1px)';
+        btnStatus.style.boxShadow = '0 4px 8px rgba(0,123,255,0.4)';
+      });
+      
+      btnStatus.addEventListener('mouseleave', () => {
+        btnStatus.style.transform = 'translateY(0)';
+        btnStatus.style.boxShadow = '0 2px 4px rgba(0,123,255,0.3)';
+      });
+      
       btnStatus.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         toggleStatusSummary(row, tr);
       });
-      tdGMUD.appendChild(btnStatus);
+      
+      tdTempo.appendChild(btnStatus);
+    } else {
+      tdTempo.innerHTML = '<span style="color: #6c757d; font-size: 12px;">-</span>';
     }
 
     // Coluna Documentação
@@ -803,6 +825,7 @@ function renderTable(rows) {
     tr.appendChild(tdSquad);
     tr.appendChild(tdData);
     tr.appendChild(tdGMUD);
+    tr.appendChild(tdTempo);
     tr.appendChild(tdDocumentacao);
     tbody.appendChild(tr);
   }
@@ -846,7 +869,7 @@ async function toggleRelatedRows(parentRow, parentTr) {
   headerTr.className = 'related-header-row';
   headerTr.dataset.parent = parentRow.numero;
   const headerTd = document.createElement('td');
-  headerTd.colSpan = 8; // número, título, categoria, projeto, squad, data, gmud, documentação
+  headerTd.colSpan = 9; // número, título, categoria, projeto, squad, data, gmud, tempo, documentação
   headerTd.textContent = `Relacionadas de #${parentRow.numero}`;
   headerTr.appendChild(headerTd);
   tbody.insertBefore(headerTr, anchor);
@@ -882,6 +905,13 @@ async function toggleRelatedRows(parentRow, parentTr) {
 
     const tdGMUD = document.createElement('td');
     tdGMUD.textContent = rr.numero_gmud || '';
+    tdGMUD.style.textAlign = 'center';
+
+    // Coluna Tempo para linhas relacionadas
+    const tdTempo = document.createElement('td');
+    tdTempo.style.textAlign = 'center';
+    tdTempo.innerHTML = '<span style="color: #6c757d; font-size: 12px;">-</span>';
+    tdTempo.title = 'Resumo de tempo não disponível para issues relacionadas';
 
     // Coluna Documentação para linhas relacionadas
     const tdDocumentacao = document.createElement('td');
@@ -897,6 +927,7 @@ async function toggleRelatedRows(parentRow, parentTr) {
     tr.appendChild(tdSquad);
     tr.appendChild(tdData);
     tr.appendChild(tdGMUD);
+    tr.appendChild(tdTempo);
     tr.appendChild(tdDocumentacao);
 
     tbody.insertBefore(tr, anchor);
