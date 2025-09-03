@@ -2886,13 +2886,13 @@ function createMassEditModal(ticketNumbers) {
                     <input type="date" id="massPrevisao">
                 </div>
 
-                <div class="unified-modal-field">
+                <div class="unified-modal-field" id="gmudField" style="display: none;">
                     <label>GMUD</label>
                     <input type="text" id="massGmud" placeholder="Número GMUD">
                 </div>
 
                 ${isSingleSelection ? `
-                <div class="unified-modal-field">
+                <div class="unified-modal-field" id="docField" style="display: none;">
                     <label>Link Documentação</label>
                     <div class="doc-field-container">
                         <input type="text" id="massLinkDoc" placeholder="wiki.xcelis.com.br">
@@ -3079,13 +3079,18 @@ function createMassEditModal(ticketNumbers) {
             previsaoObrigatoriaAtivada = true;
             updatePrevisaoRequired(e.target.value);
             
+            // Controlar visibilidade dos campos GMUD e Documentação
+            toggleGmudAndDocFields(e.target.value);
+            
             // Se for edição unitária, atualizar badge ao mudar status
             if (ticketNumbers.length === 1) {
-                checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
-                    updateDocumentationBadge(hasDoc, e.target.value);
-                }).catch(e => {
-                    console.warn('Erro ao verificar documentação:', e);
-                });
+                if (e.target.value === 'Aguardando Deploy') {
+                    checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
+                        updateDocumentationBadge(hasDoc, e.target.value);
+                    }).catch(e => {
+                        console.warn('Erro ao verificar documentação:', e);
+                    });
+                }
             }
         });
         // Não chama updatePrevisaoRequired ao abrir, só após interação
@@ -3141,17 +3146,22 @@ function createMassEditModal(ticketNumbers) {
             setFieldValue('#massRespAtual', ticket.resp_atual, true);
             setFieldValue('#massAnalista', ticket.atribuicao, true);
             
+            // Controlar visibilidade dos campos GMUD e Documentação
+            toggleGmudAndDocFields(ticket.status);
+            
             // Se for edição unitária, verificar documentação
             const linkDocField = modal.querySelector('#massLinkDoc');
             if (linkDocField) {
                 linkDocField.value = ''; // Campo sempre vazio inicialmente
                 
-                // Verificar documentação em background
-                checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
-                    updateDocumentationBadge(hasDoc, ticket.status);
-                }).catch(e => {
-                    console.warn('Erro ao verificar documentação:', e);
-                });
+                // Verificar documentação em background se campo visível
+                if (ticket.status === 'Aguardando Deploy') {
+                    checkDocumentationForTicket(ticketNumbers[0]).then(hasDoc => {
+                        updateDocumentationBadge(hasDoc, ticket.status);
+                    }).catch(e => {
+                        console.warn('Erro ao verificar documentação:', e);
+                    });
+                }
             }
         } catch (e) {
             console.warn('Falha ao pré-preencher modal para 1 ticket:', e);
@@ -4533,6 +4543,22 @@ function updateDocumentationBadge(hasDocumentation, currentStatus) {
     
     const shouldShowAlert = currentStatus === 'Aguardando Deploy' && !hasDocumentation;
     docAlert.style.display = shouldShowAlert ? 'flex' : 'none';
+}
+
+// Função para controlar visibilidade dos campos GMUD e Documentação
+function toggleGmudAndDocFields(status) {
+    const gmudField = document.getElementById('gmudField');
+    const docField = document.getElementById('docField');
+    
+    const shouldShow = status === 'Aguardando Deploy';
+    
+    if (gmudField) {
+        gmudField.style.display = shouldShow ? 'flex' : 'none';
+    }
+    
+    if (docField) {
+        docField.style.display = shouldShow ? 'flex' : 'none';
+    }
 }
 
 // Função para renderizar o último comentário
