@@ -92,6 +92,7 @@
                 <th data-sort="squad">Squad</th>
                 <th data-sort="data">Janela de Implantação</th>
                 <th data-sort="gmud">Número GMUD</th>
+                <th data-sort="documentacao">Documentação</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -105,5 +106,55 @@
   <script src="/js/auth.js"></script>
   <script src="/js/utils.js"></script>
   <script src="/js/gmud-relatorio.js"></script>
+  
+  <style>
+    /* Estilos para a coluna de documentação */
+    .table th[data-sort="documentacao"],
+    .table td:nth-child(8) {
+      width: 120px;
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .table th[data-sort="documentacao"] {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    
+    /* Hover effect para ícones de documentação */
+    .table td:nth-child(8) span {
+      transition: transform 0.2s ease;
+      display: inline-block;
+    }
+    
+    .table td:nth-child(8) span:hover {
+      transform: scale(1.2);
+    }
+    
+    /* Estilos para linhas relacionadas */
+    .related-row {
+      background-color: #f8f9fa !important;
+      opacity: 0.8;
+    }
+    
+    .related-header-row {
+      background-color: #e9ecef !important;
+      font-weight: 600;
+    }
+    
+    .related-header-row td {
+      padding: 8px 12px;
+      border-top: 2px solid #dee2e6;
+    }
+    
+    /* Responsividade para telas menores */
+    @media (max-width: 768px) {
+      .table th[data-sort="documentacao"],
+      .table td:nth-child(8) {
+        width: 80px;
+        min-width: 80px;
+      }
+    }
+  </style>
 </body>
 </html>

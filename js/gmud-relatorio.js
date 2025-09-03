@@ -127,6 +127,33 @@ function getCustomFieldValueFromIssue(issue, fieldId) {
   return cf ? cf.value : '';
 }
 
+// Verifica se a issue possui documentação na wiki
+function checkDocumentationStatus(issue) {
+  if (!issue.notes || issue.notes.length === 0) {
+    return 'no-comments';
+  }
+  
+  // Verifica se algum comentário contém o link da wiki
+  const hasWikiLink = issue.notes.some(note => {
+    const text = note.text || note.note || '';
+    return text.includes('wiki.xcelis.com.br');
+  });
+  
+  return hasWikiLink ? 'documented' : 'pending';
+}
+
+// Busca as notas de uma issue específica
+async function fetchIssueNotes(issueId) {
+  try {
+    const endpoint = `issues/${encodeURIComponent(String(issueId))}/notes`;
+    const resp = await authFetchMantis(endpoint, { method: 'GET' });
+    return resp && Array.isArray(resp.notes) ? resp.notes : [];
+  } catch (e) {
+    console.warn('[GMUD] Failed to fetch notes for issue', issueId, e);
+    return [];
+  }
+}
+
 function mapIssueToGMUDRow(issue) {
   return {
     numero: String(issue.id),
@@ -136,6 +163,7 @@ function mapIssueToGMUDRow(issue) {
     squad: getCustomFieldValueFromIssue(issue, SQUAD_CF_ID) || '',
     numero_gmud: getCustomFieldValueFromIssue(issue, GMUD_CF_ID) || '',
     previsao_etapa: getCustomFieldValueFromIssue(issue, PREVISAO_ETAPA_CF_ID) || '',
+    documentacao_status: checkDocumentationStatus(issue),
     relatedIds: [],
     raw: issue, // Adiciona o objeto issue original para referência
   };
@@ -171,8 +199,8 @@ async function fetchIssuesPage({ page = 1, pageSize = 250, filterId = 1483 } = {
   params.set('page_size', String(pageSize));
   // Aplicar filtro do Mantis conforme solicitado
   if (filterId != null) params.set('filter_id', String(filterId));
-  // Garante que os custom_fields venham no payload (necessário para CF 71/72)
-  params.set('include', 'custom_fields');
+  // Garante que os custom_fields e notes venham no payload (necessário para CF 71/72 e verificação de documentação)
+  params.set('include', 'custom_fields,notes');
   const endpoint = `issues?${params.toString()}`;
   console.log('[GMUD] Fetching page:', page, 'pageSize:', pageSize, 'filterId:', filterId || 'none', 'endpoint:', endpoint);
   const resp = await authFetchMantis(endpoint, { method: 'GET' });
@@ -583,6 +611,12 @@ function attachSortHandlers() {
           const db = parseDate(b.previsao_etapa)?.getTime() || -Infinity;
           return (da - db) * factor;
         }
+        if (key === 'documentacao') {
+          const statusOrder = { 'documented': 0, 'pending': 1, 'no-comments': 2 };
+          const aStatus = statusOrder[a.documentacao_status] || 2;
+          const bStatus = statusOrder[b.documentacao_status] || 2;
+          return (aStatus - bStatus) * factor;
+        }
         return 0;
       });
       updateSortIndicators();
@@ -717,6 +751,51 @@ function renderTable(rows) {
       tdGMUD.appendChild(btnStatus);
     }
 
+    // Coluna Documentação
+    const tdDocumentacao = document.createElement('td');
+    tdDocumentacao.style.textAlign = 'center';
+    tdDocumentacao.style.cursor = 'pointer';
+    
+    const docStatus = row.documentacao_status || 'no-comments';
+    let icon, color, title, message;
+    
+    switch (docStatus) {
+      case 'documented':
+        icon = '✅';
+        color = '#28a745';
+        title = 'Documentação OK';
+        message = 'Documentação publicada na wiki encontrada nos comentários.';
+        break;
+      case 'pending':
+        icon = '❌';
+        color = '#dc3545';
+        title = 'Documentação Pendente';
+        message = 'Não possui documentação publicada na wiki. Verifique se o link wiki.xcelis.com.br foi adicionado nos comentários.';
+        break;
+      case 'no-comments':
+      default:
+        icon = '⚠️';
+        color = '#ffc107';
+        title = 'Sem Comentários';
+        message = 'Documentação pendente na wiki - nenhum comentário encontrado para verificação.';
+        break;
+    }
+    
+    const docIcon = document.createElement('span');
+    docIcon.textContent = icon;
+    docIcon.style.fontSize = '16px';
+    docIcon.style.color = color;
+    docIcon.title = title;
+    
+    docIcon.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      alert(message);
+    });
+    
+    tdDocumentacao.appendChild(docIcon);
+    tdDocumentacao.title = title;
+
     tr.appendChild(tdNumero);
     tr.appendChild(tdTitulo);
     tr.appendChild(tdCategoria);
@@ -724,6 +803,7 @@ function renderTable(rows) {
     tr.appendChild(tdSquad);
     tr.appendChild(tdData);
     tr.appendChild(tdGMUD);
+    tr.appendChild(tdDocumentacao);
     tbody.appendChild(tr);
   }
 }
@@ -766,7 +846,7 @@ async function toggleRelatedRows(parentRow, parentTr) {
   headerTr.className = 'related-header-row';
   headerTr.dataset.parent = parentRow.numero;
   const headerTd = document.createElement('td');
-  headerTd.colSpan = 7; // número, título, categoria, projeto, squad, data, gmud
+  headerTd.colSpan = 8; // número, título, categoria, projeto, squad, data, gmud, documentação
   headerTd.textContent = `Relacionadas de #${parentRow.numero}`;
   headerTr.appendChild(headerTd);
   tbody.insertBefore(headerTr, anchor);
@@ -803,6 +883,13 @@ async function toggleRelatedRows(parentRow, parentTr) {
     const tdGMUD = document.createElement('td');
     tdGMUD.textContent = rr.numero_gmud || '';
 
+    // Coluna Documentação para linhas relacionadas
+    const tdDocumentacao = document.createElement('td');
+    tdDocumentacao.style.textAlign = 'center';
+    tdDocumentacao.textContent = '-'; // Não verifica documentação para relacionadas
+    tdDocumentacao.style.color = '#6c757d';
+    tdDocumentacao.title = 'Verificação de documentação não disponível para issues relacionadas';
+
     tr.appendChild(tdNumero);
     tr.appendChild(tdTitulo);
     tr.appendChild(tdCategoria);
@@ -810,6 +897,7 @@ async function toggleRelatedRows(parentRow, parentTr) {
     tr.appendChild(tdSquad);
     tr.appendChild(tdData);
     tr.appendChild(tdGMUD);
+    tr.appendChild(tdDocumentacao);
 
     tbody.insertBefore(tr, anchor);
     anchor = tr.nextSibling;
@@ -817,16 +905,23 @@ async function toggleRelatedRows(parentRow, parentTr) {
 }
 
 function exportToCSV(rows) {
-  const header = ['Numero', 'Categoria', 'Projeto', 'Squad', 'Janela de Implantação', 'Numero_GMUD'];
+  const header = ['Numero', 'Categoria', 'Projeto', 'Squad', 'Janela de Implantação', 'Numero_GMUD', 'Documentação'];
   const lines = [header.join(',')];
   rows.forEach(r => {
+    const docStatusText = {
+      'documented': 'OK',
+      'pending': 'Pendente',
+      'no-comments': 'Sem Comentários'
+    }[r.documentacao_status] || 'N/A';
+    
     const line = [
       `"${r.numero}"`,
       `"${(r.categoria || '').replaceAll('"', '""')}"`,
       `"${(r.projeto || '').replaceAll('"', '""')}"`,
       `"${(r.squad || '').replaceAll('"', '""')}"`,
       `"${convertToBrasiliaTimeSafe(r.previsao_etapa)}"`,
-      `"${(r.numero_gmud || '').replaceAll('"', '""')}"`
+      `"${(r.numero_gmud || '').replaceAll('"', '""')}"`,
+      `"${docStatusText}"`
     ].join(',');
     lines.push(line);
   });
