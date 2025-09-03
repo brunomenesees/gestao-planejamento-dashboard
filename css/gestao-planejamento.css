@@ -1,117 +1,117 @@
+/* Container dos KPIs - Layout centralizado e responsivo */
 .kpi-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 16px auto;
+    padding: 0 16px;
+    max-width: 1200px;
+    justify-content: center;
 }
 
+/* Cards KPI - Design compacto e moderno */
 .kpi-card-modern {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    width: 180px;
-    min-width: 180px;
-    max-width: 180px;
-    min-height: 120px;
-    padding: 16px 10px 14px 10px;
+    justify-content: center;
+    width: 100%;
+    min-height: 100px;
+    max-height: 120px;
+    padding: 12px 8px;
     background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 8px rgba(52,152,219,0.07);
-    transition: box-shadow 0.2s;
-    word-break: break-word;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.05);
 }
+
 .kpi-card-modern:hover {
-    box-shadow: 0 4px 16px rgba(52,152,219,0.13);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
+
+/* Ícone do KPI */
 .kpi-icon-background {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 8px;
-    font-size: 18px;
-    flex-shrink: 0;
-}
-.kpi-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #222;
     margin-bottom: 6px;
-    text-align: center;
-    width: 100%;
-    line-height: 1.15;
-    padding: 0 2px;
-    word-break: break-word;
-}
-.kpi-value-modern {
-    font-size: 2.1rem;
-    font-weight: bold;
-    color: #222;
-    margin-top: 0;
-    text-align: center;
-    width: 100%;
-    letter-spacing: 1px;
-}
-.kpi-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-}
-/* --- KPIs Dashboard Moderno --- */
-.kpi-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    margin-bottom: 18px;
-}
-.kpi-card-modern {
-    display: flex;
-    align-items: center;
-    min-width: 180px;
-    min-height: 90px;
-    padding: 18px 24px;
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 8px rgba(52,152,219,0.07);
-    margin-right: 0;
-    transition: box-shadow 0.2s;
-}
-.kpi-card-modern:hover {
-    box-shadow: 0 4px 16px rgba(52,152,219,0.13);
-}
-.kpi-icon-background {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 16px;
-    font-size: 28px;
+    font-size: 16px;
     flex-shrink: 0;
 }
+
+/* Título do KPI */
 .kpi-title {
-    font-size: 1.08rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: #222;
-    margin-bottom: 2px;
+    color: #555;
+    margin-bottom: 4px;
+    text-align: center;
+    width: 100%;
+    line-height: 1.2;
     display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
+
+/* Valor do KPI */
 .kpi-value-modern {
-    font-size: 2rem;
+    font-size: 1.8rem;
     font-weight: bold;
     color: #222;
-    margin-top: 2px;
-    display: block;
+    margin: 0;
+    text-align: center;
+    width: 100%;
+    line-height: 1;
 }
+
+/* Conteúdo do KPI */
 .kpi-content {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    width: 100%;
+    text-align: center;
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 768px) {
+    .kpi-container {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 8px;
+        padding: 0 8px;
+    }
+    
+    .kpi-card-modern {
+        min-height: 90px;
+        padding: 10px 6px;
+    }
+    
+    .kpi-title {
+        font-size: 0.7rem;
+    }
+    
+    .kpi-value-modern {
+        font-size: 1.5rem;
+    }
+    
+    .kpi-icon-background {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+}
+
+/* Para telas muito pequenas */
+@media (max-width: 480px) {
+    .kpi-container {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
 }
 /* Ícones e cores para os novos cards de status */
 .icon-analise-suporte {
