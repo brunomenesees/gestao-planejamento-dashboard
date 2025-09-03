@@ -4526,7 +4526,7 @@ async function checkDocumentationStatus(notes) {
 async function fetchIssueNotes(issueId) {
     try {
         const endpoint = `issues/${encodeURIComponent(String(issueId))}/notes`;
-        const resp = await authFetchMantis(endpoint, { method: 'GET' });
+        const resp = await mantisRequest(endpoint, { method: 'GET' });
         return resp && Array.isArray(resp.notes) ? resp.notes : [];
     } catch (e) {
         console.warn('Erro ao buscar notas:', e);
