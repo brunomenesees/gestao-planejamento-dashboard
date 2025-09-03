@@ -281,10 +281,42 @@ const ANALISTA_RESPONSAVEL_OPTIONS = [
 
 // TODO: Substituir com a lista real de responsáveis
 const RESPONSAVEL_ATUAL_OPTIONS = [
-    " ","Bruno Tavares", "Daniel Paraizo", "Elaine Santos", "Gabriel Matos", "Giovanni Mussolini", 
-    "Gustavo Magalhaes", "Rafael Montesso", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira", 
-    "Vinicius Vieira", "Viviane Silva"
+        " ","Bruno Tavares", "Daniel Paraizo", "Elaine Santos", "Gabriel Matos", "Giovanni Mussolini", 
+        "Gustavo Magalhaes", "Rafael Montesso", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira", 
+        "Vinicius Vieira", "Viviane Silva"
 ];
+
+// Mapeamento de responsável atual para equipe
+const RESPONSAVEL_TO_EQUIPE = {
+    "Bruno Tavares": "AMS",
+    "Elaine Santos": "Requisitos",
+    "Gabriel Matos": "ABAP",
+    "Giovanni Mussolini": "Analytics",
+    "Gustavo Magalhaes": "Requisitos",
+    "Rafael Montesso": "Analytics",
+    "Sylvio Neto": "Analytics",
+    "Thiago Caldeira": "Web",
+    "Tiago Nogueira": "Web",
+    "Vinicius Vieira": "Web",
+    "Viviane Silva": "Requisitos"
+    // Daniel Paraizo não define equipe
+};
+// Atualiza o campo Equipe automaticamente ao selecionar Responsável Atual (edição massiva)
+document.addEventListener('DOMContentLoaded', function() {
+    const respAtualSelect = document.getElementById('massRespAtual');
+    const equipeSelect = document.getElementById('massEquipe');
+    if (respAtualSelect && equipeSelect) {
+        respAtualSelect.addEventListener('change', function() {
+            const resp = respAtualSelect.value;
+            const equipe = RESPONSAVEL_TO_EQUIPE[resp] || '';
+            equipeSelect.value = equipe;
+            // Se estiver usando Choices.js, atualizar visual
+            if (equipeSelect.choicesInstance && typeof equipeSelect.choicesInstance.setChoiceByValue === 'function') {
+                equipeSelect.choicesInstance.setChoiceByValue(equipe);
+            }
+        });
+    }
+});
 
 
 // Mapeamento de projetos para nomes amigáveis
