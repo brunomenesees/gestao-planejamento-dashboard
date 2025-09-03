@@ -4525,11 +4525,27 @@ async function checkDocumentationStatus(notes) {
 // Função para verificar documentação de um ticket específico
 async function checkDocumentationForTicket(ticketNumber) {
     try {
-        const notes = await fetchIssueNotes(ticketNumber);
-        return notes.some(note => {
-            const text = note.text || note.note || '';
+        // Buscar dados completos da issue incluindo notes
+        const endpoint = `issues/${encodeURIComponent(String(ticketNumber))}?include=notes`;
+        const response = await authFetchMantis(endpoint, { method: 'GET' });
+        
+        if (!response || !response.issues || !Array.isArray(response.issues)) {
+            console.warn('Resposta inválida da API:', response);
+            return false;
+        }
+        
+        const issue = response.issues[0];
+        if (!issue || !issue.notes || !Array.isArray(issue.notes)) {
+            console.warn('Issue ou notes não encontradas:', issue);
+            return false;
+        }
+        
+        const hasDoc = issue.notes.some(note => {
+            const text = note.text || '';
             return text.includes('wiki.xcelis.com.br');
         });
+        
+        return hasDoc;
     } catch (e) {
         console.warn('Erro ao verificar documentação:', e);
         return false;
