@@ -1,23 +1,29 @@
-/* Container dos KPIs - Layout centralizado e responsivo */
+/* Container dos KPIs - Layout fixo e alinhado */
 .kpi-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
     gap: 16px;
     margin: 20px auto;
     padding: 0 20px;
     max-width: 1200px;
-    justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
-/* Cards KPI - Design moderno com gradientes sutis */
+/* Cards KPI - Design moderno com tamanho fixo */
 .kpi-card-modern {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+    height: 110px;
     min-height: 110px;
+    max-height: 110px;
     padding: 16px 12px;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 16px;
@@ -28,6 +34,7 @@
     border: 1px solid rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(10px);
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .kpi-card-modern::before {
@@ -112,50 +119,17 @@
     z-index: 1;
 }
 
-/* Responsividade para telas menores */
-@media (max-width: 768px) {
+/* Scroll horizontal para telas menores se necessário */
+@media (max-width: 1200px) {
     .kpi-container {
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-        gap: 12px;
         padding: 0 12px;
-        margin: 16px auto;
-    }
-    
-    .kpi-card-modern {
-        min-height: 100px;
-        padding: 14px 10px;
-    }
-    
-    .kpi-title {
-        font-size: 0.75rem;
-    }
-    
-    .kpi-value-modern {
-        font-size: 1.7rem;
-    }
-    
-    .kpi-icon-background {
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
-        border-radius: 10px;
+        justify-content: flex-start;
     }
 }
 
-/* Para telas muito pequenas */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
     .kpi-container {
-        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-        gap: 10px;
-    }
-    
-    .kpi-card-modern {
-        min-height: 90px;
-        padding: 12px 8px;
-    }
-    
-    .kpi-value-modern {
-        font-size: 1.5rem;
+        padding: 0 8px;
     }
 }
 /* Ícones e cores modernas com gradientes para os cards de status */
