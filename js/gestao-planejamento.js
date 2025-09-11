@@ -4440,21 +4440,16 @@ function showSaveFeedback(container, success) {
 
 // Função utilitária (deve estar disponível no escopo global)
 async function mantisRequest(endpoint, options = {}) {
-    const token = localStorage.getItem('authToken');
-    if (!token) throw new Error('Não autenticado');
-    const response = await fetch(`/api/mantis?endpoint=${encodeURIComponent(endpoint)}`, {
-        ...options,
-        headers: {
-            ...options.headers,
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    });
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro na requisição');
+    // Delegar para o serviço central de autenticação para garantir tratamento consistente de 401 (logout automático)
+    if (!window.authService || !window.authService.isAuthenticated()) {
+        // Sem sessão válida: redireciona imediatamente para login
+        try { window.location.href = '/login.html'; } catch {}
+        throw new Error('Não autenticado');
     }
-    return response.json();
+    // Usa o proxy /api/mantis já implementado em makeAuthenticatedRequest
+    return window.authService.makeAuthenticatedRequest(endpoint, {
+        ...options,
+    });
 }
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {
