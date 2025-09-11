@@ -1927,6 +1927,7 @@ function updateTable() {
             formatarDataAmigavel(demanda.ultima_atualizacao) || '',
             demanda.ordem_plnj || '',
             demanda.previsao_etapa || '',
+            demanda.numero_gmud || '',
             demanda.status || '',
             formatarHorasMinutos(calcularTempoTotal(demanda)) || ''
         ];
@@ -2020,7 +2021,7 @@ function updateTable() {
                     }
                 }
                 td.textContent = out;
-            } else if (index === 14) { // Status (custom CF 70): mostrar traço quando vazio (ajustado após inserir Previsão Etapa)
+            } else if (index === 15) { // Status (custom CF 70): mostrar traço quando vazio (ajustado após inserir Previsão Etapa + GMUD)
                 const isEmpty = String(valor).trim() === '';
                 td.textContent = isEmpty ? '—' : valor;
             } else {
