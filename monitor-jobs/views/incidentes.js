@@ -48,7 +48,7 @@ export function updateIncidentsTable(records, { utc }) {
     severity: r.severity,
     tempo_execucao: r.tempo_execucao,
     dateFormatted: formatDate(r.date, { utc }),
-    mensagem: (r.mensagens[0]?.texto) || r.status_raw.split('\n')[0] || '',
+    mensagem: r.status ? r.status.split('\n')[0] : '',
   }));
   table.setData(rows);
 }
