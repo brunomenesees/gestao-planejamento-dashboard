@@ -1,6 +1,12 @@
 // utils/time.js
 // Requer Luxon global (window.luxon)
 
+// Verificação de segurança para Luxon
+if (!window.luxon) {
+  console.error('Luxon não está carregado! Verifique se o script está incluído no HTML.');
+  throw new Error('Luxon library not loaded');
+}
+
 const { DateTime } = window.luxon;
 
 export function formatDate(date, { utc = false } = {}) {
