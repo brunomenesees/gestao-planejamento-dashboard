@@ -47,31 +47,68 @@ export function pN(values, n) {
 
 // Cria séries por hora com contagem por severidade
 export function buildTrendSeries(records) {
+  console.log('🔍 buildTrendSeries - Recebidos:', records.length, 'registros');
+  console.log('🔍 Primeiro registro:', records[0]);
+  
   if (!Array.isArray(records) || records.length === 0) {
+    console.log('❌ Array vazio ou inválido');
     return { labels: [], data: [] };
   }
   
   const map = new Map(); // key -> {success,error,warning,info}
+  let processedCount = 0;
+  let skippedCount = 0;
+  
   for (const r of records) {
-    if (!r || !r.date) continue; // Pular registros inválidos
+    if (!r || !r.date) {
+      console.log('⚠️ Registro sem date:', r);
+      skippedCount++;
+      continue; // Pular registros inválidos
+    }
     
     try {
       const key = bucketHourKey(r.date, { utc: true });
-      if (!key) continue; // Pular se a chave for nula
+      if (!key) {
+        console.log('⚠️ bucketHourKey retornou null para:', r.date);
+        skippedCount++;
+        continue; // Pular se a chave for nula
+      }
       
       if (!map.has(key)) map.set(key, { success: 0, error: 0, warning: 0, info: 0 });
       const bucket = map.get(key);
+      
+      // Debug dos campos de severidade
+      console.log('🔍 Registro:', {
+        date: r.date,
+        status: r.status,
+        severity: r.severity,
+        has_success: r.has_success,
+        has_error: r.has_error,
+        has_warning: r.has_warning,
+        has_info: r.has_info
+      });
+      
       if (r.has_success || r.severity === 'success') bucket.success += 1;
       if (r.has_error || r.severity === 'error') bucket.error += 1;
       if (r.has_warning || r.severity === 'warning') bucket.warning += 1;
       if (r.has_info || r.severity === 'info') bucket.info += 1;
+      
+      processedCount++;
     } catch (error) {
       console.warn('Erro ao processar registro para tendência:', error, r);
+      skippedCount++;
     }
   }
   
+  console.log(`📊 Processados: ${processedCount}, Ignorados: ${skippedCount}`);
+  
   const labels = Array.from(map.keys()).sort();
   const data = labels.map(k => map.get(k));
+  
+  console.log('📈 Resultado final:', { labels: labels.length, data: data.length });
+  console.log('📈 Labels:', labels);
+  console.log('📈 Data:', data);
+  
   return { labels, data };
 }
 
