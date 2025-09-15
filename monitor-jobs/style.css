@@ -1,0 +1,31 @@
+/* Minimal custom styles */
+
+#dropZone {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+#dropZone.dragover {
+  border-color: #0d6efd !important;
+  background-color: #e9f2ff;
+  color: #0d6efd;
+}
+
+.kpi-card .card-title {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+.kpi-card .kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.tabulator .tabulator-header {
+  font-size: 0.9rem;
+}
+.tabulator .tabulator-cell {
+  font-size: 0.9rem;
+}
