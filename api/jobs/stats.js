@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { createConnection } from '@vercel/postgres';
 import { verifyToken, corsHeaders } from '../middleware.js';
 
 export default async function handler(req, res) {
@@ -22,10 +22,15 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Token inválido ou expirado' });
     }
 
+    // Criar conexão específica para o monitor de jobs
+    const jobsDb = createConnection({
+        connectionString: process.env.JOBS_POSTGRES_URL
+    });
+
     try {
         // Buscar lista de job IDs únicos
         const query = "SELECT DISTINCT id_job FROM public.jobs_historicos ORDER BY id_job ASC";
-        const result = await sql.query(query);
+        const result = await jobsDb.query(query);
         const jobIds = result.rows.map(r => r.id_job);
 
         console.log(`Retornando ${jobIds.length} job IDs únicos`);

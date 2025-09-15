@@ -1,10 +1,10 @@
-import { sql } from '@vercel/postgres';
+import { createConnection } from '@vercel/postgres';
 import { verifyToken, corsHeaders } from './middleware.js';
 
 export default async function handler(req, res) {
     console.log('=== JOBS API CALLED ===');
     console.log('Method:', req.method);
-    console.log('Query:', req.query);
+    console.log('Query params:', req.query);
     
     // Configurar CORS
     corsHeaders(res);
@@ -22,6 +22,11 @@ export default async function handler(req, res) {
     if (!user) {
         return res.status(401).json({ error: 'Token inválido ou expirado' });
     }
+
+    // Criar conexão específica para o monitor de jobs
+    const jobsDb = createConnection({
+        connectionString: process.env.JOBS_POSTGRES_URL
+    });
 
     try {
         const { start, end, id_job, text, severities, limit, cursor } = req.query;
@@ -130,7 +135,7 @@ export default async function handler(req, res) {
         console.log('Executing query:', query);
         console.log('With params:', queryParams);
 
-        const result = await sql.query(query, queryParams);
+        const result = await jobsDb.query(query, queryParams);
         const rows = result.rows;
 
         // Processar dados
