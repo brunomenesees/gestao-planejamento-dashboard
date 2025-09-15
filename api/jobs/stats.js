@@ -1,4 +1,3 @@
-import { createConnection } from '@vercel/postgres';
 import { verifyToken, corsHeaders } from '../middleware.js';
 
 export default async function handler(req, res) {
@@ -22,23 +21,39 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Token inválido ou expirado' });
     }
 
-    // Criar conexão específica para o monitor de jobs
-    const jobsDb = createConnection({
-        connectionString: process.env.JOBS_POSTGRES_URL
-    });
-
     try {
-        // Buscar lista de job IDs únicos
-        const query = "SELECT DISTINCT id_job FROM public.jobs_historicos ORDER BY id_job ASC";
-        const result = await jobsDb.query(query);
-        const jobIds = result.rows.map(r => r.id_job);
-
-        console.log(`Retornando ${jobIds.length} job IDs únicos`);
+        // Usar proxy server local ao invés de conexão direta
+        const proxyUrl = process.env.JOBS_PROXY_URL || 'http://localhost:3001';
+        const proxyApiKey = process.env.JOBS_PROXY_API_KEY;
         
-        res.json({ 
-            jobIds,
-            total: jobIds.length
+        const proxyEndpoint = `${proxyUrl}/api/jobs/stats`;
+        
+        console.log('Fazendo requisição para proxy:', proxyEndpoint);
+        
+        // Headers para o proxy
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (proxyApiKey) {
+            headers['X-API-Key'] = proxyApiKey;
+        }
+        
+        // Fazer requisição para o proxy
+        const proxyResponse = await fetch(proxyEndpoint, {
+            method: 'GET',
+            headers
         });
+        
+        if (!proxyResponse.ok) {
+            throw new Error(`Proxy error: ${proxyResponse.status} ${proxyResponse.statusText}`);
+        }
+        
+        const data = await proxyResponse.json();
+        
+        console.log(`Proxy retornou ${data.jobIds?.length || 0} job IDs únicos`);
+        
+        res.json(data);
 
     } catch (error) {
         console.error('Erro na API de stats de jobs:', error);
