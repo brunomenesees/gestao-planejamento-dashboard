@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Logs - Sistema Xcelis</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .logs-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .logs-header {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logs-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .logs-controls {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .control-group select,
+        .control-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-log {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-log:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .logs-table-container {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .logs-table th,
+        .logs-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .logs-table th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .logs-table tbody tr:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .log-level {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .log-level.error {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .log-level.warn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .log-level.info {
+            background: #3498db;
+            color: white;
+        }
+
+        .log-level.debug {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .log-data {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .log-data:hover {
+            background: #f8f9fa;
+            white-space: normal;
+            word-break: break-all;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f8f9fa;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .log-detail {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .real-time-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: #ccc;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #27ae60;
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::before {
+            transform: translateX(25px);
+        }
+
+        @media (max-width: 768px) {
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                justify-content: center;
+            }
+            
+            .logs-table {
+                font-size: 0.9rem;
+            }
+            
+            .logs-table th,
+            .logs-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Barra Lateral -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button class="toggle-sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="gestao-planejamento.html">
+                    <i class="fas fa-tasks"></i>
+                    <span>Gestão de Planejamento</span>
+                </a>
+                <a href="gmud-relatorio.html">
+                    <i class="fas fa-list-check"></i>
+                    <span>Central de Mudanças</span>
+                </a>
+                <a href="monitor-jobs/index.html">
+                    <i class="fas fa-server"></i>
+                    <span>Monitor de Jobs</span>
+                </a>
+                <a href="logs-dashboard.html" class="active">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Dashboard de Logs</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <h2>Xcelis</h2>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <div class="logs-container">
+                <!-- Header -->
+                <div class="logs-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1 style="margin: 0; color: var(--primary-color);">
+                                <i class="fas fa-file-alt"></i> Dashboard de Logs
+                            </h1>
+                            <p style="margin: 5px 0 0 0; color: var(--text-muted);">
+                                Monitoramento e análise de logs do sistema
+                            </p>
+                        </div>
+                        <div class="real-time-toggle">
+                            <span>Tempo Real:</span>
+                            <div class="toggle-switch" id="realTimeToggle"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estatísticas -->
+                <div class="logs-stats">
+                    <div class="stat-card">
+                        <h3><i class="fas fa-list"></i> Total de Logs</h3>
+                        <div class="value" id="totalLogs">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Erros</h3>
+                        <div class="value" id="errorCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fas fa-clock"></i> Última Atualização</h3>
+                        <div class="value" id="lastUpdate" style="font-size: 1rem;">--:--</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fas fa-user"></i> Sessão Atual</h3>
+                        <div class="value" id="currentSession" style="font-size: 0.9rem;">---</div>
+                    </div>
+                </div>
+
+                <!-- Controles -->
+                <div class="logs-controls">
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <label for="levelFilter">Nível:</label>
+                            <select id="levelFilter">
+                                <option value="">Todos</option>
+                                <option value="ERROR">Erro</option>
+                                <option value="WARN">Aviso</option>
+                                <option value="INFO">Info</option>
+                                <option value="DEBUG">Debug</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="categoryFilter">Categoria:</label>
+                            <select id="categoryFilter">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="searchFilter">Buscar:</label>
+                            <input type="text" id="searchFilter" placeholder="Buscar em mensagens...">
+                        </div>
+                        <div class="control-group">
+                            <label for="dateFilter">Data:</label>
+                            <input type="datetime-local" id="dateFilter">
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn-log btn-primary" onclick="refreshLogs()">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                        <button class="btn-log btn-success" onclick="exportLogs()">
+                            <i class="fas fa-download"></i> Exportar
+                        </button>
+                        <button class="btn-log btn-warning" onclick="exportErrors()">
+                            <i class="fas fa-exclamation-circle"></i> Exportar Erros
+                        </button>
+                        <button class="btn-log btn-danger" onclick="clearLogs()">
+                            <i class="fas fa-trash"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela de Logs -->
+                <div class="logs-table-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Nível</th>
+                                <th>Categoria</th>
+                                <th>Mensagem</th>
+                                <th>Dados</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                            <!-- Logs serão inseridos aqui -->
+                        </tbody>
+                    </table>
+                    
+                    <!-- Paginação -->
+                    <div class="pagination">
+                        <button id="prevPage" onclick="changePage(-1)">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        <span id="pageInfo">Página 1 de 1</span>
+                        <button id="nextPage" onclick="changePage(1)">
+                            Próxima <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para detalhes do log -->
+    <div id="logModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalhes do Log</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="logDetail" class="log-detail"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/logger.js"></script>
+    <script>
+        // Variáveis globais
+        let currentPage = 1;
+        let logsPerPage = 50;
+        let filteredLogs = [];
+        let realTimeEnabled = false;
+        let refreshInterval;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            setupEventListeners();
+            loadLogs();
+        });
+
+        function initializePage() {
+            // Verificar autenticação
+            if (!window.authService?.isAuthenticated()) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // Configurar tema
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            // Atualizar informações da sessão
+            if (window.logger) {
+                document.getElementById('currentSession').textContent = 
+                    window.logger.sessionId?.substring(8, 16) || 'N/A';
+            }
+        }
+
+        function setupEventListeners() {
+            // Filtros
+            document.getElementById('levelFilter').addEventListener('change', applyFilters);
+            document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+            document.getElementById('searchFilter').addEventListener('input', applyFilters);
+            document.getElementById('dateFilter').addEventListener('change', applyFilters);
+
+            // Toggle tempo real
+            document.getElementById('realTimeToggle').addEventListener('click', toggleRealTime);
+
+            // Fechar modal ao clicar fora
+            document.getElementById('logModal').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+        }
+
+        function loadLogs() {
+            if (!window.logger) {
+                console.warn('Logger não disponível');
+                return;
+            }
+
+            const logs = window.logger.logs || [];
+            filteredLogs = [...logs].reverse(); // Mais recentes primeiro
+            
+            updateStats();
+            updateCategoryFilter();
+            applyFilters();
+        }
+
+        function updateStats() {
+            const stats = window.logger?.getStats() || {};
+            
+            document.getElementById('totalLogs').textContent = stats.totalLogs || 0;
+            document.getElementById('errorCount').textContent = stats.byLevel?.ERROR || 0;
+            document.getElementById('lastUpdate').textContent = 
+                stats.timeRange?.last ? new Date(stats.timeRange.last).toLocaleTimeString() : '--:--';
+        }
+
+        function updateCategoryFilter() {
+            const categorySelect = document.getElementById('categoryFilter');
+            const categories = [...new Set(filteredLogs.map(log => log.category))];
+            
+            // Limpar opções existentes (exceto "Todas")
+            while (categorySelect.children.length > 1) {
+                categorySelect.removeChild(categorySelect.lastChild);
+            }
+            
+            // Adicionar categorias
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        function applyFilters() {
+            const levelFilter = document.getElementById('levelFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+            const dateFilter = document.getElementById('dateFilter').value;
+
+            let filtered = [...window.logger?.logs || []].reverse();
+
+            if (levelFilter) {
+                filtered = filtered.filter(log => log.level === levelFilter);
+            }
+
+            if (categoryFilter) {
+                filtered = filtered.filter(log => log.category === categoryFilter);
+            }
+
+            if (searchFilter) {
+                filtered = filtered.filter(log => 
+                    log.message.toLowerCase().includes(searchFilter) ||
+                    JSON.stringify(log.data).toLowerCase().includes(searchFilter)
+                );
+            }
+
+            if (dateFilter) {
+                const filterDate = new Date(dateFilter);
+                filtered = filtered.filter(log => {
+                    const logDate = new Date(log.timestamp);
+                    return logDate >= filterDate;
+                });
+            }
+
+            filteredLogs = filtered;
+            currentPage = 1;
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('logsTableBody');
+            const startIndex = (currentPage - 1) * logsPerPage;
+            const endIndex = startIndex + logsPerPage;
+            const pageData = filteredLogs.slice(startIndex, endIndex);
+
+            tbody.innerHTML = '';
+
+            pageData.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(log.timestamp).toLocaleString()}</td>
+                    <td><span class="log-level ${log.level.toLowerCase()}">${log.level}</span></td>
+                    <td>${log.category}</td>
+                    <td>${log.message}</td>
+                    <td class="log-data" onclick="showLogDetail('${log.id}')" title="Clique para ver detalhes">
+                        ${JSON.stringify(log.data).substring(0, 50)}...
+                    </td>
+                    <td>
+                        <button class="btn-log btn-primary" onclick="showLogDetail('${log.id}')" style="padding: 4px 8px; font-size: 0.8rem;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+            
+            document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+            const newPage = currentPage + direction;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderLogs();
+            }
+        }
+
+        function showLogDetail(logId) {
+            const log = window.logger?.logs.find(l => l.id === logId);
+            if (!log) return;
+
+            const detail = `
+ID: ${log.id}
+Timestamp: ${log.timestamp}
+Sessão: ${log.sessionId}
+Nível: ${log.level}
+Categoria: ${log.category}
+Mensagem: ${log.message}
+URL: ${log.url}
+
+Dados:
+${JSON.stringify(log.data, null, 2)}
+
+${log.stackTrace ? `Stack Trace:\n${log.stackTrace}` : ''}
+            `.trim();
+
+            document.getElementById('logDetail').textContent = detail;
+            document.getElementById('logModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('logModal').style.display = 'none';
+        }
+
+        function refreshLogs() {
+            loadLogs();
+            window.logger?.info('LOGS-DASHBOARD', 'Logs atualizados manualmente');
+        }
+
+        function exportLogs() {
+            if (window.logger) {
+                window.logger.saveLogsToFile('dashboard-export');
+            }
+        }
+
+        function exportErrors() {
+            if (window.logger) {
+                const errorLogs = window.logger.logs.filter(log => log.level === 'ERROR');
+                if (errorLogs.length === 0) {
+                    alert('Nenhum erro encontrado para exportar.');
+                    return;
+                }
+                
+                const content = window.logger.formatLogsForFile(errorLogs);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                window.logger.downloadFile(`errors-only_${timestamp}.txt`, content);
+            }
+        }
+
+        function clearLogs() {
+            if (confirm('Tem certeza que deseja limpar todos os logs? Esta ação não pode ser desfeita.')) {
+                window.logger?.clearLogs();
+                loadLogs();
+            }
+        }
+
+        function toggleRealTime() {
+            const toggle = document.getElementById('realTimeToggle');
+            realTimeEnabled = !realTimeEnabled;
+            
+            toggle.classList.toggle('active', realTimeEnabled);
+            
+            if (realTimeEnabled) {
+                refreshInterval = setInterval(() => {
+                    loadLogs();
+                }, 2000); // Atualizar a cada 2 segundos
+                window.logger?.info('LOGS-DASHBOARD', 'Modo tempo real ativado');
+            } else {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+                window.logger?.info('LOGS-DASHBOARD', 'Modo tempo real desativado');
+            }
+        }
+
+        // Atualizar logs periodicamente se estiver em tempo real
+        setInterval(() => {
+            if (realTimeEnabled) {
+                updateStats();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

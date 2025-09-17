@@ -2167,6 +2167,13 @@ function setupMassSelectionControls() {
     if (massEditBtn) {
         massEditBtn.addEventListener('click', () => {
             if (selectedTickets.size === 0) return;
+            
+            // Log da ação do usuário
+            window.logger?.logUserAction('MASS_EDIT_OPEN', {
+                selectedCount: selectedTickets.size,
+                selectedTickets: Array.from(selectedTickets)
+            });
+            
             createMassEditModal(Array.from(selectedTickets));
         });
     }
@@ -2443,8 +2450,16 @@ function updateGlobalLastUpdated(formattedDate) {
 }
 
 async function atualizarDados() {
+    const operationId = window.logger?.generateId() || Date.now().toString(36);
     const btn = document.getElementById('refreshButton');
     const icon = btn ? btn.querySelector('i') : null;
+    
+    window.logger?.logUserAction('DATA_REFRESH_START', {
+        operationId,
+        timestamp: new Date().toISOString(),
+        currentDataCount: Array.isArray(demandasData) ? demandasData.length : 0
+    });
+    
     try {
         console.debug('[atualizarDados] início');
         showLoading('Atualizando dados...');
@@ -2456,8 +2471,20 @@ async function atualizarDados() {
         await loadInitialData({ forceRefresh: true });
         console.debug('[atualizarDados] loadInitialData(forceRefresh) concluído. demandasData:', Array.isArray(demandasData) ? demandasData.length : 'n/a');
 
+        window.logger?.logUserAction('DATA_REFRESH_SUCCESS', {
+            operationId,
+            newDataCount: Array.isArray(demandasData) ? demandasData.length : 0,
+            duration: Date.now() - parseInt(operationId.substring(0, 8), 36)
+        });
+
         mostrarNotificacao('Dados atualizados da API Mantis.', 'sucesso');
     } catch (error) {
+        window.logger?.error('DATA_REFRESH_ERROR', 'Erro ao atualizar dados', {
+            operationId,
+            error: error.message,
+            stack: error.stack
+        });
+        
         console.error('Erro ao atualizar os dados:', error);
         mostrarNotificacao('Erro ao atualizar os dados.', 'erro');
     } finally {
@@ -4066,6 +4093,17 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
 }
 
 async function updateTicketField(ticketNumber, fieldKey, value) {
+    const operationId = window.logger?.generateId() || Date.now().toString(36);
+    
+    // Log de início da operação
+    window.logger?.logUserAction('EDIT_TICKET_START', {
+        operationId,
+        ticketNumber,
+        fieldKey,
+        value,
+        valueType: typeof value
+    });
+
     const ORDEM_PLNJ_CF_ID = (window.AppConfig && window.AppConfig.CF_ORDEM_PLNJ_ID) || 50; // informado: ID 50
     const token = window.AppConfig.MANTIS_API_TOKEN;
     const issueUrl = window.AppConfig.getMantisApiUrl(`issues/${ticketNumber}`);
@@ -4078,16 +4116,29 @@ async function updateTicketField(ticketNumber, fieldKey, value) {
 
     const fieldId = fieldIdMap[fieldKey];
     if (!fieldId) {
-        console.error(`Chave de campo inválida: ${fieldKey}`);
+        window.logger?.error('TICKET-EDIT-VALIDATION', `Campo não mapeado: ${fieldKey}`, {
+            operationId,
+            ticketNumber,
+            fieldKey,
+            availableFields: Object.keys(fieldIdMap)
+        });
+        console.error(`Campo não encontrado: ${fieldKey}`);
         return false;
     }
 
     const body = {
-        custom_fields: [{
-            field: { id: fieldId },
-            value: value
-        }]
+        custom_fields: [
+            { field: { id: fieldId }, value: value }
+        ]
     };
+
+    window.logger?.debug('TICKET-EDIT-PAYLOAD', `Payload preparado para ${ticketNumber}`, {
+        operationId,
+        ticketNumber,
+        fieldId,
+        body,
+        url: issueUrl
+    });
 
     try {
         const response = await fetch(issueUrl, {
@@ -4098,14 +4149,50 @@ async function updateTicketField(ticketNumber, fieldKey, value) {
 
         if (!response.ok) {
             const errorData = await response.json();
+            
+            // Log de erro HTTP com padrão específico
+            window.logger?.error('TICKET-EDIT-HTTP', `HTTP ${response.status} ao editar ticket`, {
+                operationId,
+                ticketNumber,
+                fieldKey,
+                value,
+                httpStatus: response.status,
+                httpStatusText: response.statusText,
+                requestBody: body,
+                responseBody: errorData,
+                url: issueUrl,
+                headers: {
+                    'Authorization': token ? 'PRESENTE' : 'AUSENTE',
+                    'Content-Type': 'application/json'
+                }
+            });
+            
             console.error(`Erro ao atualizar campo ${fieldKey}:`, errorData);
             return false;
         }
+
+        // Log de sucesso
+        window.logger?.logUserAction('EDIT_TICKET_SUCCESS', {
+            operationId,
+            ticketNumber,
+            fieldKey,
+            value
+        });
 
         await updateDemandaLastUpdated(ticketNumber);
         return true;
 
     } catch (error) {
+        // Log de erro de rede
+        window.logger?.error('TICKET-EDIT-NETWORK', 'Erro de rede na edição', {
+            operationId,
+            ticketNumber,
+            fieldKey,
+            value,
+            error: error.message,
+            stack: error.stack
+        });
+        
         console.error(`Erro de rede ao atualizar campo ${fieldKey}:`, error);
         return false;
     }
@@ -4441,16 +4528,53 @@ function showSaveFeedback(container, success) {
 
 // Função utilitária (deve estar disponível no escopo global)
 async function mantisRequest(endpoint, options = {}) {
+    const requestId = window.logger?.generateId() || Date.now().toString(36);
+    
+    // Log da requisição
+    window.logger?.logApiRequest(endpoint, options.method || 'GET', {
+        requestId,
+        hasBody: !!options.body,
+        bodySize: options.body?.length || 0,
+        body: options.body ? JSON.parse(options.body) : null
+    });
+
     // Delegar para o serviço central de autenticação para garantir tratamento consistente de 401 (logout automático)
     if (!window.authService || !window.authService.isAuthenticated()) {
+        window.logger?.error('AUTH', 'Requisição sem autenticação', { 
+            endpoint, 
+            requestId,
+            method: options.method || 'GET'
+        });
         // Sem sessão válida: redireciona imediatamente para login
         try { window.location.href = '/login.html'; } catch {}
         throw new Error('Não autenticado');
     }
-    // Usa o proxy /api/mantis já implementado em makeAuthenticatedRequest
-    return window.authService.makeAuthenticatedRequest(endpoint, {
-        ...options,
-    });
+
+    try {
+        // Usa o proxy /api/mantis já implementado em makeAuthenticatedRequest
+        const response = await window.authService.makeAuthenticatedRequest(endpoint, {
+            ...options,
+        });
+        
+        // Log de sucesso
+        window.logger?.logApiResponse(endpoint, options.method || 'GET', {
+            requestId,
+            success: true,
+            responseSize: JSON.stringify(response).length
+        });
+        
+        return response;
+        
+    } catch (error) {
+        // Log de erro padronizado
+        window.logger?.logApiError(endpoint, options.method || 'GET', {
+            requestId,
+            error: error.message,
+            stack: error.stack,
+            requestBody: options.body ? JSON.parse(options.body) : null
+        });
+        throw error;
+    }
 }
 
 async function postToMantis(ticketNumber, text, newStatus, gmudValue) {

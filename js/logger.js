@@ -1,0 +1,364 @@
+/**
+ * Sistema de Logging Avançado para Gestão de Planejamento
+ * Autor: Sistema Xcelis
+ * Versão: 1.0.0
+ */
+
+class FileLogger {
+    constructor(config = {}) {
+        this.config = {
+            maxLogsInMemory: config.maxLogsInMemory || 1000,
+            autoSaveInterval: config.autoSaveInterval || 30000,
+            enableConsole: config.enableConsole ?? true,
+            enableAutoSave: config.enableAutoSave ?? true,
+            logLevels: config.logLevels || ['error', 'warn', 'info', 'debug'],
+            ...config
+        };
+        
+        this.logs = [];
+        this.sessionId = this.generateSessionId();
+        
+        if (this.config.enableAutoSave) {
+            this.startAutoSave();
+        }
+        
+        this.info('LOGGER', 'Sistema de logging inicializado', {
+            sessionId: this.sessionId,
+            config: this.config
+        });
+    }
+
+    // Método principal de logging
+    log(level, category, message, data = {}, options = {}) {
+        // Verificar se o nível está habilitado
+        if (!this.config.logLevels.includes(level)) {
+            return;
+        }
+
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            sessionId: this.sessionId,
+            level: level.toUpperCase(),
+            category: category.toUpperCase(),
+            message,
+            data: this.sanitizeData(data),
+            id: this.generateId(),
+            url: window.location.href,
+            userAgent: navigator.userAgent.substring(0, 100), // Limitar tamanho
+            stackTrace: options.includeStack ? new Error().stack : null
+        };
+
+        this.logs.push(logEntry);
+        
+        // Console para desenvolvimento
+        if (this.config.enableConsole) {
+            this.logToConsole(logEntry);
+        }
+
+        // Gerenciar memória
+        this.manageMemory();
+
+        // Salvar erros críticos imediatamente
+        if (level === 'error' && options.saveImmediately !== false) {
+            this.saveErrorLog(logEntry);
+        }
+
+        return logEntry.id;
+    }
+
+    // Métodos de conveniência com padrões específicos
+    error(category, message, data = {}, options = {}) {
+        return this.log('error', category, message, data, { 
+            includeStack: true, 
+            saveImmediately: true, 
+            ...options 
+        });
+    }
+
+    warn(category, message, data = {}, options = {}) {
+        return this.log('warn', category, message, data, options);
+    }
+
+    info(category, message, data = {}, options = {}) {
+        return this.log('info', category, message, data, options);
+    }
+
+    debug(category, message, data = {}, options = {}) {
+        return this.log('debug', category, message, data, options);
+    }
+
+    // Métodos específicos para casos de uso comuns
+    logApiRequest(endpoint, method, requestData, options = {}) {
+        return this.info('API-REQUEST', `${method} ${endpoint}`, {
+            endpoint,
+            method,
+            requestId: this.generateId(),
+            ...requestData
+        }, options);
+    }
+
+    logApiResponse(endpoint, method, responseData, options = {}) {
+        return this.info('API-RESPONSE', `${method} ${endpoint}`, {
+            endpoint,
+            method,
+            ...responseData
+        }, options);
+    }
+
+    logApiError(endpoint, method, errorData, options = {}) {
+        return this.error('API-ERROR', `${method} ${endpoint}`, {
+            endpoint,
+            method,
+            ...errorData
+        }, options);
+    }
+
+    logUserAction(action, details = {}, options = {}) {
+        return this.info('USER-ACTION', action, details, options);
+    }
+
+    logSystemEvent(event, details = {}, options = {}) {
+        return this.info('SYSTEM-EVENT', event, details, options);
+    }
+
+    // Métodos utilitários
+    sanitizeData(data) {
+        try {
+            const sensitiveKeys = ['password', 'token', 'auth', 'key', 'secret', 'credential'];
+            
+            return JSON.parse(JSON.stringify(data, (key, value) => {
+                if (sensitiveKeys.some(sensitive => 
+                    key.toLowerCase().includes(sensitive)
+                )) {
+                    return '***REDACTED***';
+                }
+                
+                // Limitar tamanho de strings muito grandes
+                if (typeof value === 'string' && value.length > 5000) {
+                    return value.substring(0, 5000) + '...[TRUNCATED]';
+                }
+                
+                return value;
+            }));
+        } catch (e) {
+            return { 
+                error: 'Não foi possível serializar os dados', 
+                original: String(data).substring(0, 1000) 
+            };
+        }
+    }
+
+    generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    }
+
+    generateSessionId() {
+        return 'session_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
+    }
+
+    logToConsole(logEntry) {
+        const consoleMethod = logEntry.level.toLowerCase() === 'error' ? 'error' : 
+                             logEntry.level.toLowerCase() === 'warn' ? 'warn' : 'log';
+        
+        console[consoleMethod](
+            `[${logEntry.timestamp}] [${logEntry.category}] ${logEntry.message}`,
+            logEntry.data
+        );
+    }
+
+    manageMemory() {
+        if (this.logs.length > this.config.maxLogsInMemory) {
+            if (this.config.enableAutoSave) {
+                this.saveLogsToFile('memory-overflow');
+            }
+            this.logs = this.logs.slice(-100); // Manter apenas os últimos 100
+        }
+    }
+
+    // Métodos de salvamento
+    saveLogsToFile(prefix = 'logs') {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `${prefix}_${this.sessionId}_${timestamp}.txt`;
+        
+        const logContent = this.formatLogsForFile(this.logs);
+        this.downloadFile(filename, logContent);
+        
+        this.info('LOGGER', 'Logs salvos em arquivo', { filename, logCount: this.logs.length });
+    }
+
+    saveErrorLog(errorEntry) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `error_${errorEntry.category}_${timestamp}.txt`;
+        
+        const errorContent = this.formatSingleLogForFile(errorEntry);
+        
+        // Salvar no localStorage para recuperação
+        this.saveToLocalStorage('criticalErrors', errorEntry, 50);
+        
+        this.downloadFile(filename, errorContent);
+    }
+
+    saveToLocalStorage(key, data, maxItems = 100) {
+        try {
+            const saved = JSON.parse(localStorage.getItem(key) || '[]');
+            saved.push(data);
+            localStorage.setItem(key, JSON.stringify(saved.slice(-maxItems)));
+        } catch (e) {
+            console.warn('Erro ao salvar no localStorage:', e);
+        }
+    }
+
+    formatLogsForFile(logs) {
+        let content = `=== LOG DO SISTEMA GESTÃO PLANEJAMENTO ===\n`;
+        content += `Sessão: ${this.sessionId}\n`;
+        content += `Gerado em: ${new Date().toISOString()}\n`;
+        content += `Total de entradas: ${logs.length}\n`;
+        content += `URL: ${window.location.href}\n`;
+        content += `User Agent: ${navigator.userAgent}\n`;
+        content += `\n${'='.repeat(80)}\n\n`;
+
+        logs.forEach(log => {
+            content += this.formatSingleLogForFile(log) + '\n';
+        });
+
+        return content;
+    }
+
+    formatSingleLogForFile(log) {
+        let content = `[${log.timestamp}] [${log.level}] [${log.category}] ${log.message}\n`;
+        
+        if (log.data && Object.keys(log.data).length > 0) {
+            content += `Dados: ${JSON.stringify(log.data, null, 2)}\n`;
+        }
+        
+        if (log.stackTrace) {
+            content += `Stack Trace:\n${log.stackTrace}\n`;
+        }
+        
+        content += `ID: ${log.id} | Sessão: ${log.sessionId}\n`;
+        content += `-`.repeat(80) + '\n';
+        
+        return content;
+    }
+
+    downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        URL.revokeObjectURL(url);
+    }
+
+    startAutoSave() {
+        setInterval(() => {
+            if (this.logs.length > 50) { // Só salva se tiver logs suficientes
+                this.saveLogsToFile('auto-backup');
+                this.debug('LOGGER', 'Auto-save executado', { logCount: this.logs.length });
+            }
+        }, this.config.autoSaveInterval);
+    }
+
+    // Métodos de gerenciamento
+    exportAllLogs() {
+        const allData = {
+            currentSession: this.logs,
+            sessionId: this.sessionId,
+            savedErrors: JSON.parse(localStorage.getItem('criticalErrors') || '[]'),
+            config: this.config,
+            systemInfo: {
+                timestamp: new Date().toISOString(),
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                screen: {
+                    width: screen.width,
+                    height: screen.height
+                },
+                viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                }
+            }
+        };
+
+        const filename = `complete-logs_${this.sessionId}_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        this.downloadFile(filename, JSON.stringify(allData, null, 2));
+        
+        this.info('LOGGER', 'Logs completos exportados', { filename });
+    }
+
+    clearLogs() {
+        const logCount = this.logs.length;
+        this.logs = [];
+        localStorage.removeItem('criticalErrors');
+        this.info('LOGGER', 'Logs limpos', { previousLogCount: logCount });
+    }
+
+    getStats() {
+        const stats = {
+            totalLogs: this.logs.length,
+            sessionId: this.sessionId,
+            byLevel: {},
+            byCategory: {},
+            timeRange: {
+                first: this.logs[0]?.timestamp,
+                last: this.logs[this.logs.length - 1]?.timestamp
+            }
+        };
+
+        this.logs.forEach(log => {
+            stats.byLevel[log.level] = (stats.byLevel[log.level] || 0) + 1;
+            stats.byCategory[log.category] = (stats.byCategory[log.category] || 0) + 1;
+        });
+
+        return stats;
+    }
+}
+
+// Configuração baseada no ambiente
+function createLogger() {
+    const isDev = window.location.hostname === 'localhost' || 
+                  window.location.hostname.includes('dev') ||
+                  window.location.search.includes('debug=true');
+
+    const config = {
+        enableConsole: isDev,
+        enableAutoSave: true,
+        autoSaveInterval: isDev ? 10000 : 60000, // 10s dev, 1min prod
+        logLevels: isDev ? ['error', 'warn', 'info', 'debug'] : ['error', 'warn', 'info'],
+        maxLogsInMemory: isDev ? 500 : 1000
+    };
+
+    return new FileLogger(config);
+}
+
+// Exportar para uso global
+window.Logger = FileLogger;
+window.logger = createLogger();
+
+// Capturar erros não tratados
+window.addEventListener('error', (event) => {
+    window.logger.error('UNCAUGHT-ERROR', 'Erro JavaScript não tratado', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        stack: event.error?.stack
+    });
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    window.logger.error('UNHANDLED-PROMISE', 'Promise rejeitada não tratada', {
+        reason: event.reason,
+        stack: event.reason?.stack
+    });
+});
+
+console.log('Sistema de logging inicializado');

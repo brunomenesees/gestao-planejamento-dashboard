@@ -57,6 +57,10 @@
                     <i class="fas fa-file-alt"></i>
                     <span>Relatórios</span>
                 </a>
+                <a href="logs-dashboard.html">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Dashboard de Logs</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <h2>Xcelis</h2>
@@ -92,6 +96,9 @@
                     <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
                         <i class="fas fa-upload"></i> Importar CSV
                     </button>
+                    <a href="logs-dashboard.html" class="btn-secondary" style="margin-left: 8px; display: flex; align-items: center; text-decoration: none;">
+                        <i class="fas fa-clipboard-list"></i> Logs
+                    </a>
                 </div>
             </div>
 
@@ -302,6 +309,7 @@
         </main>
     </div>
 
+    <script src="js/logger.js"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/utils.js"></script>
