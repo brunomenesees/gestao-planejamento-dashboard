@@ -58,8 +58,8 @@ class FileLogger {
         // Gerenciar memória
         this.manageMemory();
 
-        // Salvar erros críticos imediatamente
-        if (level === 'error' && options.saveImmediately !== false) {
+        // Salvar erros críticos imediatamente apenas se explicitamente solicitado
+        if (level === 'error' && options.saveImmediately === true) {
             this.saveErrorLog(logEntry);
         }
 
@@ -70,7 +70,7 @@ class FileLogger {
     error(category, message, data = {}, options = {}) {
         return this.log('error', category, message, data, { 
             includeStack: true, 
-            saveImmediately: true, 
+            saveImmediately: false, // Não salvar automaticamente
             ...options 
         });
     }
@@ -168,10 +168,12 @@ class FileLogger {
 
     manageMemory() {
         if (this.logs.length > this.config.maxLogsInMemory) {
-            if (this.config.enableAutoSave) {
-                this.saveLogsToFile('memory-overflow');
-            }
+            // Apenas limpar logs antigos, não salvar automaticamente
             this.logs = this.logs.slice(-100); // Manter apenas os últimos 100
+            this.info('LOGGER', 'Logs antigos removidos da memória', { 
+                previousCount: this.logs.length + (this.config.maxLogsInMemory - 100),
+                currentCount: this.logs.length 
+            });
         }
     }
 
@@ -258,12 +260,16 @@ class FileLogger {
     }
 
     startAutoSave() {
-        setInterval(() => {
-            if (this.logs.length > 50) { // Só salva se tiver logs suficientes
-                this.saveLogsToFile('auto-backup');
-                this.debug('LOGGER', 'Auto-save executado', { logCount: this.logs.length });
-            }
-        }, this.config.autoSaveInterval);
+        // Auto-save desabilitado por padrão para evitar downloads automáticos
+        // Pode ser habilitado manualmente se necessário
+        if (this.config.enableAutoSave) {
+            setInterval(() => {
+                if (this.logs.length > 50) { // Só salva se tiver logs suficientes
+                    this.saveLogsToFile('auto-backup');
+                    this.debug('LOGGER', 'Auto-save executado', { logCount: this.logs.length });
+                }
+            }, this.config.autoSaveInterval);
+        }
     }
 
     // Métodos de gerenciamento
@@ -330,7 +336,7 @@ function createLogger() {
 
     const config = {
         enableConsole: isDev,
-        enableAutoSave: true,
+        enableAutoSave: false, // Desabilitar auto-save por padrão
         autoSaveInterval: isDev ? 10000 : 60000, // 10s dev, 1min prod
         logLevels: isDev ? ['error', 'warn', 'info', 'debug'] : ['error', 'warn', 'info'],
         maxLogsInMemory: isDev ? 500 : 1000
@@ -343,22 +349,30 @@ function createLogger() {
 window.Logger = FileLogger;
 window.logger = createLogger();
 
-// Capturar erros não tratados
+// Capturar erros não tratados (apenas se não for "Script error.")
 window.addEventListener('error', (event) => {
+    // Ignorar erros genéricos "Script error." que geralmente vêm de scripts externos
+    if (event.message === 'Script error.' && event.filename === '' && event.lineno === 0) {
+        return; // Não logar esses erros genéricos
+    }
+    
     window.logger.error('UNCAUGHT-ERROR', 'Erro JavaScript não tratado', {
         message: event.message,
         filename: event.filename,
         lineno: event.lineno,
         colno: event.colno,
         stack: event.error?.stack
-    });
+    }, { saveImmediately: false }); // Não salvar automaticamente
 });
 
 window.addEventListener('unhandledrejection', (event) => {
-    window.logger.error('UNHANDLED-PROMISE', 'Promise rejeitada não tratada', {
-        reason: event.reason,
-        stack: event.reason?.stack
-    });
+    // Apenas logar se for um erro significativo
+    if (event.reason && event.reason.message !== 'Script error.') {
+        window.logger.error('UNHANDLED-PROMISE', 'Promise rejeitada não tratada', {
+            reason: event.reason,
+            stack: event.reason?.stack
+        }, { saveImmediately: false }); // Não salvar automaticamente
+    }
 });
 
 console.log('Sistema de logging inicializado');

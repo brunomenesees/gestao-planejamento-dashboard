@@ -4165,7 +4165,7 @@ async function updateTicketField(ticketNumber, fieldKey, value) {
                     'Authorization': token ? 'PRESENTE' : 'AUSENTE',
                     'Content-Type': 'application/json'
                 }
-            });
+            }, { saveImmediately: false }); // Não salvar automaticamente
             
             console.error(`Erro ao atualizar campo ${fieldKey}:`, errorData);
             return false;

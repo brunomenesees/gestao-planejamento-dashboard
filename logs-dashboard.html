@@ -386,6 +386,10 @@
                             <span>Tempo Real:</span>
                             <div class="toggle-switch" id="realTimeToggle"></div>
                         </div>
+                        <div class="real-time-toggle" style="margin-left: 20px;">
+                            <span>Auto-Save:</span>
+                            <div class="toggle-switch" id="autoSaveToggle"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -532,6 +536,10 @@
             if (window.logger) {
                 document.getElementById('currentSession').textContent = 
                     window.logger.sessionId?.substring(8, 16) || 'N/A';
+                    
+                // Inicializar estado do auto-save toggle
+                const autoSaveToggle = document.getElementById('autoSaveToggle');
+                autoSaveToggle.classList.toggle('active', window.logger.config.enableAutoSave);
             }
         }
 
@@ -544,6 +552,9 @@
 
             // Toggle tempo real
             document.getElementById('realTimeToggle').addEventListener('click', toggleRealTime);
+            
+            // Toggle auto-save
+            document.getElementById('autoSaveToggle').addEventListener('click', toggleAutoSave);
 
             // Fechar modal ao clicar fora
             document.getElementById('logModal').addEventListener('click', function(e) {
@@ -752,6 +763,28 @@ ${log.stackTrace ? `Stack Trace:\n${log.stackTrace}` : ''}
                     refreshInterval = null;
                 }
                 window.logger?.info('LOGS-DASHBOARD', 'Modo tempo real desativado');
+            }
+        }
+
+        function toggleAutoSave() {
+            const toggle = document.getElementById('autoSaveToggle');
+            const currentState = window.logger?.config?.enableAutoSave || false;
+            const newState = !currentState;
+            
+            toggle.classList.toggle('active', newState);
+            
+            if (window.logger) {
+                window.logger.config.enableAutoSave = newState;
+                
+                if (newState) {
+                    window.logger.startAutoSave();
+                    window.logger.info('LOGS-DASHBOARD', 'Auto-save ativado');
+                    alert('Auto-save ativado. Os logs serão salvos automaticamente a cada ' + 
+                          (window.logger.config.autoSaveInterval / 1000) + ' segundos.');
+                } else {
+                    window.logger.info('LOGS-DASHBOARD', 'Auto-save desativado');
+                    alert('Auto-save desativado. Os logs só serão salvos quando solicitado manualmente.');
+                }
             }
         }
 
