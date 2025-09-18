@@ -30,7 +30,7 @@ class FileLogger {
         }
         
         this.info('LOGGER', 'Sistema de logging inicializado', {
-            sessionId: this.sessionId,
+            session_id: this.sessionId,
             config: this.config
         });
     }
@@ -44,15 +44,15 @@ class FileLogger {
 
         const logEntry = {
             timestamp: new Date().toISOString(),
-            sessionId: this.sessionId,
+            session_id: this.sessionId,
             level: level.toUpperCase(),
             category: category.toUpperCase(),
             message,
             data: this.sanitizeData(data),
             id: this.generateId(),
             url: window.location.href,
-            userAgent: navigator.userAgent.substring(0, 100), // Limitar tamanho
-            stackTrace: options.includeStack ? new Error().stack : null
+            user_agent: navigator.userAgent.substring(0, 100), // Limitar tamanho
+            stack_trace: options.includeStack ? new Error().stack : null
         };
 
         this.logs.push(logEntry);
@@ -425,11 +425,11 @@ class FileLogger {
             content += `Dados: ${JSON.stringify(log.data, null, 2)}\n`;
         }
         
-        if (log.stackTrace) {
-            content += `Stack Trace:\n${log.stackTrace}\n`;
+        if (log.stack_trace) {
+            content += `Stack Trace:\n${log.stack_trace}\n`;
         }
         
-        content += `ID: ${log.id} | Sessão: ${log.sessionId}\n`;
+        content += `ID: ${log.id} | Sessão: ${log.session_id}\n`;
         content += `-`.repeat(80) + '\n';
         
         return content;
@@ -468,13 +468,13 @@ class FileLogger {
     exportAllLogs() {
         const allData = {
             currentSession: this.logs,
-            sessionId: this.sessionId,
+            session_id: this.sessionId,
             savedErrors: JSON.parse(localStorage.getItem('criticalErrors') || '[]'),
             config: this.config,
             systemInfo: {
                 timestamp: new Date().toISOString(),
                 url: window.location.href,
-                userAgent: navigator.userAgent,
+                user_agent: navigator.userAgent,
                 screen: {
                     width: screen.width,
                     height: screen.height
@@ -502,7 +502,7 @@ class FileLogger {
     getStats() {
         const stats = {
             totalLogs: this.logs.length,
-            sessionId: this.sessionId,
+            session_id: this.sessionId,
             byLevel: {},
             byCategory: {},
             timeRange: {

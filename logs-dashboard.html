@@ -798,7 +798,7 @@
             const detail = `
 ID: ${log.id}
 Timestamp: ${log.timestamp}
-Sessão: ${log.sessionId}
+Sessão: ${log.session_id}
 Nível: ${log.level}
 Categoria: ${log.category}
 Mensagem: ${log.message}
@@ -807,7 +807,7 @@ URL: ${log.url}
 Dados:
 ${JSON.stringify(log.data, null, 2)}
 
-${log.stackTrace ? `Stack Trace:\n${log.stackTrace}` : ''}
+${log.stack_trace ? `Stack Trace:\n${log.stack_trace}` : ''}
             `.trim();
 
             document.getElementById('logDetail').textContent = detail;
