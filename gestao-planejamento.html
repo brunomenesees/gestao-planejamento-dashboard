@@ -74,7 +74,7 @@
                 <div class="top-bar-content" style="display: flex; align-items: center; justify-content: space-between;">
                     <h1 style="margin: 0; font-size: 1.5rem; text-align: left; flex: 1;">Gestão de Planejamento - Xcelis</h1>
                     <div class="search-container" style="flex: 2; display: flex;">
-                        <input type="text" id="searchInput" placeholder="Buscar demandas..." style="width: 350px;">
+                        <input type="text" id="searchInput" placeholder="Buscar demandas..." style="width: 350px;" autocomplete="off">
                         <i class="fas fa-search"></i>
                     </div>
                 </div>
@@ -120,7 +120,7 @@
                     <select id="filter-atribuicao">
                         <option value="">Analista Responsável</option>
                     </select>
-                    <select id="filter-squad" class="multi-select" multiple>
+                    <select id="filter-squad" class="multi-select" multiple autocomplete="off">
                         <option value="">Equipe</option>
                     </select>
                     <input type="date" id="filter-data-inicial" placeholder="Data Inicial">
