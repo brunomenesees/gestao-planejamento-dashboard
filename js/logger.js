@@ -9,17 +9,24 @@ class FileLogger {
         this.config = {
             maxLogsInMemory: config.maxLogsInMemory || 1000,
             autoSaveInterval: config.autoSaveInterval || 30000,
+            autoSyncInterval: config.autoSyncInterval || 30000,
             enableConsole: config.enableConsole ?? true,
             enableAutoSave: config.enableAutoSave ?? true,
+            enableAutoSync: config.enableAutoSync ?? false,
             logLevels: config.logLevels || ['error', 'warn', 'info', 'debug'],
             ...config
         };
         
         this.logs = [];
         this.sessionId = this.generateSessionId();
+        this.autoSyncInterval = null;
         
         if (this.config.enableAutoSave) {
             this.startAutoSave();
+        }
+
+        if (this.config.enableAutoSync) {
+            this.startAutoSync();
         }
         
         this.info('LOGGER', 'Sistema de logging inicializado', {
@@ -200,6 +207,191 @@ class FileLogger {
         this.downloadFile(filename, errorContent);
     }
 
+    // ===== MÉTODOS DE SINCRONIZAÇÃO COM SERVIDOR =====
+    
+    async sendLogsToServer(logsToSend = null) {
+        try {
+            const logs = logsToSend || this.logs;
+            
+            if (logs.length === 0) {
+                this.debug('LOGGER', 'Nenhum log para enviar ao servidor');
+                return { success: true, savedCount: 0 };
+            }
+
+            this.debug('LOGGER', `Enviando ${logs.length} logs para o servidor`);
+
+            const response = await fetch('/api/logs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ logs })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.info('LOGGER', 'Logs enviados ao servidor com sucesso', {
+                    savedCount: result.savedCount,
+                    totalLogs: result.totalLogs,
+                    errors: result.errors?.length || 0
+                });
+
+                // Remover logs enviados com sucesso da memória
+                if (!logsToSend && result.savedCount > 0) {
+                    this.logs = this.logs.slice(result.savedCount);
+                }
+            }
+
+            return result;
+
+        } catch (error) {
+            this.error('LOGGER', 'Erro ao enviar logs para o servidor', {
+                error: error.message,
+                logsCount: logsToSend?.length || this.logs.length
+            });
+            return { success: false, error: error.message };
+        }
+    }
+
+    async loadLogsFromServer(filters = {}) {
+        try {
+            const params = new URLSearchParams({
+                page: filters.page || 1,
+                limit: filters.limit || 50,
+                ...(filters.level && { level: filters.level }),
+                ...(filters.category && { category: filters.category }),
+                ...(filters.session_id && { session_id: filters.session_id }),
+                ...(filters.search && { search: filters.search }),
+                ...(filters.start_date && { start_date: filters.start_date }),
+                ...(filters.end_date && { end_date: filters.end_date })
+            });
+
+            this.debug('LOGGER', 'Carregando logs do servidor', { filters });
+
+            const response = await fetch(`/api/logs?${params}`);
+
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.info('LOGGER', 'Logs carregados do servidor', {
+                    logsCount: result.logs.length,
+                    totalLogs: result.stats.totalLogs,
+                    page: result.pagination.currentPage
+                });
+            }
+
+            return result;
+
+        } catch (error) {
+            this.error('LOGGER', 'Erro ao carregar logs do servidor', {
+                error: error.message,
+                filters
+            });
+            return { success: false, error: error.message };
+        }
+    }
+
+    async exportLogsFromServer(filters = {}) {
+        try {
+            this.info('LOGGER', 'Exportando logs do servidor para arquivo');
+
+            // Carregar todos os logs sem paginação
+            const result = await this.loadLogsFromServer({
+                ...filters,
+                limit: 10000 // Limite alto para export
+            });
+
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            // Gerar arquivo
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `server-logs_${timestamp}.txt`;
+            const content = this.formatLogsForFile(result.logs);
+            
+            this.downloadFile(filename, content);
+            
+            this.info('LOGGER', 'Logs do servidor exportados', {
+                filename,
+                logsCount: result.logs.length
+            });
+
+            return { success: true, filename, logsCount: result.logs.length };
+
+        } catch (error) {
+            this.error('LOGGER', 'Erro ao exportar logs do servidor', {
+                error: error.message,
+                filters
+            });
+            return { success: false, error: error.message };
+        }
+    }
+
+    async cleanupOldLogs() {
+        try {
+            this.info('LOGGER', 'Iniciando limpeza de logs antigos (72h)');
+
+            const response = await fetch('/api/logs?action=cleanup', {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.info('LOGGER', 'Limpeza de logs concluída', {
+                    deletedCount: result.deletedCount,
+                    cutoffDate: result.cutoffDate
+                });
+            }
+
+            return result;
+
+        } catch (error) {
+            this.error('LOGGER', 'Erro ao limpar logs antigos', {
+                error: error.message
+            });
+            return { success: false, error: error.message };
+        }
+    }
+
+    startAutoSync() {
+        if (this.autoSyncInterval) {
+            clearInterval(this.autoSyncInterval);
+        }
+
+        this.autoSyncInterval = setInterval(async () => {
+            if (this.logs.length >= 10) { // Sync quando tiver 10+ logs
+                await this.sendLogsToServer();
+            }
+        }, this.config.autoSyncInterval || 30000); // 30 segundos
+
+        this.info('LOGGER', 'Auto-sync ativado', {
+            interval: this.config.autoSyncInterval || 30000
+        });
+    }
+
+    stopAutoSync() {
+        if (this.autoSyncInterval) {
+            clearInterval(this.autoSyncInterval);
+            this.autoSyncInterval = null;
+            this.info('LOGGER', 'Auto-sync desativado');
+        }
+    }
+
     saveToLocalStorage(key, data, maxItems = 100) {
         try {
             const saved = JSON.parse(localStorage.getItem(key) || '[]');
@@ -337,7 +529,9 @@ function createLogger() {
     const config = {
         enableConsole: isDev,
         enableAutoSave: false, // Desabilitar auto-save por padrão
+        enableAutoSync: !isDev, // Habilitar auto-sync em produção
         autoSaveInterval: isDev ? 10000 : 60000, // 10s dev, 1min prod
+        autoSyncInterval: isDev ? 15000 : 30000, // 15s dev, 30s prod
         logLevels: isDev ? ['error', 'warn', 'info', 'debug'] : ['error', 'warn', 'info'],
         maxLogsInMemory: isDev ? 500 : 1000
     };

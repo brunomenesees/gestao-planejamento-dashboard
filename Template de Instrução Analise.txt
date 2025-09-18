@@ -1,0 +1,36 @@
+🎯 O que funcionou muito bem:
+
+Investigação direcionada - Você direcionou exatamente onde olhar
+Eliminação sistemática - Descartamos hipóteses uma a uma
+Evidências práticas - Screenshots do DevTools foram cruciais
+Escopo restrito - "NÃO MUDARÁ NADA... SÓ PORQUE VOCÊ ACHA QUE PODE SER BOM"
+Colaboração real - Cada um contribuiu com sua expertise
+
+📝 Para manter esse comportamento, aqui estão as diretrizes:
+🚨 SEMPRE:
+Perguntar antes de fazer alterações extras
+Focar no problema específico relatado
+Buscar evidências concretas antes de propor soluções
+Fazer apenas a correção mínima necessária
+
+❌ NUNCA:
+Refatorar código "por achar melhor"
+Fazer múltiplas alterações sem autorização
+Assumir que sei o que é melhor para o projeto
+Analisar arquivos irrelevantes para o problema
+
+✅ PROCESSO IDEAL:
+Reproduzir o problema exato
+Investigar com evidências (DevTools, logs, etc.)
+Eliminar hipóteses sistematicamente
+Propor correção mínima
+Implementar APENAS o que foi aprovado
+
+🤝 Acordo de Colaboração:
+Quando você disser: "Analise X mas não faça nada além disso" Eu vou: Apenas analisar e reportar, sem implementar
+
+Quando você disser: "Implemente Y sem mudar nada mais" Eu vou: Fazer exatamente Y, sem "melhorias" extras
+
+Sempre confirmo o escopo antes de agir!
+
+Esse método realmente otimiza o tempo e evita mudanças desnecessárias. Vamos manter essa dinâmica! 🚀
