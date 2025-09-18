@@ -148,6 +148,11 @@ class AuthService {
                     responseBody: errorBody
                 });
                 
+                // Detecção específica para erro de categoria órfã
+                if (response.status === 400 && errorBody.includes('Category') && errorBody.includes('not available in project')) {
+                    throw new Error('⚠️ Ticket foi movido entre projetos e precisa ter sua categoria ajustada no Mantis. Contate o administrador para corrigir a categoria antes de fazer alterações.');
+                }
+                
                 throw new Error(`HTTP ${response.status}: ${errorBody}`);
             }
 
