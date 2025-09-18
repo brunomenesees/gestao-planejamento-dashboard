@@ -1,3 +1,14 @@
+// === Configurações de Polling Inteligente ===
+const POLLING_CONFIG = {
+    CACHE_TTL: 5 * 60 * 1000,        // 5 minutos
+    POLLING_INTERVAL: 3 * 60 * 1000,  // 3 minutos
+    NOTIFICATION_ON_UPDATE: true      // Avisa quando atualiza
+};
+
+// Variáveis globais para controle de polling
+let pollingTimer = null;
+let lastDataTimestamp = null;
+
 // Atualiza o campo Equipe automaticamente ao selecionar Responsável Atual (modais individuais)
 function setupResponsavelEquipeAutoFill(modalRoot=document) {
     // Procura por possíveis ids/names para os campos
@@ -557,15 +568,57 @@ async function fetchAllIssuesFromMantis({ projectId, filterId, categoryId, categ
     }
 }
 
+// === Função de Verificação Lightweight para Polling ===
+async function checkDataTimestamp() {
+    try {
+        // Faz HEAD request para verificar Last-Modified sem baixar dados
+        const endpoint = 'issues?page=1&page_size=1&filter_id=1477';
+        const response = await fetch('/api/mantis', {
+            method: 'HEAD',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Falha na verificação de timestamp:', response.status);
+            return null;
+        }
+        
+        // Tenta extrair timestamp de headers
+        const lastModified = response.headers.get('Last-Modified');
+        const etag = response.headers.get('ETag');
+        const timestamp = lastModified ? new Date(lastModified).getTime() : Date.now();
+        
+        return {
+            timestamp,
+            lastModified,
+            etag,
+            changed: lastDataTimestamp ? timestamp > lastDataTimestamp : true
+        };
+    } catch (error) {
+        console.warn('Erro na verificação de timestamp:', error);
+        return null;
+    }
+}
+
 async function loadInitialData({ forceRefresh = false } = {}) {
     let overlayShown = false;
     try {
-        // 1) Cache-first: tenta carregar do IndexedDB para evitar recarregar no F5
+        // 1) Verificação inteligente de cache com TTL
         if (!forceRefresh) {
             const cached = await getChamados();
-            if (Array.isArray(cached) && cached.length > 0) {
+            const cacheTimestamp = localStorage.getItem('cacheTimestamp');
+            const now = Date.now();
+            
+            // Verifica se cache existe e ainda está válido
+            const isCacheValid = cached && Array.isArray(cached) && cached.length > 0 && 
+                                 cacheTimestamp && (now - parseInt(cacheTimestamp)) < POLLING_CONFIG.CACHE_TTL;
+            
+            if (isCacheValid) {
                 demandasData = cached;
-                try { console.log('Carregados via IndexedDB (demanda count):', demandasData.length); } catch {}
+                try { console.log('Carregados via IndexedDB (cache válido, demanda count):', demandasData.length); } catch {}
 
                 // Renderiza imediatamente com os dados em cache
                 selectedProjetoFilter = new Set(demandasData.map(c => c.projeto).filter(Boolean));
@@ -580,7 +633,33 @@ async function loadInitialData({ forceRefresh = false } = {}) {
                     const el = document.getElementById('ultimaAtualizacao');
                     if (el) el.textContent = `Última atualização: ${ultimaData}`;
                 }
-                return; // Evita chamada de rede no carregamento inicial
+                return; // Cache válido, evita chamada de rede
+            } else if (cached && Array.isArray(cached) && cached.length > 0) {
+                // Cache expirado, mas usa como fallback enquanto verifica server
+                try { console.log('Cache expirado, verificando servidor...'); } catch {}
+                
+                // Verificação lightweight primeiro
+                const timestampCheck = await checkDataTimestamp();
+                if (timestampCheck && !timestampCheck.changed) {
+                    // Dados não mudaram, renova timestamp do cache
+                    localStorage.setItem('cacheTimestamp', now.toString());
+                    demandasData = cached;
+                    try { console.log('Dados não mudaram, renovando cache TTL'); } catch {}
+                    
+                    // Renderiza com cache renovado
+                    selectedProjetoFilter = new Set(demandasData.map(c => c.projeto).filter(Boolean));
+                    selectedSquadFilter = new Set();
+                    if (hiddenColumns.size === 0) hiddenColumns = new Set(DEFAULT_HIDDEN_COLUMNS);
+                    updateFilterOptions();
+                    filterData();
+                    
+                    const ultimaData = localStorage.getItem('ultimaAtualizacao');
+                    if (ultimaData) {
+                        const el = document.getElementById('ultimaAtualizacao');
+                        if (el) el.textContent = `Última atualização: ${ultimaData}`;
+                    }
+                    return;
+                }
             }
         }
         
@@ -595,6 +674,11 @@ async function loadInitialData({ forceRefresh = false } = {}) {
         if (apiData && apiData.length > 0) {
             await saveChamados(apiData); // Persiste para próximos reloads
             demandasData = apiData;
+            
+            // Salva timestamp do cache para TTL
+            localStorage.setItem('cacheTimestamp', Date.now().toString());
+            lastDataTimestamp = Date.now();
+            
             try { console.log('Carregados via API (demanda count):', demandasData.length); } catch {}
 
             const now = new Date();
@@ -637,6 +721,80 @@ async function loadInitialData({ forceRefresh = false } = {}) {
     }
 }
 
+// === Funções de Polling Automático ===
+async function performAutomaticDataCheck() {
+    try {
+        console.debug('[Polling] Verificando atualizações automáticas...');
+        
+        const timestampCheck = await checkDataTimestamp();
+        if (!timestampCheck) {
+            console.debug('[Polling] Falha na verificação, tentando novamente no próximo ciclo');
+            return;
+        }
+        
+        if (timestampCheck.changed) {
+            console.debug('[Polling] Mudanças detectadas, atualizando dados...');
+            
+            // Busca dados novos da API
+            const apiData = await fetchAllIssuesFromMantis({ filterId: 1477 });
+            if (apiData && apiData.length > 0) {
+                await saveChamados(apiData);
+                demandasData = apiData;
+                
+                // Atualiza timestamp
+                localStorage.setItem('cacheTimestamp', Date.now().toString());
+                lastDataTimestamp = timestampCheck.timestamp;
+                
+                // Atualiza UI
+                selectedProjetoFilter = new Set(demandasData.map(c => c.projeto).filter(Boolean));
+                selectedSquadFilter = new Set();
+                if (hiddenColumns.size === 0) hiddenColumns = new Set(DEFAULT_HIDDEN_COLUMNS);
+                updateFilterOptions();
+                filterData();
+                
+                // Atualiza timestamp na tela
+                const now = new Date();
+                const formattedDate = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+                const el = document.getElementById('ultimaAtualizacao');
+                if (el) el.textContent = `Última atualização: ${formattedDate}`;
+                localStorage.setItem('ultimaAtualizacao', formattedDate);
+                
+                // Notificação de atualização automática
+                if (POLLING_CONFIG.NOTIFICATION_ON_UPDATE) {
+                    mostrarNotificacao('Dados atualizados automaticamente', 'sucesso');
+                }
+                
+                console.debug('[Polling] Dados atualizados com sucesso');
+            }
+        } else {
+            console.debug('[Polling] Nenhuma mudança detectada');
+        }
+    } catch (error) {
+        console.warn('[Polling] Erro na verificação automática:', error);
+    }
+}
+
+function startAutomaticPolling() {
+    // Para timer existente se houver
+    if (pollingTimer) {
+        clearInterval(pollingTimer);
+    }
+    
+    console.debug('[Polling] Iniciando polling automático a cada', POLLING_CONFIG.POLLING_INTERVAL / 1000, 'segundos');
+    
+    pollingTimer = setInterval(() => {
+        performAutomaticDataCheck();
+    }, POLLING_CONFIG.POLLING_INTERVAL);
+}
+
+function stopAutomaticPolling() {
+    if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+        console.debug('[Polling] Polling automático interrompido');
+    }
+}
+
 // Inicialização do dashboard
 document.addEventListener('DOMContentLoaded', async function() {
     // Configurar tema e navegação SEMPRE (usados em todas as páginas)
@@ -657,6 +815,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         try {
             await loadInitialData(); // Carrega os dados do IndexedDB
+            
+            // Inicia polling automático após carregamento inicial
+            startAutomaticPolling();
 
             setupFileInput();
             setupSearch();
@@ -703,6 +864,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }, 60000);
     }
+});
+
+// Limpeza do polling quando a página é fechada
+window.addEventListener('beforeunload', () => {
+    stopAutomaticPolling();
 });
 
 // Fallback: event delegation para garantir captura do clique no botão de atualização
