@@ -3592,6 +3592,21 @@ function createMassEditModal(ticketNumbers) {
                         patchOk = false;
                     }
                 }
+
+                // Atualiza o handler separadamente
+                if (patchOk && patchPayload.handler) {
+                    try {
+                        await mantisRequest(`issues/${numero}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({
+                                handler: patchPayload.handler
+                            })
+                        });
+                    } catch (error) {
+                        console.error('Erro ao atualizar handler:', error);
+                        patchOk = false;
+                    }
+                }
             }
 
             // Prepara comentário
