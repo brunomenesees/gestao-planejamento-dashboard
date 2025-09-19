@@ -3794,10 +3794,15 @@ function createMassEditModal(ticketNumbers) {
             let postOk = true;
             if (lines.length > 0) {
                 try {
+                    // Adicionar identificação do usuário logado
+                    const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    const username = user.username || 'usuario.desconhecido';
+                    const commentWithUser = `[Por: ${username}]\n\n${lines.join('\n')}`;
+                    
                     const response = await mantisRequest(`issues/${numero}/notes`, { 
                         method: 'POST', 
                         body: JSON.stringify({ 
-                            text: lines.join('\n'), 
+                            text: commentWithUser, 
                             view_state: { name: 'public' } 
                         })
                     });
@@ -3806,9 +3811,9 @@ function createMassEditModal(ticketNumbers) {
                     const idx = demandasData.findIndex(d => d.numero === numero);
                     if (idx !== -1) {
                         demandasData[idx].ultimo_comentario = {
-                            texto: lines.join('\n'),
+                            texto: commentWithUser,
                             data: new Date().toISOString(),
-                            autor: window.AppConfig.USER_NAME || 'Sistema'
+                            autor: username
                         };
                     }
                 } catch (e) { 
