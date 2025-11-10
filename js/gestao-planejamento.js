@@ -348,14 +348,14 @@ const SQUAD_OPTIONS = [
 
 // TODO: Substituir com a lista real de analistas
 const ANALISTA_RESPONSAVEL_OPTIONS = [
-    " ","bruno.tavares", "daniel.paraizo", "elaine.santos", "gabriel.matos", "gustavo.magalhaes", 
+    " ","bruno.tavares", "daniel.paraizo", "elaine.santos", "gabriel.matos", "gustavo.magalhaes", "rafael.felicio", 
     "thiago.caldeira", "tiago.nogueira", "vinicius.vieira", "viviane.silva"
 ];
 
 // TODO: Substituir com a lista real de responsáveis
 const RESPONSAVEL_ATUAL_OPTIONS = [
         " ","Bruno Tavares", "Daniel Paraizo", "Elaine Santos", "Gabriel Matos", "Giovanni Mussolini", 
-        "Gustavo Magalhaes", "Rafael Montesso", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira", 
+        "Gustavo Magalhaes", "Rafael Felicio", "Rafael Montesso", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira", 
         "Vinicius Vieira", "Viviane Silva"
 ];
 
@@ -366,6 +366,7 @@ const RESPONSAVEL_TO_EQUIPE = {
     "Gabriel Matos": "ABAP",
     "Giovanni Mussolini": "Analytics",
     "Gustavo Magalhaes": "Requisitos",
+    "Rafael Felicio": "Analytics",
     "Rafael Montesso": "Analytics",
     "Sylvio Neto": "Analytics",
     "Thiago Caldeira": "Web",
