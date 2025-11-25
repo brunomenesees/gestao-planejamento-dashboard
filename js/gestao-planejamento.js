@@ -3006,6 +3006,52 @@ function createStatusDropdown(td, currentStatus, ticketNumber) {
     console.log('Dropdown element:', dropdown);
 }
 
+/**
+ * Converte data de qualquer formato para yyyy-mm-dd (formato aceito por input[type="date"])
+ * @param {string|number|null|undefined} data - Data em qualquer formato
+ * @returns {string} Data no formato yyyy-mm-dd ou string vazia
+ */
+function formatarDataParaInput(data) {
+    // Trata valores nulos/vazios
+    if (data === null || data === undefined || data === '') return '';
+    
+    const v = String(data).trim();
+    if (v === '') return '';
+    
+    // Se já está no formato yyyy-mm-dd, retorna direto
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        return v;
+    }
+    
+    // Se está no formato dd/mm/yyyy, converte
+    const matchBR = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (matchBR) {
+        return `${matchBR[3]}-${matchBR[2]}-${matchBR[1]}`;
+    }
+    
+    // Se é um timestamp Unix (10 dígitos), converte
+    if (/^\d{10}$/.test(v)) {
+        const d = new Date(parseInt(v, 10) * 1000);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    
+    // Tenta parsear como data genérica (ISO, etc)
+    const ts = Date.parse(v);
+    if (!Number.isNaN(ts)) {
+        const d = new Date(ts);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    
+    // Se não conseguiu converter, retorna vazio
+    return '';
+}
+
 function mostrarNotificacao(mensagem, tipo = 'info', timeoutMs = 3500) {
     // Toast container
     let container = document.getElementById('toast-container');
@@ -3320,21 +3366,21 @@ function createMassEditModal(ticketNumbers) {
             
             const setFieldValue = (selector, value, isSelect = false) => {
                 const el = modal.querySelector(selector);
-                if (!el || !value) return;
+                if (!el) return;
+                
+                // Para campos vazios/nulos
+                if (!value || (typeof value === 'string' && value.trim() === '')) {
+                    if (!isSelect) el.value = '';
+                    return;
+                }
 
                 if (isSelect) {
                     const opt = Array.from(el.options).find(o => o.value === value);
                     if (opt) opt.selected = true;
                 } else {
                     if (selector === '#massPrevisao') {
-                        // Normaliza datas para o formato yyyy-mm-dd
-                        const v = value.trim();
-                        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                            el.value = v;
-                        } else {
-                            const m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-                            if (m) el.value = `${m[3]}-${m[2]}-${m[1]}`;
-                        }
+                        // Usa a função auxiliar para converter a data
+                        el.value = formatarDataParaInput(value);
                     } else {
                         el.value = value;
                     }
@@ -5014,7 +5060,7 @@ function createUnifiedEditModal(demanda) {
                 <div class="unified-modal-field">
                     <label class="required">Previsão Etapa</label>
                     <input type="date" id="modal-previsao" required 
-                           value="${demanda.previsao_etapa || ''}" />
+                           value="${formatarDataParaInput(demanda.previsao_etapa)}" />
                 </div>
 
                 <div class="unified-modal-field">
