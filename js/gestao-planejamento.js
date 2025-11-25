@@ -5302,6 +5302,39 @@ function createUnifiedEditModal(demanda) {
         responsavel: demanda.resp_atual || ''
     };
 
+    // Handler de validação do botão Save (executa ANTES do handler principal)
+    document.getElementById('modal-save').addEventListener('click', async (e) => {
+        if (isSubmitting || !isDirty) {
+            e.stopImmediatePropagation();
+            return;
+        }
+
+        const status = document.getElementById('modal-status').value;
+        const previsao = document.getElementById('modal-previsao').value;
+
+        // Nova regra: se sair de FILA para status não-FILA, exigir previsão de etapa
+        const statusOriginalEraFila = isStatusFila(original.status);
+        const statusNovoEFila = isStatusFila(status);
+        
+        if (status !== original.status && statusOriginalEraFila && !statusNovoEFila && (!previsao || previsao.trim() === '')) {
+            mostrarNotificacao('Ao sair de um status de Fila, é obrigatório informar a Previsão de Etapa.', 'aviso');
+            document.getElementById('modal-previsao').focus();
+            e.stopImmediatePropagation();
+            return;
+        }
+
+        // Validação da previsão de etapa baseada no status (verifica se status destino exige previsão)
+        const validationError = validarPrevisaoEtapa(status, previsao, demanda.numero);
+        if (validationError) {
+            mostrarNotificacao(validationError, 'aviso');
+            document.getElementById('modal-previsao').focus();
+            e.stopImmediatePropagation();
+            return;
+        }
+
+        // Se passou nas validações, permite que o próximo handler execute
+    });
+
     // Handlers para botões de cancelar
     cancelBtn.addEventListener('click', () => {
         if (isDirty) {
@@ -5673,29 +5706,6 @@ function createUnifiedEditModal(demanda) {
             const newAnalista = analistaSelect.value;
             const newResponsavel = responsavelSelect.value;
             const newPrevisao = previsaoInput.value;
-
-            // Validações de previsão de etapa
-            // Nova regra: se sair de FILA para status não-FILA, exigir previsão de etapa
-            const statusOriginalEraFila = isStatusFila(original.status);
-            const statusNovoEFila = isStatusFila(newStatus);
-            
-            if (newStatus !== original.status && statusOriginalEraFila && !statusNovoEFila && (!newPrevisao || newPrevisao.trim() === '')) {
-                mostrarNotificacao('Ao sair de um status de Fila, é obrigatório informar a Previsão de Etapa.', 'aviso');
-                previsaoInput.focus();
-                isSubmitting = false;
-                saveBtn.disabled = false;
-                return;
-            }
-
-            // Validação da previsão de etapa baseada no status (verifica se status destino exige previsão)
-            const validationError = validarPrevisaoEtapa(newStatus, newPrevisao, demanda.numero);
-            if (validationError) {
-                mostrarNotificacao(validationError, 'aviso');
-                previsaoInput.focus();
-                isSubmitting = false;
-                saveBtn.disabled = false;
-                return;
-            }
 
             // Exibir progresso
             progressWrap.style.display = 'block';
