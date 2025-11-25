@@ -3331,10 +3331,17 @@ function createMassEditModal(ticketNumbers) {
     if (statusSelect) {
         statusSelect.addEventListener('change', (e) => {
             previsaoObrigatoriaAtivada = true;
-            updatePrevisaoRequired(e.target.value);
+            const novoStatus = e.target.value;
+            updatePrevisaoRequired(novoStatus);
+            
+            // Limpa automaticamente o campo de previsão ao selecionar status de FILA
+            if (isStatusFila(novoStatus) && previsaoInput) {
+                previsaoInput.value = '';
+                updateSummary();
+            }
             
             // Controlar visibilidade dos campos GMUD e Documentação
-            toggleGmudAndDocFields(e.target.value);
+            toggleGmudAndDocFields(novoStatus);
                         // Se for edição unitária, atualizar badge ao mudar status
                 if (ticketNumbers.length === 1) {
                     if (e.target.value === 'Aguardando Deploy') {
@@ -5155,12 +5162,16 @@ function createUnifiedEditModal(demanda) {
         if (!previsaoLabel || !previsaoInput || !statusEl) return;
         const status = statusEl.value;
         previsaoObrigatoriaAtivada = true;
+        
         if (!isStatusFila(status)) {
             previsaoLabel.classList.add('required');
             previsaoInput.setAttribute('required', 'required');
         } else {
             previsaoLabel.classList.remove('required');
             previsaoInput.removeAttribute('required');
+            // Limpa automaticamente o campo de previsão ao selecionar status de FILA
+            previsaoInput.value = '';
+            updateDirty();
         }
     };
 
