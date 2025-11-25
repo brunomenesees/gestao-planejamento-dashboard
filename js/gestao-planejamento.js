@@ -3747,8 +3747,8 @@ function createMassEditModal(ticketNumbers) {
                         addCustomField(true, 72, previsaoTs);
                     }
                 } else {
-                    // Se o campo foi marcado para aplicar mas está vazio, limpa a previsão
-                    addCustomField(true, 72, '');
+                    // Se o campo foi marcado para aplicar mas está vazio, limpa a previsão com null
+                    addCustomField(true, 72, null);
                 }
             }
 
