@@ -3740,9 +3740,11 @@ function createMassEditModal(ticketNumbers) {
                 values.gmud
             );
 
-            if (apply.previsao) {
+            // Forçar envio ao mudar para FILA (mesmo se já vazio)
+            const statusMudouParaFila = apply.status && isStatusFila(values.status);
+            if (apply.previsao || statusMudouParaFila) {
                 if (values.previsao) {
-                    // Se houver valor, envia a data convertida
+                    // Se houver valor, envia a data convertida (mesmo para FILA)
                     let previsaoTs = null;
                     if (/^\d{4}-\d{2}-\d{2}$/.test(values.previsao)) {
                         previsaoTs = Math.floor(Date.parse(values.previsao + 'T00:00:00') / 1000);
@@ -3754,7 +3756,7 @@ function createMassEditModal(ticketNumbers) {
                         addCustomField(true, 72, previsaoTs);
                     }
                 } else {
-                    // Se o campo foi marcado para aplicar mas está vazio, limpa a previsão com null
+                    // Se vazio, limpa a previsão com null
                     addCustomField(true, 72, null);
                 }
             }
@@ -5732,9 +5734,10 @@ function createUnifiedEditModal(demanda) {
             if (gmudValue !== original.gmud) {
                 custom_fields.push({ field: { id: 71 }, value: gmudValue });
             }
-            if (newPrevisao !== original.previsao) {
+            // Forçar envio ao mudar para FILA (mesmo se já vazio), ou se a previsão mudou
+            if (newPrevisao !== original.previsao || (newStatus !== original.status && isStatusFila(newStatus))) {
                 if (!newPrevisao || newPrevisao === '') {
-                    // Se vazio, envia null para zerar
+                    // Se campo vazio, envia null para limpar
                     custom_fields.push({ field: { id: 72 }, value: null });
                 } else if (/^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
                     const previsaoTs = Math.floor(Date.parse(newPrevisao + 'T00:00:00') / 1000);
