@@ -302,13 +302,20 @@ function isStatusFila(status) {
 
 // Função para validar previsão de etapa baseado no status
 function validarPrevisaoEtapa(status, previsao, ticket = null) {
-    if (!isStatusFila(status) && (!previsao || previsao.trim() === '')) {
+    // Se o status de destino for de FILA, não exige previsão
+    if (isStatusFila(status)) {
+        return null; // Status de fila não exige previsão
+    }
+    
+    // Para status não-FILA, a previsão é obrigatória
+    if (!previsao || previsao.trim() === '') {
         const msg = 'A Previsão de Etapa é obrigatória para todos os status exceto os de Fila';
         if (ticket) {
             return `Ticket #${ticket}: ${msg}`;
         }
         return msg;
     }
+    
     return null; // null significa que passou na validação
 }
 
@@ -3726,16 +3733,22 @@ function createMassEditModal(ticketNumbers) {
                 values.gmud
             );
 
-            if (apply.previsao && values.previsao) {
-                let previsaoTs = null;
-                if (/^\d{4}-\d{2}-\d{2}$/.test(values.previsao)) {
-                    previsaoTs = Math.floor(Date.parse(values.previsao + 'T00:00:00') / 1000);
+            if (apply.previsao) {
+                if (values.previsao) {
+                    // Se houver valor, envia a data convertida
+                    let previsaoTs = null;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(values.previsao)) {
+                        previsaoTs = Math.floor(Date.parse(values.previsao + 'T00:00:00') / 1000);
+                    } else {
+                        const parsed = Date.parse(values.previsao);
+                        if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
+                    }
+                    if (previsaoTs !== null) {
+                        addCustomField(true, 72, previsaoTs);
+                    }
                 } else {
-                    const parsed = Date.parse(values.previsao);
-                    if (!Number.isNaN(parsed)) previsaoTs = Math.floor(parsed / 1000);
-                }
-                if (previsaoTs !== null) {
-                    addCustomField(true, 72, previsaoTs);
+                    // Se o campo foi marcado para aplicar mas está vazio, limpa a previsão
+                    addCustomField(true, 72, '');
                 }
             }
 
@@ -5310,14 +5323,17 @@ function createUnifiedEditModal(demanda) {
         const previsao = document.getElementById('modal-previsao').value;
         const gmud = document.getElementById('modal-gmud').value;
 
-        // Nova regra: se o status foi alterado, exigir nova previsão de etapa
-        if (status !== original.status && (!previsao || previsao.trim() === '')) {
-            mostrarNotificacao('Preencha a previsão da nova etapa para o novo status.', 'aviso');
+        // Nova regra: se sair de FILA para status não-FILA, exigir previsão de etapa
+        const statusOriginalEraFila = isStatusFila(original.status);
+        const statusNovoEFila = isStatusFila(status);
+        
+        if (status !== original.status && statusOriginalEraFila && !statusNovoEFila && (!previsao || previsao.trim() === '')) {
+            mostrarNotificacao('Ao sair de um status de Fila, é obrigatório informar a Previsão de Etapa.', 'aviso');
             document.getElementById('modal-previsao').focus();
             return;
         }
 
-        // Validação da previsão de etapa baseada no status (mantém regra antiga para outros casos)
+        // Validação da previsão de etapa baseada no status (verifica se status destino exige previsão)
         const validationError = validarPrevisaoEtapa(status, previsao, demanda.numero);
         if (validationError) {
             mostrarNotificacao(validationError, 'aviso');
