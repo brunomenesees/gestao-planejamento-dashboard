@@ -5302,142 +5302,14 @@ function createUnifiedEditModal(demanda) {
         responsavel: demanda.resp_atual || ''
     };
 
-    // Handlers para botões
-    document.getElementById('modal-cancel').addEventListener('click', () => {
+    // Handlers para botões de cancelar
+    cancelBtn.addEventListener('click', () => {
         if (isDirty) {
             if (confirm('Existem alterações não salvas. Deseja realmente cancelar?')) {
                 overlay.remove();
             }
         } else {
             overlay.remove();
-        }
-    });
-
-    document.getElementById('modal-save').addEventListener('click', async () => {
-        if (isSubmitting || !isDirty) return;
-
-        const status = document.getElementById('modal-status').value;
-        const analista = document.getElementById('modal-analista').value;
-        const responsavel = document.getElementById('modal-responsavel').value;
-        const equipe = document.getElementById('modal-equipe').value;
-        const previsao = document.getElementById('modal-previsao').value;
-        const gmud = document.getElementById('modal-gmud').value;
-
-        // Nova regra: se sair de FILA para status não-FILA, exigir previsão de etapa
-        const statusOriginalEraFila = isStatusFila(original.status);
-        const statusNovoEFila = isStatusFila(status);
-        
-        if (status !== original.status && statusOriginalEraFila && !statusNovoEFila && (!previsao || previsao.trim() === '')) {
-            mostrarNotificacao('Ao sair de um status de Fila, é obrigatório informar a Previsão de Etapa.', 'aviso');
-            document.getElementById('modal-previsao').focus();
-            return;
-        }
-
-        // Validação da previsão de etapa baseada no status (verifica se status destino exige previsão)
-        const validationError = validarPrevisaoEtapa(status, previsao, demanda.numero);
-        if (validationError) {
-            mostrarNotificacao(validationError, 'aviso');
-            document.getElementById('modal-previsao').focus();
-            return;
-        }
-        const observacao = document.getElementById('modal-observacao').value;
-        const marcarResolvido = document.getElementById('modal-resolvido').checked;
-
-        // Gera o comentário ANTES de qualquer atualização
-        const novosDados = {
-            status,
-            gmud,
-            previsao
-        };
-        const comentario = gerarComentarioOtimista(novosDados, observacao);
-        console.log('Novo comentário gerado:', comentario);
-
-        isSubmitting = true;
-        progressWrap.style.display = 'block';
-        progressBar.style.width = '0%';
-
-        try {
-            // Atualiza a barra de progresso
-            progressBar.style.width = '30%';
-
-            // Salva as alterações
-            const success = await updateTicketField(demanda.numero, {
-                status,
-                atribuicao: analista,
-                resp_atual: responsavel,
-                squad: equipe,
-                previsao_etapa: previsao,
-                numero_gmud: gmud,
-                observacao,
-                resolvido: marcarResolvido
-            });
-
-            if (success) {
-                // Usamos o comentário que já foi gerado antes do save
-                console.log('=== DIAGNÓSTICO - ATUALIZANDO DEMANDA ===');
-                console.log('Comentário a ser usado:', comentario);
-                
-                // Atualiza o último comentário otimisticamente
-                const now = new Date().toISOString();
-                const novoUltimoComentario = {
-                    texto: comentario,
-                    autor: window.authService.getUser()?.name || 'Usuário',
-                    data: now,
-                    view_state: 'public'
-                };
-
-                // Atualiza o objeto demanda diretamente
-                Object.assign(demanda, {
-                    ultimo_comentario: novoUltimoComentario,
-                    status: status,
-                    numero_gmud: gmud,
-                    previsao_etapa: previsao
-                });
-
-                // Atualiza também no array global
-                const index = demandasData.findIndex(d => d.numero === demanda.numero);
-                if (index !== -1) {
-                    demandasData[index] = demanda;
-                }
-
-                // Atualiza a visualização da tabela
-                filterData();
-
-                // Atualiza a visualização do último comentário
-                const ultimoComentarioSection = overlay.querySelector('.ultimo-comentario-section');
-                if (ultimoComentarioSection) {
-                    // Atualiza o objeto demanda com o novo comentário
-                    demanda.ultimo_comentario = novoUltimoComentario;
-                    // Renderiza usando a função específica
-                    renderizarUltimoComentario(demanda, ultimoComentarioSection);
-                }
-
-                // Atualiza também o timestamp de última atualização
-                const lastUpdateEl = overlay.querySelector('.last-update');
-                if (lastUpdateEl) {
-                    lastUpdateEl.textContent = `Última atualização: ${formatarDataAmigavel(now)}`;
-                }
-
-                console.log('=== DIAGNÓSTICO - APÓS ATUALIZAÇÃO ===');
-                console.log('Estado atualizado da demanda:', JSON.stringify({
-                    numero: demanda.numero,
-                    status: demanda.status,
-                    ultimo_comentario: demanda.ultimo_comentario,
-                    data_atualizacao: demanda.data_atualizacao
-                }, null, 2));
-                
-                progressBar.style.width = '100%';
-                mostrarNotificacao('Alterações salvas com sucesso!', 'success');
-                overlay.remove();
-            } else {
-                throw new Error('Falha ao salvar alterações');
-            }
-        } catch (error) {
-            console.error('Erro ao salvar alterações:', error);
-            mostrarNotificacao('Erro ao salvar alterações. Tente novamente.', 'error');
-            progressBar.style.backgroundColor = '#ef4444';
-        } finally {
-            isSubmitting = false;
         }
     });
 
@@ -5801,6 +5673,29 @@ function createUnifiedEditModal(demanda) {
             const newAnalista = analistaSelect.value;
             const newResponsavel = responsavelSelect.value;
             const newPrevisao = previsaoInput.value;
+
+            // Validações de previsão de etapa
+            // Nova regra: se sair de FILA para status não-FILA, exigir previsão de etapa
+            const statusOriginalEraFila = isStatusFila(original.status);
+            const statusNovoEFila = isStatusFila(newStatus);
+            
+            if (newStatus !== original.status && statusOriginalEraFila && !statusNovoEFila && (!newPrevisao || newPrevisao.trim() === '')) {
+                mostrarNotificacao('Ao sair de um status de Fila, é obrigatório informar a Previsão de Etapa.', 'aviso');
+                previsaoInput.focus();
+                isSubmitting = false;
+                saveBtn.disabled = false;
+                return;
+            }
+
+            // Validação da previsão de etapa baseada no status (verifica se status destino exige previsão)
+            const validationError = validarPrevisaoEtapa(newStatus, newPrevisao, demanda.numero);
+            if (validationError) {
+                mostrarNotificacao(validationError, 'aviso');
+                previsaoInput.focus();
+                isSubmitting = false;
+                saveBtn.disabled = false;
+                return;
+            }
 
             // Exibir progresso
             progressWrap.style.display = 'block';
