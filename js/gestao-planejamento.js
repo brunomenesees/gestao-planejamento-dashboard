@@ -3092,7 +3092,7 @@ function createMassEditModal(ticketNumbers) {
 
     modal.innerHTML = `
         <div class="unified-modal-header">
-            <h3 class="unified-modal-title">${ticketNumbers.length === 1 ? `Editando o ticket #${ticketNumbers[0]}` : 'Edição em Massa'}</h3>
+            <h3 class="unified-modal-title">${ticketNumbers.length === 1 ? `Editando o ticket #${ticketNumbers[0]}${demanda?.resumo ? ` - ${decodificarTexto(demanda.resumo)}` : ''}` : 'Edição em Massa'}</h3>
             <p class="unified-modal-subtitle">Editando ${ticketNumbers.length} ${ticketNumbers.length === 1 ? 'chamado selecionado' : 'chamados selecionados'}</p>
             <div class="selected-tickets">
                 ${ticketNumbers.map(num => `<span class="ticket-tag">#${num}</span>`).join('')}
@@ -5009,7 +5009,7 @@ function createUnifiedEditModal(demanda) {
 
     modal.innerHTML = `
         <div class="unified-modal-header">
-            <h3 class="unified-modal-title">Editar Mantis #${demanda.numero}</h3>
+            <h3 class="unified-modal-title">Editar Mantis #${demanda.numero}${demanda?.resumo ? ` - ${decodificarTexto(demanda.resumo)}` : ''}</h3>
             <div class="last-update">
                 Última atualização: ${formatarDataAmigavel(demanda.data_atualizacao) || 'Não disponível'}
             </div>
