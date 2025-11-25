@@ -328,6 +328,7 @@ const STATUS_OPTIONS = [
     'Code Review',
     'Desenvolvimento',
     'Despriorizado',
+    'Documentação Wiki',
     'Especificação',
     'Fila ABAP',
     'Fila Analytics',
@@ -355,7 +356,7 @@ const ANALISTA_RESPONSAVEL_OPTIONS = [
 // TODO: Substituir com a lista real de responsáveis
 const RESPONSAVEL_ATUAL_OPTIONS = [
         " ","Bruno Tavares", "Daniel Paraizo", "Elaine Santos", "Gabriel Matos", "Giovanni Mussolini", 
-        "Gustavo Magalhaes", "Rafael Felicio", "Rafael Montesso", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira", 
+        "Gustavo Magalhaes", "Lucas Velloso", "Rafael Felicio", "Rafael Montesso", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira", 
         "Vinicius Vieira", "Viviane Silva"
 ];
 
@@ -366,6 +367,7 @@ const RESPONSAVEL_TO_EQUIPE = {
     "Gabriel Matos": "ABAP",
     "Giovanni Mussolini": "Analytics",
     "Gustavo Magalhaes": "Requisitos",
+    "Lucas Velloso": "Web",
     "Rafael Felicio": "Analytics",
     "Rafael Montesso": "Analytics",
     "Sylvio Neto": "Analytics",
