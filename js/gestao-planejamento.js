@@ -340,6 +340,7 @@ const STATUS_OPTIONS = [
     'Fila ABAP',
     'Fila Analytics',
     'Fila Especificação',
+    'Fila Testes',
     'Fila WEB',
     'Pendência',
     'Pendência Cliente',
