@@ -3760,8 +3760,8 @@ function createMassEditModal(ticketNumbers) {
                         addCustomField(true, 72, previsaoTs);
                     }
                 } else {
-                    // Se vazio, limpa a previsão com null
-                    addCustomField(true, 72, null);
+                    // Se vazio, limpa a previsão com string vazia
+                    addCustomField(true, 72, "");
                 }
             }
 
@@ -5454,8 +5454,8 @@ function createUnifiedEditModal(demanda) {
         } else if (field === 'previsao') {
             let ts = null;
             if (!nextValue || nextValue === '') {
-                // Se vazio, envia null para zerar
-                cfs.push({ field: { id: 72 }, value: null });
+                // Se vazio, envia string vazia para zerar
+                cfs.push({ field: { id: 72 }, value: "" });
             } else if (/^\d{4}-\d{2}-\d{2}$/.test(nextValue)) {
                 ts = Math.floor(Date.parse(nextValue + 'T00:00:00') / 1000);
                 cfs.push({ field: { id: 72 }, value: ts });
@@ -5741,8 +5741,8 @@ function createUnifiedEditModal(demanda) {
             // Forçar envio ao mudar para FILA (mesmo se já vazio), ou se a previsão mudou
             if (newPrevisao !== original.previsao || (newStatus !== original.status && isStatusFila(newStatus))) {
                 if (!newPrevisao || newPrevisao === '') {
-                    // Se campo vazio, envia null para limpar
-                    custom_fields.push({ field: { id: 72 }, value: null });
+                    // Se campo vazio, envia string vazia para limpar
+                    custom_fields.push({ field: { id: 72 }, value: "" });
                 } else if (/^\d{4}-\d{2}-\d{2}$/.test(newPrevisao)) {
                     const previsaoTs = Math.floor(Date.parse(newPrevisao + 'T00:00:00') / 1000);
                     custom_fields.push({ field: { id: 72 }, value: previsaoTs });
