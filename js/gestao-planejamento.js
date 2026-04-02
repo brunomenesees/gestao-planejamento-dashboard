@@ -384,6 +384,7 @@ const RESPONSAVEL_TO_EQUIPE = {
     "Sylvio Neto": "Analytics",
     "Thiago Caldeira": "Web",
     "Tiago Nogueira": "Web",
+    "Victor Maciel": "Web",
     "Vinicius Vieira": "Web",
     "Viviane Silva": "Requisitos"
     // Daniel Paraizo não define equipe
