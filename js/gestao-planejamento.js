@@ -2441,7 +2441,7 @@ function formatarDataAmigavel(dataStr) {
 function formatarDataCurta(dataStr) {
     if (!dataStr) return '';
     const data = parseDateBR(dataStr);
-    if (!data) return '';
+    if (!data) return String(dataStr);
     return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
