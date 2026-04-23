@@ -100,13 +100,6 @@
                     <button id="themeToggle" class="theme-toggle">
                         <i class="fas fa-moon"></i>
                     </button>
-                    <a href="MODELO_IMPORTACAO.csv" download class="btn-primary" style="margin-right: 8px; display: flex; align-items: center;">
-                        <i class="fas fa-download"></i> Baixar Modelo CSV
-                    </a>
-                    <input type="file" id="fileInput" accept=".csv" style="display: none;">
-                    <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
-                        <i class="fas fa-upload"></i> Importar CSV
-                    </button>
                     <a href="logs-dashboard.html" class="btn-secondary" style="margin-left: 8px; display: flex; align-items: center; text-decoration: none;">
                         <i class="fas fa-clipboard-list"></i> Logs
                     </a>
@@ -245,7 +238,7 @@
                                 <th data-sort="numero" class="col-center">Ticket</th>
                                 <th data-sort="categoria" class="col-center">Categoria</th>
                                 <th data-sort="projeto" class="col-left">Cliente/Projeto</th>
-                                <th data-sort="resumo" class="col-left">Descrição</th>
+                                <th data-sort="resumo" class="col-left col-resizable">Descrição<span class="col-resize-handle" aria-hidden="true"></span></th>
                                 <th data-sort="squad" class="col-center">Equipe</th>
                                 <th data-sort="atribuicao" class="col-center">Analista Responsável</th>
                                 <th data-sort="resp_atual" class="col-center">Responsável Atual</th>
@@ -288,36 +281,6 @@
                     </div>
                 </div>
 
-                <!-- Gráficos -->
-                <div class="content-wrapper">
-                    <div class="chart-container">
-                        <canvas id="chamadosPorMes"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chamadosPorStatus"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chamadosPorProjeto"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chamadosPorSquad"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chamadosPorPrioridade"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chamadosPorAtribuicao"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="horasPorPrioridade"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chamadosPorHora"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="horasPorAtribuicao"></canvas>
-                    </div>
-                </div>
             </section>
         </main>
     </div>
@@ -331,20 +294,178 @@
     <script src="js/gestao-planejamento.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+    /* Redimensionamento da coluna Descrição (arrastar a borda direita) */
+    (function initResumoResizer() {
+        const STORAGE_KEY = 'gestao-plnj:col-width-resumo';
+        const MIN_WIDTH = 160;
+        const MAX_WIDTH = 900;
+
+        function applyWidth(th, width) {
+            const w = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
+            th.style.width = w + 'px';
+            th.style.minWidth = w + 'px';
+            th.style.maxWidth = w + 'px';
+            return w;
+        }
+
+        function setup() {
+            const th = document.querySelector('#chamadosTable th.col-resizable');
+            if (!th) return;
+            const handle = th.querySelector('.col-resize-handle');
+            if (!handle) return;
+
+            const saved = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+            if (!isNaN(saved)) applyWidth(th, saved);
+
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const startX = e.pageX;
+                const startWidth = th.offsetWidth;
+                handle.classList.add('active');
+                document.body.classList.add('col-resizing');
+
+                function onMove(ev) {
+                    const delta = ev.pageX - startX;
+                    applyWidth(th, startWidth + delta);
+                }
+                function onUp() {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    handle.classList.remove('active');
+                    document.body.classList.remove('col-resizing');
+                    try { localStorage.setItem(STORAGE_KEY, String(th.offsetWidth)); } catch (_) {}
+                }
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+
+            /* Duplo clique no handle: reseta para largura padrão */
+            handle.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                th.style.width = '';
+                th.style.minWidth = '';
+                th.style.maxWidth = '';
+                try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setup);
+        } else {
+            setup();
+        }
+    })();
+    </script>
     <style>
     /* Ajuste para tabela mais compacta */
     .table-container table {
         font-size: 13px;
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
     }
-    
+
     .table-container th, .table-container td {
         padding: 4px 8px;
         max-width: 140px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    /* =====================================================
+       Colunas sticky (Opção B) + Descrição redimensionável
+       ===================================================== */
+
+    /* Scroll container precisa relative para sticky funcionar */
+    .table-container .table-scroll {
+        position: relative;
+    }
+
+    /* Sticky LEFT: checkbox (col 1) e Ticket (col 2) */
+    #chamadosTable thead th:nth-child(1),
+    #chamadosTable tbody td:nth-child(1) {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: var(--card-bg);
+        width: 40px;
+        min-width: 40px;
+        max-width: 40px;
+    }
+    #chamadosTable thead th:nth-child(2),
+    #chamadosTable tbody td:nth-child(2) {
+        position: sticky;
+        left: 40px;
+        z-index: 2;
+        background: var(--card-bg);
+        box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Sticky RIGHT: Ações (última coluna) */
+    #chamadosTable thead th:last-child,
+    #chamadosTable tbody td:last-child {
+        position: sticky;
+        right: 0;
+        z-index: 2;
+        background: var(--card-bg);
+        box-shadow: -2px 0 4px -2px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Header tem z-index maior para ficar sobre o tbody ao rolar */
+    #chamadosTable thead th:nth-child(1),
+    #chamadosTable thead th:nth-child(2),
+    #chamadosTable thead th:last-child {
+        z-index: 3;
+    }
+
+    /* Preservar zebra stripe nas sticky cells */
+    #chamadosTable tbody tr.odd td:nth-child(1),
+    #chamadosTable tbody tr.odd td:nth-child(2),
+    #chamadosTable tbody tr.odd td:last-child {
+        background: var(--table-row-odd);
+    }
+
+    /* Preservar hover nas sticky cells */
+    #chamadosTable tbody tr:hover td:nth-child(1),
+    #chamadosTable tbody tr:hover td:nth-child(2),
+    #chamadosTable tbody tr:hover td:last-child {
+        background: var(--table-row-hover);
+    }
+
+    /* Coluna Descrição redimensionável (arrastar borda direita) */
+    #chamadosTable th.col-resizable {
+        position: relative;
+        min-width: 180px;
+    }
+    .col-resize-handle {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 6px;
+        cursor: col-resize;
+        user-select: none;
+        background: transparent;
+        transition: background-color 150ms ease;
+    }
+    .col-resize-handle:hover,
+    .col-resize-handle.active {
+        background-color: var(--primary-color, #3498db);
+        opacity: 0.6;
+    }
+    /* Durante o drag, desabilitar seleção de texto global */
+    body.col-resizing {
+        cursor: col-resize !important;
+        user-select: none !important;
+    }
+    /* Célula da descrição quebra linha se largura permitir */
+    #chamadosTable td.td-resumo {
+        white-space: normal;
+        word-break: break-word;
     }
 
     /* Alinhamentos específicos para cada coluna */

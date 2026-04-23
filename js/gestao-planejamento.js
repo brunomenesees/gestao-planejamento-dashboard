@@ -2145,6 +2145,7 @@ function updateTable() {
                     td.appendChild(badge);
                 }
             } else if (index === 3) { // Descrição com tooltip
+                td.classList.add('td-resumo');
                 td.textContent = valor;
                 td.setAttribute('title', decodificarTexto(demanda.resumo) || '');
             } else if (index === 4) { // Equipe
