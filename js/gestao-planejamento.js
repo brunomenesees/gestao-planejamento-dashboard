@@ -268,10 +268,11 @@ function applyRecentStyleToRow(numero) {
 
 // Colunas que devem ser ocultas por padrão
 const DEFAULT_HIDDEN_COLUMNS = new Set([
-    'categoria',      // Categoria
-    'solicitante',    // Solicitante  
-    'estado',         // Situação
-    'tempoTotal'      // Tempo decorrido
+    'categoria',       // Categoria
+    'solicitante',     // Solicitante
+    'estado',          // Situação
+    'tempoTotal',      // Tempo decorrido
+    'data_prometida'   // Data Prometida
 ]);
 
 // Variáveis globais para ordenação
