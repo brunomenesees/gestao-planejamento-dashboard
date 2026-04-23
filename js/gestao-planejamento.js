@@ -2103,11 +2103,11 @@ function updateTable() {
             demanda.resp_atual || '',
             demanda.solicitante || '',
             demanda.estado || '',
-            formatarDataAmigavel(demanda.data_abertura) || '',
-            formatarDataAmigavel(demanda.data_prometida) || '',
-            formatarDataAmigavel(demanda.ultima_atualizacao) || '',
+            formatarDataCurta(demanda.data_abertura) || '',
+            formatarDataCurta(demanda.data_prometida) || '',
+            formatarDataCurta(demanda.ultima_atualizacao) || '',
             demanda.ordem_plnj || '',
-            demanda.previsao_etapa || '',
+            formatarDataCurta(demanda.previsao_etapa) || '',
             demanda.numero_gmud || '',
             demanda.status || '',
             formatarHorasMinutos(calcularTempoTotal(demanda)) || ''
@@ -2435,6 +2435,13 @@ function formatarDataAmigavel(dataStr) {
     const data = parseDateBR(dataStr);
     if (!data) return '';
     return data.toLocaleDateString('pt-BR');
+}
+
+function formatarDataCurta(dataStr) {
+    if (!dataStr) return '';
+    const data = parseDateBR(dataStr);
+    if (!data) return '';
+    return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 function formatarHorasMinutos(horas) {
