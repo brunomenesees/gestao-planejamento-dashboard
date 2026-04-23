@@ -1071,43 +1071,10 @@ function processAndNormalizeData(data) {
 
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
-    
+
     searchInput.addEventListener('input', () => {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        
-        let searchFilteredData;
-        if (searchTerm === '') {
-            searchFilteredData = [...demandasData];
-        } else {
-            searchFilteredData = demandasData.filter(demanda => {
-                if (demanda.numero && demanda.numero.toLowerCase().includes(searchTerm)) {
-                    return true;
-                }
-                
-                return Object.values(demanda).some(value => {
-                    if (typeof value === 'string') {
-                        return value.toLowerCase().includes(searchTerm);
-                    }
-                    return false;
-                });
-            });
-        }
-        
-        // Aplicar a regra especial para categoria "Suporte Informatica" também na busca
-        filteredData = searchFilteredData.filter(demanda => {
-            // Regra especial para categoria "Suporte Informatica"
-            // Só incluir se tiver um responsável atual definido (campo resp_atual)
-            // Caso não tenha um resp_atual definido e/ou esteja em branco/nulo, não deve ser contabilizado
-            if (demanda.categoria && demanda.categoria.toLowerCase().trim() === 'suporte informatica') {
-                if (!demanda.resp_atual || demanda.resp_atual.trim() === '') {
-                    return false; // Excluir chamados de Suporte Informatica sem responsável atual
-                }
-            }
-            return true;
-        });
-        
         currentPage = 1;
-        updateDashboard();
+        filterData();
     });
 }
 
