@@ -85,7 +85,7 @@
                 <div class="top-bar-content" style="display: flex; align-items: center; justify-content: space-between;">
                     <h1 style="margin: 0; font-size: 1.5rem; text-align: left; flex: 1;">Gestão de Planejamento - Xcelis</h1>
                     <div class="search-container" style="flex: 2; display: flex;">
-                        <input type="search" id="searchInput" name="busca_demandas" placeholder="Buscar demandas..." style="width: 350px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="search" data-lpignore="true" data-form-type="other">
+                        <input type="search" id="searchInput" name="busca_demandas" placeholder="Buscar demandas..." style="width: 350px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="search" data-lpignore="true" data-form-type="other" readonly>
                         <i class="fas fa-search"></i>
                     </div>
                 </div>
@@ -295,16 +295,47 @@
 
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script>
-    /* Garante que a barra de busca nunca venha pré-preenchida pelo autofill do browser */
+    /* Garante que a barra de busca nunca venha pré-preenchida pelo autofill do browser.
+       Why: Chrome ignora autocomplete="off" para campos que ele associa ao username salvo
+       no login.html, e aplica o autofill depois de DOMContentLoaded/pageshow. */
     (function clearSearchOnLoad() {
+        function el() { return document.getElementById('searchInput'); }
         function clear() {
-            const el = document.getElementById('searchInput');
-            if (el && el.value) el.value = '';
+            const e = el();
+            if (e && e.value) e.value = '';
+        }
+        function unlockOnInteract() {
+            const e = el();
+            if (!e) return;
+            const release = () => {
+                if (e.hasAttribute('readonly')) {
+                    clear();
+                    e.removeAttribute('readonly');
+                }
+            };
+            ['focus', 'mousedown', 'touchstart', 'pointerdown', 'keydown'].forEach(evt => {
+                e.addEventListener(evt, release, { once: false });
+            });
+        }
+        function watchAutofillAnimation() {
+            const e = el();
+            if (!e) return;
+            e.addEventListener('animationstart', (ev) => {
+                if (ev.animationName === 'onAutoFillStart' && e.value) e.value = '';
+            });
+        }
+        function run() {
+            clear();
+            unlockOnInteract();
+            watchAutofillAnimation();
+            setTimeout(clear, 0);
+            setTimeout(clear, 100);
+            setTimeout(clear, 500);
         }
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', clear);
+            document.addEventListener('DOMContentLoaded', run);
         } else {
-            clear();
+            run();
         }
         window.addEventListener('pageshow', clear);
     })();

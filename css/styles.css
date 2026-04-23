@@ -458,7 +458,13 @@ body {
     color: var(--text-color);
     box-sizing: border-box;
     transition: background 0.2s, color 0.2s;
+    cursor: text;
 }
+
+@keyframes onAutoFillStart { from {} to {} }
+@keyframes onAutoFillCancel { from {} to {} }
+#searchInput:-webkit-autofill { animation-name: onAutoFillStart; }
+#searchInput:not(:-webkit-autofill) { animation-name: onAutoFillCancel; }
 
 .search-container i {
     position: absolute;
