@@ -834,14 +834,32 @@
 .loading-spinner {
     width: 22px;
     height: 22px;
-    border: 3px solid rgba(52, 152, 219, 0.25);
-    border-top-color: #3498db;
+    border: 3px solid rgba(66, 66, 66, 0.25);
+    border-top-color: var(--loading-outer, #424242);
     border-radius: 50%;
     animation: gp-spin 0.9s linear infinite;
+    position: relative;
+}
+
+.loading-spinner::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(1, 35, 99, 0.3);
+    border-top-color: var(--loading-inner, #012363);
+    border-radius: 50%;
+    animation: gp-spin-reverse 0.7s linear infinite;
 }
 
 @keyframes gp-spin {
     to { transform: rotate(360deg); }
+}
+
+@keyframes gp-spin-reverse {
+    to { transform: rotate(-360deg); }
 }
 
 /* ===== Data Table Enhancements (zebra, hover, sticky header) ===== */

@@ -3,92 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Login - Portal Xcelis</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        body.login-page {
+            margin: 0;
             min-height: 100vh;
-            background: var(--background-color);
+            background-image: url('img/login/background.jpeg');
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-color: #041A24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
         }
         .login-card {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+            padding: 32px 28px;
+            border-radius: 4px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
             width: 100%;
             max-width: 400px;
+            position: relative;
+            z-index: 1;
+        }
+        .login-brand {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .login-brand img {
+            max-width: 220px;
+            height: auto;
+            display: inline-block;
         }
         .login-form {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 14px;
         }
-        .form-group {
+        .login-form .form-group {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 4px;
         }
-        .form-group input {
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 1rem;
+        .login-form label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #555;
+            text-transform: none;
+        }
+        .login-form input {
+            padding: 10px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 2px;
+            font-size: 0.95rem;
+            background: #ffffff;
+            color: #1A1F2B;
+            transition: border-color 200ms ease, box-shadow 200ms ease;
+        }
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--primary-color, #0f6ecd);
+            box-shadow: 0 0 0 2px rgba(15, 110, 205, 0.12);
         }
         .btn-login {
-            background: var(--primary-color);
-            color: white;
-            padding: 0.75rem;
+            background: var(--login-btn-bg, #041A24);
+            color: #ffffff;
+            padding: 11px 14px;
             border: none;
-            border-radius: 4px;
-            font-size: 1rem;
+            border-radius: 2px;
+            font-size: 0.95rem;
+            font-weight: 500;
             cursor: pointer;
+            margin-top: 6px;
+            transition: background-color 200ms ease;
+            letter-spacing: 0.3px;
         }
         .btn-login:hover {
-            background: var(--btn-bg-hover);
+            background: var(--login-btn-bg-hover, #0C506D);
+        }
+        .login-error {
+            color: #f44336;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            text-align: center;
+            display: none;
+        }
+        .login-footer {
+            position: fixed;
+            bottom: 16px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            z-index: 1;
         }
     </style>
 </head>
-<body>
-    <div class="login-container">
-        <div class="login-card">
-            <h2>Login</h2>
-            <form class="login-form" id="loginForm">
-                <div class="form-group">
-                    <label for="username">Usuário:</label>
-                    <input type="text" id="username" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Senha:</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <button type="submit" class="btn-login">Entrar</button>
-            </form>
-            <div id="errorMessage" style="color: red; margin-top: 1rem; display: none;"></div>
+<body class="login-page">
+    <div class="login-card">
+        <div class="login-brand">
+            <img src="img/logo-xcelis-horizontal.png" alt="Xcelis Solutions">
         </div>
+        <form class="login-form" id="loginForm" autocomplete="on">
+            <div class="form-group">
+                <label for="username">E-mail</label>
+                <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn-login">Entrar</button>
+            <div id="errorMessage" class="login-error"></div>
+        </form>
+    </div>
+    <div class="login-footer">
+        <span>&copy; <span id="loginYear"></span> Portal Xcelis</span>
     </div>
 
     <script src="js/auth.js"></script>
     <script>
+        document.getElementById('loginYear').textContent = new Date().getFullYear();
+
         console.log('=== LOGIN PAGE LOADED ===');
-        
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             console.log('=== FORM SUBMITTED ===');
-            
+
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
-            
+
             console.log('Form data:', { username, password: password ? '***' : 'undefined' });
-            
+
             try {
                 console.log('Calling authService.login...');
                 const success = await window.authService.login(username, password);
                 console.log('Login result:', success);
-                
+
                 if (success) {
                     console.log('Login successful, redirecting...');
                     window.location.href = '/gestao-planejamento.html';

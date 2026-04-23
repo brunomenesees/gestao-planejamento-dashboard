@@ -1,22 +1,37 @@
 :root {
-    --primary-color: #2563EB; /* Azul vibrante para destaques */
-    --secondary-color: #8B92A5; /* Cor dos textos secundários */
-    --background-color: #F5F6FA; /* Fundo principal */
-    --sidebar-bg: #1A1F2B; /* Fundo do menu lateral */
-    --text-color: #1A1F2B; /* Cor principal dos textos */
-    --border-color: #E5E7EB; /* Cor das bordas */
-    --success-color: #10B981; /* Verde para status positivos */
-    --warning-color: #F59E0B; /* Amarelo para alertas */
-    --danger-color: #EF4444; /* Vermelho para erros */
-    --sidebar-width: 250px;
+    /* Identidade visual Portal Xcelis */
+    --primary-color: #0f6ecd;           /* Azul link Xcelis */
+    --primary-color-hover: #0C506D;     /* Azul navy hover botões */
+    --accent-blue: #39f;                /* Azul de realce do menu (borda esquerda) */
+    --secondary-color: #8B92A5;
+    --background-color: #f7f7f7;        /* Fundo principal (Xcelis) */
+    --header-bg: #212121;               /* Topbar preto grafite (Xcelis) */
+    --header-text: #ffffff;
+    --sidebar-bg: #424242;              /* Sidebar cinza escuro (Xcelis) */
+    --sidebar-text: #dddddd;
+    --sidebar-text-active: #ffffff;
+    --sidebar-item-hover: rgba(0, 0, 0, 0.1);
+    --sidebar-bar-bottom-bg: rgb(60, 60, 60);
+    --text-color: #1A1F2B;
+    --border-color: #e5e5e5;
+    --success-color: #10B981;
+    --warning-color: #ff9800;           /* Laranja Xcelis */
+    --danger-color: #f44336;            /* Vermelho Xcelis */
+    --marked-bg: #f57f17;               /* Destaque marcação */
+    --sidebar-width: 260px;             /* Padrão Xcelis */
     --sidebar-collapsed-width: 70px;
-    --card-bg: #FFFFFF; /* Fundo dos cards */
-    --table-header-bg: #F9FAFB; /* Fundo do cabeçalho da tabela */
-    --table-row-hover: #F3F4F6; /* Cor ao passar mouse nas linhas */
+    --card-bg: #FFFFFF;
+    --table-header-bg: #F9FAFB;
+    --table-row-hover: #e1f5fe;         /* Azul claríssimo (Xcelis) */
+    --table-row-odd: #f8f8f8;
     --btn-bg: var(--primary-color);
-    --btn-bg-hover: #283593;
+    --btn-bg-hover: var(--primary-color-hover);
     --btn-text: #fff;
-    --hover-bg: rgba(37, 99, 235, 0.1); /* Cor de hover com transparência */
+    --hover-bg: rgba(15, 110, 205, 0.1);
+    --login-btn-bg: #041A24;            /* Botão login Xcelis */
+    --login-btn-bg-hover: #0C506D;
+    --loading-outer: #424242;
+    --loading-inner: #012363;
 }
 
 /* ---------------- GMUD Relatório (UI específicas) ---------------- */
@@ -98,7 +113,7 @@
 }
 
 .btn-primary:hover {
-    background-color: #1D4ED8;
+    background-color: var(--primary-color-hover);
 }
 
 .btn-secondary {
@@ -176,18 +191,30 @@ tr.related-row td:nth-child(4) { /* Meta: Data / GMUD */
 
 /* Tema Escuro */
 [data-theme="dark"] {
-    --primary-color: #0d1333;
-    --secondary-color: #0097a7;
+    --primary-color: #1e87f0;           /* Azul UIkit para contraste */
+    --primary-color-hover: #0f6ecd;
+    --accent-blue: #39f;
+    --secondary-color: #a0a7b8;
     --background-color: #1A1F2B;
+    --header-bg: #0f1117;
+    --header-text: #ffffff;
+    --sidebar-bg: #2a2a2a;
+    --sidebar-text: #dddddd;
+    --sidebar-text-active: #ffffff;
+    --sidebar-item-hover: rgba(255, 255, 255, 0.08);
+    --sidebar-bar-bottom-bg: rgb(40, 40, 40);
     --text-color: #F9FAFB;
     --border-color: #34495e;
     --card-bg: #242937;
     --table-header-bg: #242937;
     --table-row-hover: #2E3444;
+    --table-row-odd: #1f2430;
     --btn-bg: var(--primary-color);
-    --btn-bg-hover: #283593;
+    --btn-bg-hover: var(--primary-color-hover);
     --btn-text: #fff;
-    --hover-bg: rgba(37, 99, 235, 0.2);
+    --hover-bg: rgba(30, 135, 240, 0.2);
+    --login-btn-bg: #041A24;
+    --login-btn-bg-hover: #0C506D;
 }
 
 * {
@@ -209,13 +236,13 @@ body {
     min-height: 100vh;
 }
 
-/* Barra Lateral */
+/* Barra Lateral (identidade Xcelis) */
 .sidebar {
-    width: 250px;
+    width: var(--sidebar-width);
     height: 100vh;
-    background: #1A1F2B;
+    background: var(--sidebar-bg);
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-    transition: width 0.3s;
+    transition: width ease-in-out 280ms;
     position: fixed;
     left: 0;
     top: 0;
@@ -229,22 +256,25 @@ body {
 }
 
 .sidebar-header {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    min-height: 52px;
+    background-color: rgba(0, 0, 0, 0.15);
 }
 
 .toggle-sidebar {
     background: none;
     border: none;
-    color: #6B7280;
+    color: var(--sidebar-text);
     cursor: pointer;
     padding: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: color 280ms ease-in-out;
 }
 
 .toggle-sidebar:hover {
@@ -252,45 +282,44 @@ body {
 }
 
 .sidebar-nav {
-    padding: 1rem 0;
+    padding: 0.5rem 0;
     flex: 1;
+    overflow-y: auto;
 }
 
 .sidebar-nav a {
+    position: relative;
     display: flex;
     align-items: center;
-    padding: 0.75rem 1rem;
-    color: #8B92A5;
+    padding: 8px 20px;
+    color: var(--sidebar-text);
     text-decoration: none;
-    transition: all 0.2s;
-    margin: 0.25rem 0.75rem;
-    border-radius: 0.5rem;
+    border-left: 2px solid transparent;
+    transition: all 0.15s ease-out;
 }
 
-.sidebar-nav a:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-}
-
+.sidebar-nav a:hover,
 .sidebar-nav a.active {
-    background-color: #2563EB;
-    color: #ffffff;
+    border-left: 2px solid var(--accent-blue);
+    padding-left: 30px;
+    color: var(--sidebar-text-active);
+    background-color: var(--sidebar-item-hover);
 }
 
 .sidebar-nav a i {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-right: 0.75rem;
-    font-size: 1.25rem;
+    font-size: 1rem;
 }
 
 .sidebar-nav a span {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 0.9rem;
 }
 
 .sidebar-nav a.provisoriamente-oculto {
@@ -302,26 +331,84 @@ body {
 }
 
 .sidebar-footer {
-    padding: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
     text-align: center;
+    background-color: var(--sidebar-bar-bottom-bg);
 }
 
 .sidebar-footer h2 {
     margin: 0;
-    font-size: 1rem;
-    color: #8B92A5;
+    font-size: 0.95rem;
+    color: var(--sidebar-text);
+    font-weight: 300;
+    letter-spacing: 1px;
 }
 
 /* Conteúdo Principal */
 .main-content {
-    margin-left: 250px;
+    margin-left: var(--sidebar-width);
     padding: 1rem;
-    transition: margin-left 0.3s;
+    transition: margin-left ease-in-out 280ms;
 }
 
 .sidebar.collapsed + .main-content {
     margin-left: 60px;
+}
+
+/* Faixa Xcelis (preta, acima do top-bar) */
+.xcelis-header {
+    background-color: var(--header-bg);
+    color: var(--header-text);
+    padding: 0 20px;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.xcelis-header .xcelis-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--header-text);
+}
+
+.xcelis-header .xcelis-logo img {
+    height: 28px;
+    display: block;
+}
+
+.xcelis-header .xcelis-page-title {
+    font-size: 0.95rem;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
+
+.xcelis-header .xcelis-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.xcelis-header .xcelis-header-actions a,
+.xcelis-header .xcelis-header-actions button {
+    color: var(--header-text);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 200ms ease;
+    font-size: 1rem;
+    padding: 4px 6px;
+}
+
+.xcelis-header .xcelis-header-actions a:hover,
+.xcelis-header .xcelis-header-actions button:hover {
+    opacity: 1;
 }
 
 /* Top Bar */
@@ -331,7 +418,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .top-bar-content {
@@ -640,11 +728,11 @@ tr:hover {
     min-width: 170px;
     justify-content: center;
     transition: background-color 0.3s;
-    box-shadow: 0 2px 6px rgba(26,35,126,0.08);
+    box-shadow: 0 2px 6px rgba(4, 26, 36, 0.08);
 }
 
 .btn-primary:hover {
-    background-color: #1D4ED8;
+    background-color: var(--primary-color-hover);
 }
 
 .top-actions .btn-primary {
@@ -768,17 +856,18 @@ tr:hover {
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-/* Estilos para a tabela de chamados */
+/* Estilos para a tabela de chamados (identidade Xcelis) */
 #chamadosTable {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 1rem;
-    background-color: var(--bg-color);
+    background-color: var(--card-bg);
+    font-size: 14px;
 }
 
 #chamadosTable thead {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--table-header-bg);
+    color: var(--text-color);
     position: sticky;
     top: 0;
     z-index: 1;
@@ -791,15 +880,33 @@ tr:hover {
     border-bottom: 2px solid var(--border-color);
     white-space: nowrap;
     cursor: pointer;
+    color: var(--text-color);
+    transition: color 200ms ease;
+}
+
+#chamadosTable th:hover {
+    color: var(--primary-color);
 }
 
 #chamadosTable td {
     padding: 8px;
     border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+#chamadosTable tbody tr {
+    transition: background-color 280ms linear;
+    cursor: pointer;
 }
 
 #chamadosTable tbody tr:hover {
-    background-color: var(--hover-color);
+    background-color: var(--table-row-hover);
+}
+
+#chamadosTable tbody tr.odd {
+    background: var(--table-row-odd);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
 }
 
 /* Estilos para o menu dropdown de filtro */
