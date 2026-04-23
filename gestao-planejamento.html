@@ -85,7 +85,7 @@
                 <div class="top-bar-content" style="display: flex; align-items: center; justify-content: space-between;">
                     <h1 style="margin: 0; font-size: 1.5rem; text-align: left; flex: 1;">Gestão de Planejamento - Xcelis</h1>
                     <div class="search-container" style="flex: 2; display: flex;">
-                        <input type="text" id="searchInput" placeholder="Buscar demandas..." style="width: 350px;" autocomplete="off">
+                        <input type="search" id="searchInput" name="busca_demandas" placeholder="Buscar demandas..." style="width: 350px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="search" data-lpignore="true" data-form-type="other">
                         <i class="fas fa-search"></i>
                     </div>
                 </div>
@@ -294,6 +294,21 @@
     <script src="js/gestao-planejamento.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+    /* Garante que a barra de busca nunca venha pré-preenchida pelo autofill do browser */
+    (function clearSearchOnLoad() {
+        function clear() {
+            const el = document.getElementById('searchInput');
+            if (el && el.value) el.value = '';
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', clear);
+        } else {
+            clear();
+        }
+        window.addEventListener('pageshow', clear);
+    })();
+    </script>
     <script>
     /* Redimensionamento da coluna Descrição (arrastar a borda direita) */
     (function initResumoResizer() {
