@@ -1145,8 +1145,6 @@ tr:hover {
 #chamadosTable td:nth-child(11),
 #chamadosTable td:nth-child(12) {
     text-align: center;
-    font-family: monospace;
-    font-size: 0.9em;
 }
 
 /* Ajuste para o modo escuro */
