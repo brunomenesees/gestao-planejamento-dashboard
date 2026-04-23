@@ -348,12 +348,16 @@ body {
 /* Conteúdo Principal */
 .main-content {
     margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    min-width: 0;
+    flex: 1 1 auto;
     padding: 1rem;
-    transition: margin-left ease-in-out 280ms;
+    transition: margin-left ease-in-out 280ms, width ease-in-out 280ms;
 }
 
 .sidebar.collapsed + .main-content {
     margin-left: 60px;
+    width: calc(100% - 60px);
 }
 
 /* Faixa Xcelis (preta, acima do top-bar) */
