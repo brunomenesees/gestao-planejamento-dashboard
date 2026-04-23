@@ -1259,10 +1259,19 @@ function filterData() {
             return false;
         }
 
-        if (searchTerm && !Object.values(demanda).some(value => 
+        if (searchTerm && !Object.values(demanda).some(value =>
             String(value).toLowerCase().includes(searchTerm)
         )) return false;
-        
+
+        // Por padrão, esconder chamados com estado Resolvido/Fechado. O usuário pode
+        // visualizá-los selecionando explicitamente o estado no dropdown "Estado".
+        if (!filters.estado) {
+            const estadoDem = (demanda.estado || '').toLowerCase().trim();
+            if (estadoDem === 'resolvido' || estadoDem === 'resolved' || estadoDem === 'fechado' || estadoDem === 'closed') {
+                return false;
+            }
+        }
+
         const filtrosBasicos = Object.entries(filters).every(([key, value]) => {
             if (!value) return true;
             if (key === 'dataInicial' || key === 'dataFinal') return true;
