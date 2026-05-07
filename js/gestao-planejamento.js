@@ -358,13 +358,13 @@ const SQUAD_OPTIONS = [
 
 // TODO: Substituir com a lista real de analistas
 const ANALISTA_RESPONSAVEL_OPTIONS = [
-    " ","bruno.tavares", "daniel.paraizo", "elaine.santos", "gabriel.matos","guilherme.moreira", "gustavo.magalhaes","paloma.santo", "rafael.felicio", "sebastian.citta", 
+    " ","bruno.tavares", "daniel.paraizo", "elaine.santos", "gabriel.matos","guilherme.moreira", "guilherme.teixeira", "gustavo.magalhaes","paloma.santo", "rafael.felicio", "sebastian.citta", 
     "thiago.caldeira", "tiago.nogueira","victor.maciel", "vinicius.vieira", "viviane.silva"
 ];
 
 // TODO: Substituir com a lista real de responsáveis
 const RESPONSAVEL_ATUAL_OPTIONS = [
-        " ","Bruno Tavares", "Daniel Paraizo", "Elaine Santos", "Gabriel Matos", "Giovanni Mussolini", "Guilherme Moreira",
+        " ","Bruno Tavares", "Daniel Paraizo", "Elaine Santos", "Gabriel Matos", "Giovanni Mussolini", "Guilherme Moreira", "Guilherme Teixeira",
         "Gustavo Magalhaes", "Lucas Velloso","Paloma Santo", "Rafael Felicio", "Rafael Montesso", "Sebastian Citta", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira","Victor Maciel", 
         "Vinicius Vieira", "Viviane Silva"
 ];
@@ -377,6 +377,7 @@ const RESPONSAVEL_TO_EQUIPE = {
     "Giovanni Mussolini": "Analytics",
     "Gustavo Magalhaes": "Requisitos",
     "Guilherme Moreira": "Web",
+    "Guilherme Teixeira": "Web",
     "Lucas Velloso": "Web",
     "Paloma Santo": "Requisitos",
     "Rafael Felicio": "Web",
@@ -2084,7 +2085,7 @@ function updateTable() {
             formatarDataCurta(demanda.data_prometida) || '',
             formatarDataCurta(demanda.ultima_atualizacao) || '',
             demanda.ordem_plnj || '',
-            formatarDataCurta(demanda.previsao_etapa) || '',
+            demanda.previsao_etapa || '',
             demanda.numero_gmud || '',
             demanda.status || '',
             formatarHorasMinutos(calcularTempoTotal(demanda)) || ''
