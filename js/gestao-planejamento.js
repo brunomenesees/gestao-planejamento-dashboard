@@ -365,7 +365,7 @@ const ANALISTA_RESPONSAVEL_OPTIONS = [
 // TODO: Substituir com a lista real de responsáveis
 const RESPONSAVEL_ATUAL_OPTIONS = [
         " ","Bruno Tavares", "Daniel Paraizo", "Elaine Santos", "Gabriel Matos", "Giovanni Mussolini", "Guilherme Moreira", "Guilherme Teixeira",
-        "Gustavo Magalhaes", "João Kleinkauf", "Lucas Velloso", "Luis Eduardo", "Paloma Santo", "Rafael Felicio", "Rafael Montesso", "Sebastian Citta", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira","Victor Maciel", 
+        "Gustavo Magalhaes", "Joao Kleinkauf", "Lucas Velloso", "Luis Eduardo", "Paloma Santo", "Rafael Felicio", "Rafael Montesso", "Sebastian Citta", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira","Victor Maciel", 
         "Vinicius Vieira", "Viviane Silva"
 ];
 
