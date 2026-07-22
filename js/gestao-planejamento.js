@@ -378,6 +378,7 @@ const RESPONSAVEL_TO_EQUIPE = {
     "Gustavo Magalhaes": "Requisitos",
     "Guilherme Moreira": "Web",
     "Guilherme Teixeira": "Web",
+    "Leonardo Alegre": "Web",
     "Lucas Velloso": "Web",
     "Paloma Santo": "Requisitos",
     "Rafael Felicio": "Web",
