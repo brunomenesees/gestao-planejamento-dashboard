@@ -296,6 +296,10 @@ const STATUS_FILA = [
     'Fila WEB'
 ];
 
+// Liga/desliga a obrigatoriedade do campo Previsão de Etapa.
+// Desativado temporariamente a pedido — para reativar, basta voltar para true.
+const PREVISAO_ETAPA_OBRIGATORIA = false;
+
 // Função para validar se um status é de fila
 function isStatusFila(status) {
     return STATUS_FILA.includes(status);
@@ -303,6 +307,10 @@ function isStatusFila(status) {
 
 // Função para validar previsão de etapa baseado no status
 function validarPrevisaoEtapa(status, previsao, ticket = null) {
+    if (!PREVISAO_ETAPA_OBRIGATORIA) {
+        return null; // Obrigatoriedade desativada temporariamente
+    }
+
     // Se o status de destino for de FILA, não exige previsão
     if (isStatusFila(status)) {
         return null; // Status de fila não exige previsão
@@ -3256,6 +3264,7 @@ function createMassEditModal(ticketNumbers) {
         const previsaoField = modal.querySelector('.unified-modal-field:has(#massPrevisao)');
         const previsaoLabel = previsaoField?.querySelector('label');
         const previsaoInput = modal.querySelector('#massPrevisao');
+        if (!PREVISAO_ETAPA_OBRIGATORIA) return; // obrigatoriedade desativada temporariamente
         if (!previsaoObrigatoriaAtivada) return; // só ativa após interação
         if (previsaoLabel && previsaoInput) {
             // Remove o ícone de alerta existente se houver
@@ -3853,6 +3862,12 @@ function createMassEditModal(ticketNumbers) {
             if (apply.resolved) lines.push('Estado: resolved');
             addCommentLine(apply.gmud, base.numero_gmud, values.gmud, 'GMUD');
             addCommentLine(apply.previsao, base.previsao_etapa, values.previsao, 'Previsão Etapa');
+            if (apply.respAtual && patchOk) {
+                const newRespRaw = raw.respAtual === '__CLEAR__' ? '' : values.respAtual;
+                if ((base.resp_atual || '') !== (newRespRaw || '')) {
+                    lines.push(`Responsável Atual: ${base.resp_atual || '(vazio)'}>${newRespRaw || '(vazio)'}`);
+                }
+            }
             if (values.comment) lines.push(values.comment);
 
             let postOk = true;
@@ -4278,7 +4293,26 @@ function createSimpleUpdateModal(ticketNumber, currentValue, modalTitle, options
                         demandasData[demandaIndex][dataKey] = newValue;
                     }
                 }
-                
+
+                // Gera nota de texto quando o Responsável Atual é alterado
+                if (customFieldId === 69) {
+                    try {
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+                        const username = user.username || 'usuario.desconhecido';
+                        const oldResp = currentValue || '(vazio)';
+                        const newResp = newValue || '(vazio)';
+                        await mantisRequest(`issues/${ticketNumber}/notes`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                text: `[Por: ${username}]\n\nResponsável Atual: ${oldResp}>${newResp}`,
+                                view_state: { name: 'public' }
+                            })
+                        });
+                    } catch (error) {
+                        console.error(`Erro ao adicionar nota de Responsável Atual ao ticket ${ticketNumber}:`, error);
+                    }
+                }
+
                 // Atualizar também no banco de dados local
                 try {
                     const db = await openDB();
