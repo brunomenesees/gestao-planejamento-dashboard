@@ -374,7 +374,7 @@ const ANALISTA_RESPONSAVEL_OPTIONS = [
 const RESPONSAVEL_ATUAL_OPTIONS = [
         " ","Bruno Tavares", "Daniel Paraizo", "Elaine Santos", "Felipe Arruda", "Gabriel Matos", "Giovanni Mussolini", "Guilherme Moreira", "Guilherme Teixeira",
         "Gustavo Magalhaes", "Joao Kleinkauf", "Lucas Velloso","Leonardo Alegre", "Luis Eduardo", "Paloma Santo", "Rafael Felicio", "Rafael Montesso","Rivia Araujo", "Sebastian Citta", "Sylvio Neto", "Thiago Caldeira", "Tiago Nogueira","Victor Maciel", 
-        "Vinicius Vieira", "Viviane Silva", "Wanderson Lucio"
+        "Vinicius Vieira", "Viviane Silva", "Wanderson Lucio", "Wendrel Moraes"
 ];
 
 // Mapeamento de responsável atual para equipe
@@ -398,7 +398,9 @@ const RESPONSAVEL_TO_EQUIPE = {
     "Tiago Nogueira": "Web",
     "Victor Maciel": "Web",
     "Vinicius Vieira": "Web",
-    "Viviane Silva": "Requisitos"
+    "Viviane Silva": "Requisitos",
+    "Wanderson Lucio": "Web",
+    "Wendrel Moraes": "Web"
     // Daniel Paraizo não define equipe
 };
 // Atualiza o campo Equipe automaticamente ao selecionar Responsável Atual (edição massiva)
